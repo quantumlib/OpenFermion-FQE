@@ -1,6 +1,3 @@
-#
-# Using the standard gitignore until there is time to custimize it for our needs
-#
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
