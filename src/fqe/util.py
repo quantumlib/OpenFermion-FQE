@@ -16,8 +16,7 @@
 """
 
 from operator import itemgetter
-
-import random
+from typing import Any, Generator, List, Tuple
 
 from scipy.special import binom
 import numpy
@@ -27,7 +26,7 @@ from fqe.bitstring import check_conserved_bits
 from fqe.string_addressing import count_bits
 
 
-def alpha_beta_electrons(nele, m_s):
+def alpha_beta_electrons(nele: int, m_s: int) -> Tuple[int, int]:
     """Given the total number of electrons and the z-spin quantum number, return
     the number of alpha and beta electrons in the system.
 
@@ -47,10 +46,10 @@ def alpha_beta_electrons(nele, m_s):
     return nalpha, nbeta
 
 
-def bubblesort(arr):
+def bubblesort(arr: List[Any]) -> List[Any]:
     """Bubble Sort algorithm to arrange a list so that the lowest value is
     stored in 0 and the highest value is stored in len(arr)-1.  It is included
-    here in order to access the swap count
+    here in order to access the swap count.
 
     Args:
         arr (list) - object to be sorted
@@ -73,12 +72,12 @@ def bubblesort(arr):
     return swap_count
 
 
-def configuration_key_union(*argv):
+def configuration_key_union(*argv: List[Tuple[int, int]]) -> List[Tuple[int, int]]:
     """Given a list of configuration keys, build a list which is the union of
     all configuration keys in the list
 
     Args:
-        *args (list) - any number of configuration key lists to be joined
+        *args (list[(int, int)]) - any number of configuration key lists to be joined
 
     Returns:
         list[(int, int)] - a list of unique configuration keys found among all
@@ -90,11 +89,11 @@ def configuration_key_union(*argv):
     return list(keyunion)
 
 
-def configuration_key_intersection(*argv):
+def configuration_key_intersection(*argv: List[Tuple[int, int]]) -> List[Tuple[int, int]]:
     """Return the intersection of the passed configuration key lists.
 
     Args:
-        *args (list) - any number of configuration key lists to be joined
+        *args (list[(int, int)]) - any number of configuration key lists to be joined
 
     Returns:
         list [(int, int)] - a list of configuration keys found in every
@@ -110,7 +109,7 @@ def configuration_key_intersection(*argv):
     return keyinter
 
 
-def init_bitstring_groundstate(occ_num):
+def init_bitstring_groundstate(occ_num: int) -> int:
     """Occupy the n lowest orbitals of a state in the bitstring representation
 
     Args:
@@ -122,7 +121,7 @@ def init_bitstring_groundstate(occ_num):
     return (1<<occ_num)-1
 
 
-def init_qubit_vacuum(nqubits):
+def init_qubit_vacuum(nqubits: int) -> numpy.ndarray:
     """Build the ground state wavefunction for an nqubit system.
 
     Args:
@@ -131,19 +130,19 @@ def init_qubit_vacuum(nqubits):
     Returns:
         numpy.array(dtype=numpy.complex64)
     """
-    _gs = numpy.zeros(2**nqubits, dtype=numpy.complex64)
-    _gs[0] = 1.0 + 0.0j
-    return _gs
+    ground_state = numpy.zeros(2**nqubits, dtype=numpy.complex64)
+    ground_state[0] = 1.0 + 0.0j
+    return ground_state
 
 
-def ltlt_index_generator(dim):
+def ltlt_index_generator(dim: int) -> Generator[Tuple[int, int, int, int], None, None]:
     """Generate index sets into a lower triangle, lower triangle matrix
 
     Args:
         dim (int) - the dimension of the array
 
     Returns:
-        int, int, int, int - unique pointers into the compressed matrix
+        (int, int, int, int) - unique pointers into the compressed matrix
     """
     lim = dim
     for i in range(lim):
@@ -157,7 +156,7 @@ def ltlt_index_generator(dim):
                     yield i, j, k, lst
 
 
-def invert_bitstring_with_mask(string, masklen):
+def invert_bitstring_with_mask(string: int, masklen: int) -> int:
     """Invert a bitstring with a mask.
 
     Args:
@@ -171,7 +170,7 @@ def invert_bitstring_with_mask(string, masklen):
     return ~string & mask
 
 
-def paritysort(arr):
+def paritysort(arr: List[int]) -> int:
     """Move all even numbers to the left and all odd numbers to the right
 
     Args:
@@ -201,7 +200,7 @@ def paritysort(arr):
     return swap_count
 
 
-def qubit_particle_number_sector(nqubits, pnum):
+def qubit_particle_number_sector(nqubits: int, pnum: int) -> List[numpy.ndarray]:
     """Generate the basis vectors into the qubit basis representing all states
     which have a definite particle number.
 
@@ -233,7 +232,8 @@ def qubit_particle_number_sector(nqubits, pnum):
     return vectors
 
 
-def qubit_config_sector(nqubits, pnum, m_s):
+def qubit_config_sector(nqubits: int, pnum: int,
+                        m_s: int) -> List[numpy.ndarray]:
     """Generate the basis vectors into the qubit basis representing all states
     which have a definite particle number and spin.
 
@@ -280,7 +280,7 @@ def qubit_config_sector(nqubits, pnum, m_s):
     return vectors
 
 
-def qubit_particle_number_index(nqubits, pnum):
+def qubit_particle_number_index(nqubits: int, pnum: int) -> List[int]:
     """Generate indexes corresponding to the coefficient that is associated
     with a specific particle number
 
@@ -311,7 +311,8 @@ def qubit_particle_number_index(nqubits, pnum):
     return indexes
 
 
-def qubit_particle_number_index_spin(nqubits, pnum):
+def qubit_particle_number_index_spin(nqubits: int,
+                                     pnum: int) -> List[Tuple[int, int]]:
     """Generate indexes corresponding to the coefficient that is associated
     with a specific particle number and spin
 
@@ -348,12 +349,12 @@ def qubit_particle_number_index_spin(nqubits, pnum):
     return indexes
 
 
-def rand_wfn(dim, sparse='none'):
+def rand_wfn(dim: int, sparse: str = 'none') -> numpy.ndarray:
     """Utility for generating random normalized wavefunctions.
 
     Args:
         dim (int) - length of the wavefunction
-        sparse (string) - a string indiicating some approximate measure of how
+        sparse (string) - a string indicating an approximate measure of how
             often zeros should show up in the wavefunction
 
     Returns:
@@ -362,17 +363,17 @@ def rand_wfn(dim, sparse='none'):
     wfn = numpy.random.randn(dim) + numpy.random.randn(dim)*1.j
     if sparse == 'low':
         nzero = max(int(dim*(0.3 - numpy.random.ranf()*0.15)), 1)
-        zind = random.randint(0, nzero)
+        zind = numpy.random.randint(0, dim, nzero)
         wfn[zind] = 0. + .0j
 
     if sparse == 'med':
         nzero = max(int(dim*(0.65 - numpy.random.ranf()*0.25)), 1)
-        zind = random.randint(0, nzero)
+        zind = numpy.random.randint(0, dim, nzero)
         wfn[zind] = 0. + .0j
 
     if sparse == 'high':
         nzero = max(int(dim*(0.85 - numpy.random.ranf()*0.15)) - 1, dim//2)
-        zind = random.randint(0, nzero)
+        zind = numpy.random.randint(0, high=dim, size=nzero)
         wfn[zind] = 0. + .0j
 
     norm = numpy.sqrt(numpy.vdot(wfn, wfn))
@@ -380,13 +381,14 @@ def rand_wfn(dim, sparse='none'):
     return wfn
 
 
-def sort_configuration_keys(configs):
+def sort_configuration_keys(configs:
+                            List[Tuple[int, int]]) -> List[Tuple[int, int]]:
     """Return a standard sorting of configuration keys in a wavefunction for
     comparison.  The configurations are sorted first by the number of particles
     and then by the spin quantum number.
 
     Args:
-        wfn list[(dict.keys)] - a dictionary of keys
+        wfn list[(int, int)] - a dictionary of keys
 
     Returns:
         list with the sorted keys
@@ -394,7 +396,7 @@ def sort_configuration_keys(configs):
     return sorted(configs, key=itemgetter(0, 1))
 
 
-def validate_config(nalpha, nbeta, norb):
+def validate_config(nalpha: int, nbeta: int, norb: int) -> None:
     """ Check that the parameters passed are valid to build a configuration
 
     Args:
@@ -418,7 +420,7 @@ def validate_config(nalpha, nbeta, norb):
         raise ValueError("Insufficient number of orbitals")
 
 
-def weyl_paldus(nele, m_s, norb):
+def weyl_paldus(nele: int, m_s: int, norb: int) -> int:
     """Weyl-Paldus formula for calculating the number of CSF necessary for a
     configuration.
 
@@ -439,7 +441,7 @@ def weyl_paldus(nele, m_s, norb):
     return int(ncsf)
 
 
-def zero_transform(string0, unocc, occ, norb):
+def zero_transform(string0: int, unocc: int, occ: int, norb: int) -> bool:
     """Given a bitstring, determine if it satisfies the occupation and
     nonoccupation conditions necessary to be non zero when a product of creation
     and annihilation operators are applied.

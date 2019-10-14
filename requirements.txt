@@ -1,6 +1,6 @@
 cirq
 jupyter
-numpy>=1.13.3
+numpy>=1.14
 openfermion
 scipy>=1.2
 six
