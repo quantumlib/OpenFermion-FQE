@@ -1,6 +1,0 @@
-cirq
-jupyter
-numpy>=1.13.3
-openfermion
-scipy>=1.2
-six
