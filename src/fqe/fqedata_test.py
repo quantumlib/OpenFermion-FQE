@@ -144,8 +144,8 @@ class FqeDataTest(unittest.TestCase):
         """Set vectors in the fqedata set from a data block
         """
         test = fqedata.FqeData(1, 1, 2)
-        ref = numpy.array((numpy.random.rand((4, 3)) +
-                           numpy.random.rand((4, 3))*1.j),
+        ref = numpy.array((numpy.random.ranf((4, 3)) +
+                           numpy.random.ranf((4, 3))*1.j),
                           dtype=numpy.complex64)
         test.set_wfn(strategy='from_data', raw_data=ref)
         self.assertTrue(numpy.allclose(test.coeff, ref))
@@ -155,8 +155,8 @@ class FqeDataTest(unittest.TestCase):
         """The fqedata can be conjugated in place
         """
         test = fqedata.FqeData(1, 1, 2)
-        ref = numpy.array((numpy.random.rand((4, 3)) +
-                           numpy.random.rand((4, 3))*1.j),
+        ref = numpy.array((numpy.random.ranf((4, 3)) +
+                           numpy.random.ranf((4, 3))*1.j),
                           dtype=numpy.complex64)
         test.set_wfn(strategy='from_data', raw_data=ref)
         test.conj
