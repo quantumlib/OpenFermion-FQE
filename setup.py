@@ -9,48 +9,62 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
+
+"""
+Fermionic Quantum Emulator setup script.
+"""
+
 import io
-import os
+import re
 
 from setuptools import setup, find_packages
 
 
-# This reads the __version__ variable from openfermionfqe/_version.py
-exec(open('src/fqe/_version.py').read())
+def version_number(path: str) -> str:
+    """Get the FQE version number from the src directory
+    """
+    exp = r'__version__[ ]*=[ ]*(["|\'][\d]+\.[\d]+\.[\d]+[\.dev[\d]*]?["|\'])'
+    version_re = re.compile(exp)
 
-# Readme file as long_description:
-long_description = ('===============\n' +
-                    'OpenFermion-FQE\n' +
-                    '===============\n')
-stream = io.open('README.rst', encoding='utf-8')
-stream.readline()
-long_description += stream.read()
+    with open(path, 'r') as fqe_version:
+        version = version_re.search(fqe_version.read()).group(1)
 
-# Read in requirements.txt
-requirements = open('requirements.txt').readlines()
-requirements = [r.strip() for r in requirements]
+    return version
 
-setup(
-    name='fqe',
-    version=__version__,
-    author='Quantum Simulation Technologies Inc.',
-    author_email='throssell@qsimulate.com',
-    url='http://www.openfermion.org',
-    description=('Fermionic Quantum Emulator for OpenFermion'),
-    long_description=long_description,
-#    install_requires=requirements,
-    license='Apache 2',
-    packages=find_packages(where='src'),
-    package_dir={'': 'src'}#,
-#    include_package_data=True,
-#    package_data={
-#        '': [os.path.join('src', 'openfermion', 'data', '*.hdf5'),
-#             os.path.join('src', 'openfermion', 'data', '*.npy')]
-#    },
-#    data_files=[('openfermion/examples', [
-#                 'examples/binary_code_transforms_demo.ipynb',
-#                 'examples/bosonic_operator_tutorial.ipynb',
-#                 'examples/jordan_wigner_and_bravyi_kitaev_transforms.ipynb',
-#                 'examples/openfermion_tutorial.ipynb',
-#                 'examples/performance_benchmarks.py'])],
-    )
+
+def main() -> None:
+    """
+    Perform the necessary tasks to install the Fermionic Quantum Emulator
+    """
+    version_path = './src/fqe/_version.py'
+
+    __version__ = version_number(version_path)
+
+    if __version__ is None:
+        raise ValueError('Version information not found in ' + version_path)
+
+    long_description = ('===============\n' +
+                        'OpenFermion-FQE\n' +
+                        '===============\n')
+    stream = io.open('README.rst', encoding='utf-8')
+    stream.readline()
+    long_description += stream.read()
+
+    requirements_buffer = open('requirements.txt').readlines()
+    requirements = [r.strip() for r in requirements_buffer]
+
+    setup(
+        name='fqe',
+        version=__version__,
+        author='Quantum Simulation Technologies Inc.',
+        author_email='throssell@qsimulate.com',
+        url='http://www.openfermion.org',
+        description=('Fermionic Quantum Emulator for OpenFermion'),
+        long_description=long_description,
+        install_requires=requirements,
+        license='Apache 2',
+        packages=find_packages(where='src'),
+        package_dir={'': 'src'}
+        )
+
+main()
