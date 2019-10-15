@@ -23,7 +23,7 @@ from setuptools import setup, find_packages
 def version_number(path: str) -> str:
     """Get the FQE version number from the src directory
     """
-    exp = r'__version__[ ]*=[ ]*(["|\'][\d]+\.[\d]+\.[\d]+[\.dev[\d]*]?["|\'])'
+    exp = r'__version__[ ]*=[ ]*["|\']([\d]+\.[\d]+\.[\d]+[\.dev[\d]*]?)["|\']'
     version_re = re.compile(exp)
 
     with open(path, 'r') as fqe_version:

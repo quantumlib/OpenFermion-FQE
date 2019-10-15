@@ -2,5 +2,5 @@ cirq
 jupyter
 numpy>=1.13.3
 openfermion
-scipy>=1.2
+scipy>=1.2,<1.3.0
 six
