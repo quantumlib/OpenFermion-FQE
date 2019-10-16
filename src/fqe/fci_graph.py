@@ -32,7 +32,7 @@ class FciGraph():
     This is an internal class that should not be exposed to the user
     """
 
-    def __init__(self, nalpha, nbeta, norb):
+    def __init__(self, nalpha: int, nbeta: int, norb: int) -> None:
         """
 
         Args:
@@ -54,7 +54,7 @@ class FciGraph():
         self._build_fci_strings()
 
 
-    def _build_strings(self, nele, length, string_list):
+    def _build_strings(self, nele: int, length: int, string_list: List[int]) -> None:
         """Build all bitstrings for index the FCI and their lexicographic index
            for a single spin case.
 
@@ -75,7 +75,7 @@ class FciGraph():
             string_list[build_string_address(nele, self._norb, occ)] = wbit
 
 
-    def _build_fci_strings(self):
+    def _build_fci_strings(self) -> None:
         """Build the Fcigraph for each spin case in the configuration.  This is
         just a convenience wrapper to accomplish initialization of each spin
         case.
@@ -90,7 +90,7 @@ class FciGraph():
         self._build_strings(self._nbeta, self._lenb, self._bstr)
 
 
-    def get_alpha(self, address):
+    def get_alpha(self, address: int) -> int:
         """Retrieve the alpha bitstring reprsentation stored at the address
 
         Args:
@@ -102,7 +102,7 @@ class FciGraph():
         return self._astr[address]
 
 
-    def get_beta(self, address):
+    def get_beta(self, address: int) -> int:
         """Retrieve the beta bitstring reprsentation stored at the address
 
         Args:

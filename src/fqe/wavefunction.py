@@ -16,6 +16,7 @@
 """
 
 import copy
+from typing import Callable, Dict, Generator, List, Union
 
 from scipy.special import factorial, jv
 from openfermion import FermionOperator
@@ -32,14 +33,15 @@ from fqe.openfermion_utils import mutate_config
 from fqe.string_addressing import count_bits
 
 
-class Wavefunction(object):
+class Wavefunction():
     """Wavefunction is the central object for manipulaion in the
     OpenFermion-FQE.
     """
 
 
-    def __init__(self, param=None, conservespin=False,
-                 conserveparticlenumber=False):
+    def __init__(self, param: Optional[List[List[int, int, int]]] = None,
+                 conservespin: bool = False,
+                 conserveparticlenumber: bool = False) -> None:
         """
         Args:
             param (list[list[n, ms, norb]]) - the constructor accepts a list of
@@ -175,7 +177,7 @@ class Wavefunction(object):
         return newwfn
 
 
-    def __mul__(self, sval):
+    def __mul__(self, sval: complex) -> None:
         """Multiply will scale the whole wavefunction by the value passed.
 
         Args:
@@ -187,7 +189,8 @@ class Wavefunction(object):
         self.scale(sval)
 
 
-    def add_config(self, nele, m_s, norb, data=None):
+    def add_config(self, nele: int, m_s: int, norb: int,
+                   data: Optional[numpy.ndarray] = None) -> None:
         """Add a FqeData configuration to the wavefunction.  Discard it if it is
         unphysical.
 
@@ -225,14 +228,14 @@ class Wavefunction(object):
 
 
     @property
-    def configs(self):
+    def configs(self) -> List[Tuple[(int, int)]]:
         """Return a list of the configuration keys in the wavefunction
         """
         return self._civec.keys()
 
 
     @property
-    def lena(self):
+    def lena(self) -> Dict[Tuple[int, int], int]:
         """Return a dict of the {(nele, m_s) : lena] for each configuration
         """
         if not self._lena:
@@ -243,7 +246,7 @@ class Wavefunction(object):
 
 
     @property
-    def lenb(self):
+    def lenb(self) -> Dict[Tuple[int, int], int]:
         """Return a dict of the {(nele, m_s) : lenb] for each configuration
         """
         if not self._lenb:
@@ -254,7 +257,7 @@ class Wavefunction(object):
 
 
     @property
-    def gs_a(self):
+    def gs_a(self) -> Dict[Tuple[int, int], int]:
         """Return a dict of the {(nele, m_s) : gs_a] for each configuration
         """
         if not self._gs_a:
@@ -265,7 +268,7 @@ class Wavefunction(object):
 
 
     @property
-    def gs_b(self):
+    def gs_b(self) -> Dict[Tuple[int, int], int]:
         """Return a dict of the {(nele, m_s) : gs_b] for each configuration
         """
         if not self._gs_b:
@@ -276,7 +279,7 @@ class Wavefunction(object):
 
 
     @property
-    def nalpha(self):
+    def nalpha(self) -> Dict[Tuple[int, int], int]:
         """Return a dict of the {(nele, m_s) : nalpha] for each configuration
         """
         if not self._nalpha:
@@ -287,7 +290,7 @@ class Wavefunction(object):
 
 
     @property
-    def nbeta(self):
+    def nbeta(self) -> Dict[Tuple[int, int], int]:
         """Return a dict of the {(nele, m_s) : nbeta] for each configuration
         """
         if not self._nbeta:
@@ -298,14 +301,14 @@ class Wavefunction(object):
 
 
     @property
-    def norb(self):
+    def norb(self) -> int:
         """Return the number of orbitals
         """
         return self._norb
 
 
     @property
-    def cidim(self):
+    def cidim(self) -> Dict[Tuple[int, int], int]:
         """Return a dict of the {(nele, m_s) : cidim] for each configuration
         """
         if not self._cidim:
@@ -315,7 +318,7 @@ class Wavefunction(object):
         return self._cidim
 
 
-    def get_coeff(self, key, vec=None):
+    def get_coeff(self, key: int, vec: Optional[int] = None) -> numpy.ndarray:
         """Retrieve a vector from a configuration in the wavefunction
 
         Args:
@@ -364,7 +367,7 @@ class Wavefunction(object):
         return newwfn
 
 
-    def apply_generated_unitary(self, ops, algo, accuracy=1.e-7):
+    def apply_generated_unitary(self, ops, algo: str, accuracy: float = 1.e-7):
         """Perform the exponentialtion of fermionic algebras to the
         wavefunction according the method and accuracy.
 
@@ -429,7 +432,7 @@ class Wavefunction(object):
         return wfnout
 
 
-    def max_element(self):
+    def max_element(self) -> complex:
         """Return the largest magnitude value in the wavefunction
         """
         maxval = 0.0
@@ -440,15 +443,15 @@ class Wavefunction(object):
         return maxval
 
 
-    def add_ele(self, astr, bstr, val, vec=0):
+    def add_ele(self, astr: int, bstr: int, val: complex, vec: int = 0):
         """Add a value to an element of a configuration given a key and string
         representation.
 
         Args:
-            key (tuple(int, int)) - the pair of (particle number, ms)
             astr (bitstring) - bitsrting of the alpha configuration
             bstr (bitstring) - bitsrting of the beta configuration
             val (complex double) - value to set
+            vec (int) - state to access
         """
         key = (count_bits(astr) + count_bits(bstr),
                count_bits(astr) - count_bits(bstr))
@@ -459,15 +462,15 @@ class Wavefunction(object):
                   ' this wavefunction'.format(astr, bstr, key))
 
 
-    def set_ele(self, astr, bstr, val, vec=0):
+    def set_ele(self, astr: int, bstr: int, val: complex, vec: int = 0):
         """Set an element of a configuration given a key and string
         representation.
 
         Args:
-            key (tuple(int, int)) - the pair of (particle number, ms)
             astr (bitstring) - bitsrting of the alpha configuration
             bstr (bitstring) - bitsrting of the beta configuration
             val (complex double) - value to set
+            vec (int) - state to access
         """
         key = (count_bits(astr) + count_bits(bstr),
                count_bits(astr) - count_bits(bstr))
@@ -478,7 +481,7 @@ class Wavefunction(object):
                   ' this wavefunction'.format(astr, bstr, key))
 
 
-    def get_ele(self, astr, bstr, vec=0):
+    def get_ele(self, astr: int, bstr: int, vec: int =0):
         """Return a specific element indexed by it's bitstring accessor and
         the key to the configuration.
 
@@ -500,7 +503,8 @@ class Wavefunction(object):
             return 0. + .0j
 
 
-    def set_wfn(self, vrange=None, strategy=None, raw_data=None):
+    def set_wfn(self, vrange: List[int] = None, strategy: str = None,
+                raw_data: numpy.ndarray):
         """Set the values of the ciwfn based on an argument or data to
         initalize from.
 
@@ -508,7 +512,7 @@ class Wavefunction(object):
             vrange (list[int]) - integers indicating which state of the
                 wavefunction should be set
             strategy (string) - an option controlling how the values are set
-            raw_data (numpy.arrau(dtype=numpy.complex64)) - data to inject into
+            raw_data (numpy.array(dtype=numpy.complex64)) - data to inject into
                 the configuration
         """
         if strategy == 'from_data':
@@ -520,7 +524,7 @@ class Wavefunction(object):
                 config.set_wfn(vrange=vrange, strategy=strategy, raw_data=None)
 
 
-    def scale(self, sval):
+    def scale(self, sval: complex) -> None:
         """ Scale each configuration space by the value sval
 
         Args:
@@ -530,7 +534,7 @@ class Wavefunction(object):
             config.scale(sval)
 
 
-    def normalize(self, vec=None):
+    def normalize(self, vec: Union[List[int], None] = None) -> None:
         """Iterate through each vector of each data structure such that for a
         vector |i> the Frobenius inner product is 1.  Then scale everything by
         the number of configurations
@@ -539,7 +543,7 @@ class Wavefunction(object):
             config.normalize(vec=vec)
 
 
-    def generator(self):
+    def generator(self) -> Generator[Tuple[int, int], None, None]:
         """Return each configuration in the wavefunction for convenient
         manipulation
         """
@@ -547,7 +551,8 @@ class Wavefunction(object):
             yield config
 
 
-    def print_wfn(self, threshold=0.001, fmt='str', states=None):
+    def print_wfn(self, threshold: float = 0.001, fmt: str = 'str',
+                  states: Union[int, List[int] None] = None):
         """Print occupations and coefficients to the screen.
 
         Args:
@@ -557,12 +562,11 @@ class Wavefunction(object):
             states (int of list[int]) - an index or indexes indicating which
                 states to print.
         """
-        def _print_format(fmt):
+        def _print_format(fmt: str) -> Callable[[int, int], str]:
             """ Select the function which will perform formatted printing
             """
-
             if fmt == 'occ':
-                def _occupation_format(astring, bstring):
+                def _occupation_format(astring: int, bstring: int):
                     """occ - Prints a string indicating occupation state of each spatial
                     orbital.  A doubly occupied orbital will be indicated with "2",
                     a singly occupied orbital will get "a" or "b" depending on the
@@ -572,7 +576,8 @@ class Wavefunction(object):
                                                      bstring.bit_length()))]
                     docc = astring & bstring
 
-                    def build_occ_value(bstr, char, occstr):
+                    def build_occ_value(bstr: int, char: str,
+                                        occstr: List[str]):
                         """Fill a list with a character corresponding to the
                         location of '1' bits in bitstring
 
@@ -597,7 +602,7 @@ class Wavefunction(object):
 
                 return _occupation_format
 
-            def _string_format(astring, bstring):
+            def _string_format(astring: int, bstring: int) -> str:
                 """ string - Prints a binary string representing indicating
                 which orbital creation operators are acting on the vacuum with
                 a 1.  The position in the string indicates the index of the
