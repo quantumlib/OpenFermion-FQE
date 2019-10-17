@@ -20,13 +20,16 @@ import numpy
 from fqe.hamiltonians import hamiltonian
 from fqe.tensor import tensor_utils
 
+# typing alias
+sym2in = List[List[int, int], float, bool]
 
 class Quadratic(hamiltonian.Hamiltonian):
     """A hamiltonian class for terms with at most order 2 in QFT operators
     """
 
 
-    def __init__(self, pot, h1e, chem, symmh):
+    def __init__(self, pot: complex, h1e: numpy.ndarray, chem: float,
+                 symmh: sym2in):
         """This hamiltonian has a potential and one body term.
         Any symmetries defined for the system must be explicitly added.
 
@@ -44,51 +47,51 @@ class Quadratic(hamiltonian.Hamiltonian):
         self.set_h(h1e, symmh)
 
 
-    def identity(self):
+    def identity(self) -> str:
         """This is a quadratic Hamiltonian.
         """
         return 'Quadratic'
 
 
     @property
-    def potential(self):
+    def potential(self) -> complex:
         """Constant potential
         """
         return self._potential
 
 
     @property
-    def mu_c(self):
+    def mu_c(self) -> float:
         """Chemical potential
         """
         return self._mu
 
 
     @property
-    def h1e(self):
+    def h1e(self) -> numpy.ndarray:
         """One electron hamiltonian matrix elements
         """
         return self._h1e
 
 
     @property
-    def h_mu(self):
+    def h_mu(self) -> numpy.ndarray:
         """One electron hamiltonian matrix elements
         """
         return self._h1e - self._mu*numpy.identity(self._h1e.shape[0])
 
 
     @potential.setter
-    def potential(self, pot):
+    def potential(self, pot: complex) -> None:
         self._potential = pot
 
 
     @mu_c.setter
-    def mu_c(self, chem):
+    def mu_c(self, chem: float) -> None:
         self._mu = chem
 
 
-    def set_h(self, h1e, symmh):
+    def set_h(self, h1e: numpy.ndarray, symmh: sym2in) -> None:
         """Set the one particle matrix elements with optional symmetry passed
         """
         tensor_utils.confirm_symmetry(h1e, symmh)

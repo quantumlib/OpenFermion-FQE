@@ -16,10 +16,8 @@
 """
 
 import abc
-from six import add_metaclass
 
-@add_metaclass(abc.ABCMeta)
-class Hamiltonian:
+class Hamiltonian(metaclass=abc.ABCMeta):
     """ Abstract class to mediate the functions of Hamiltonian with the
     emulator.  Since the structure of the Hamiltonian may contain symmeties
     which can greatly speed up operations that act up on the object, defining
@@ -28,13 +26,13 @@ class Hamiltonian:
     """
 
 
-    def __init__(self):
+    def __init__(self) -> None:
         """The abstract class cannot instantiate
         """
         raise TypeError
 
 
-    def identity(self):
+    def identity(self) -> None:
         """The proper name of the Hamiltonian
         Returns a string with the name of the hamiltonian or general otherwise
         """
