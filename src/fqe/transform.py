@@ -28,7 +28,7 @@ from fqe.openfermion_utils import update_operator_coeff
 from fqe.openfermion_utils import fermion_opstring_to_bitstring
 
 
-def cirq_to_fqe_single(cirq_wfn, nele, m_s, qubin=None):
+def cirq_to_fqe_single(cirq_wfn: numpy.ndarray, nele: int, m_s: int, qubin=None):
     """Given a wavefunction from cirq, create a FermionOperator string which
     will create the same state in the basis of Fermionic modes such that
 
@@ -64,7 +64,7 @@ def cirq_to_fqe_single(cirq_wfn, nele, m_s, qubin=None):
     return convert_qubit_wfn_to_fqe_syntax(jw_ops)
 
 
-def from_cirq(wfn, state):
+def from_cirq(wfn, state: numpy.ndarray) -> None:
     """For each availble FqeData structure, find the projection onto the cirq
     wavefunction and set the coefficients to the proper value.
 

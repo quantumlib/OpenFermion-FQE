@@ -15,6 +15,8 @@
 """Utilities which specifically require import from OpernFermion
 """
 
+from typing import List, Optional, Tuple
+
 from openfermion import FermionOperator, up_index, down_index, QubitOperator
 from openfermion.transforms import jordan_wigner, reverse_jordan_wigner
 
@@ -27,7 +29,7 @@ from fqe.util import init_bitstring_groundstate, paritysort
 from fqe.string_addressing import count_bits
 
 
-def ascending_index_order(ops, coeff, order=''):
+def ascending_index_order(ops, coeff: complex, order: str = ''):
     """Permute a product of creation FermionOperators so that the index goes
     from the lowest to the highest inside of each spin sector and multiply by
     the correct parity.
@@ -74,7 +76,7 @@ def ascending_index_order(ops, coeff, order=''):
     return coeff*ops*(-1.0 + 0.0j)**nperm
 
 
-def bit_to_fermion_creation(string, spin=None):
+def bit_to_fermion_creation(string: int, spin: Optional[string] = None):
     """Convert an occupation bitstring representation for a single spin case
     into openfermion operators
 
@@ -147,7 +149,7 @@ def convert_qubit_wfn_to_fqe_syntax(ops):
     return out - FermionOperator('', 1.0)
 
 
-def determinant_to_ops(a_str, b_str, inorder=False):
+def determinant_to_ops(a_str: int, b_str: int, inorder: bool = False):
     """Given the alpha and beta occupation strings return, a fermion operator
     which would produce that state when acting on the vacuum.
 
@@ -182,7 +184,7 @@ def determinant_to_ops(a_str, b_str, inorder=False):
     return out
 
 
-def fci_fermion_operator_representation(norb, nele, m_s):
+def fci_fermion_operator_representation(norb: int, nele: int, m_s: int):
     """Generate the Full Configuration interaction wavefunction in the
     openfermion FermionOperator representation with coefficients of 1.0.
 
@@ -203,7 +205,7 @@ def fci_fermion_operator_representation(norb, nele, m_s):
     return ops - FermionOperator('', 1.0)
 
 
-def fci_qubit_representation(norb, nele, m_s):
+def fci_qubit_representation(norb: int, nele: int, m_s: int):
     """Create the qubit representation of Full CI according to the parameters
     passed
 
@@ -218,7 +220,7 @@ def fci_qubit_representation(norb, nele, m_s):
     return jordan_wigner(fci_fermion_operator_representation(norb, nele, m_s))
 
 
-def fermion_operator_to_bitstring(term):
+def fermion_operator_to_bitstring(term) -> Tuple[int, int]:
     """Convert an openfermion FermionOperator object into a bitstring
     representation.
 
@@ -240,7 +242,7 @@ def fermion_operator_to_bitstring(term):
     return upstring, downstring
 
 
-def fermion_opstring_to_bitstring(ops):
+def fermion_opstring_to_bitstring(ops) -> List[List[int, int, complex]]:
     """Convert an openfermion FermionOperator object into the corresponding
     bitstring representation with the appropriate coefficient.
 
@@ -248,7 +250,7 @@ def fermion_opstring_to_bitstring(ops):
         ops (FermionOperator) - A product of FermionOperators with a coefficient
 
     Returns:
-        list [int, int, coeff] - a pair of integers representing a bitstring of
+        list(list(int, int, coeff)) - a pair of integers representing a bitstring of
             alpha and beta occupation in the orbitals.
     """
     raw_data = []
@@ -258,7 +260,7 @@ def fermion_opstring_to_bitstring(ops):
     return raw_data
 
 
-def generate_one_particle_matrix(ops):
+def generate_one_particle_matrix(ops) -> numpy.ndarray:
     """Convert a string of FermionOperators into a matrix.  If the dimension
     is not passed we will search the string to find the largest value.
 
@@ -292,7 +294,7 @@ def generate_one_particle_matrix(ops):
     return h1e
 
 
-def generate_two_particle_matrix(ops):
+def generate_two_particle_matrix(ops) -> numpy.ndarray:
     """Convert a string of FermionOperators into a matrix.  If the dimension
     is not passed we will search the string to find the largest value.
 
@@ -337,7 +339,7 @@ def generate_two_particle_matrix(ops):
     return g2e
 
 
-def largest_operator_index(ops):
+def largest_operator_index(ops) -> Tuple[int, int]:
     """Search through a FermionOperator string and return the largest even
     value and the largest odd value to find the total dimension of the matrix
     and the size of the spin blocks
@@ -362,7 +364,7 @@ def largest_operator_index(ops):
     return maxeven, maxodd
 
 
-def ladder_op(ind, step):
+def ladder_op(ind: int , step: int):
     """Local function to generate ladder operators in Qubit form given an index
     and action.
 
@@ -381,7 +383,7 @@ def ladder_op(ind, step):
     return zstr*op_/2.0
 
 
-def mutate_config(stra, strb, term):
+def mutate_config(stra: int, strb: int, term) -> Tuple[int, int, int]:
     """Apply creation and annihilation operators to a configuration in the
     bitstring representation and return the new configuration and the parity.
 
@@ -391,8 +393,8 @@ def mutate_config(stra, strb, term):
         term (Operators) - the operations to apply
 
     Returns:
-        bitstring - a mutated configuration and the appropriate parity to go
-            with it.
+        tuple(bitstring, bitstring, int) - the mutated alpha and beta
+            configuration and the parity to go with it.
     """
     newa = stra
     newb = strb
@@ -427,7 +429,8 @@ def mutate_config(stra, strb, term):
     return newa, newb, parity
 
 
-def new_wfn_from_ops(ops, configs, norb):
+def new_wfn_from_ops(ops, configs: List[Tuple(int, int)],
+                     norb: int) -> Tuple[List[List[int, int, int]], bool, bool]:
     """Look at each configuration in a wavefunction and compare it to the
     operations that will be applied.  Determine if there will be at least one
     non-zero configuration after this process and if so, add that configuration
@@ -468,7 +471,7 @@ def new_wfn_from_ops(ops, configs, norb):
     return new_wavefunction_params, particlechange, spinchange
 
 
-def parse_one_particle_matrix_ops(term):
+def parse_one_particle_matrix_ops(term) -> Tuple[int, int]:
     """Validate that the operators passed in are valid for one particle
     matrices.  If they are then return the matrix indexes otherwise return -1
     for both values.
@@ -504,7 +507,7 @@ def parse_two_particle_matrix_ops(term):
     return term[0][0], term[1][0], term[2][0], term[3][0]
 
 
-def particle_change(ops, norb):
+def particle_change(ops, norb: int) -> List[List[int, int]]:
     """Given a FermionOperator, return the change in particle number and spin
     that will occur upon the application to a state.  Also check for operator
     motifs which will make the entire term zero or for operators outside the
@@ -564,7 +567,7 @@ def split_openfermion_tensor(ops):
     return split
 
 
-def update_operator_coeff(operators, coeff):
+def update_operator_coeff(operators, coeff: numpy.ndarray) -> None:
     """Given a string of Symbolic operators, set each prefactor equal to the
     value in coeff.  Note that the order in which SymbolicOperators in
     OpenFermion are printed out is not necessarily the order in which they are

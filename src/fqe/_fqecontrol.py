@@ -16,6 +16,8 @@
 to the emulator.
 """
 
+from typing import List
+
 from openfermion import PolynomialTensor
 from openfermion.transforms import jordan_wigner
 
@@ -32,8 +34,12 @@ from fqe.openfermion_utils import fqe_to_fermion_operator
 from fqe.hamiltonians import general_hamiltonian
 from fqe.hamiltonians import quadratic_hamiltonian
 
+# typing alias
+sym2in = List[List[int, int], double, bool]
+sym4in = List[List[int, int, int, int], double, bool]
 
-def apply_generated_unitary(ops, wfn, algo, accuracy=1.e-7):
+
+def apply_generated_unitary(ops, wfn, algo: str, accuracy: float = 1.e-7):
     """APply the algebraic operators to the wavefunction with a specfiic
     algorithm and to the requested accuracy.
 
@@ -50,7 +56,7 @@ def apply_generated_unitary(ops, wfn, algo, accuracy=1.e-7):
     return wfn.apply_generated_unitary(ops, algo, accuracy)
 
 
-def get_spin_nonconserving_wavefunction(nele):
+def get_spin_nonconserving_wavefunction(int: nele):
     """Build a wavefunction with definite particle number and spin.
 
     Args:
@@ -68,7 +74,7 @@ def get_spin_nonconserving_wavefunction(nele):
     return Wavefunction(param=[[nele, m_s, norb]])
 
 
-def get_wavefunction(nele, m_s, norb):
+def get_wavefunction(nele: int, m_s: int, norb: int):
     """Build a wavefunction with definite particle number and spin.
 
     Args:
@@ -84,7 +90,7 @@ def get_wavefunction(nele, m_s, norb):
     return Wavefunction(param=arg)
 
 
-def get_wavefunction_multiple(param):
+def get_wavefunction_multiple(param: List[List[int, int, int]]):
     """Generate many different wavefunctions.
 
     Args:
@@ -104,7 +110,7 @@ def get_wavefunction_multiple(param):
     return state
 
 
-def to_cirq(wfn):
+def to_cirq(wfn) -> numpy.ndarray:
     """Interoperability between cirq and the openfermion-fqe.  This takes an
     FQE wavefunction and returns a cirq compatible wavefunction based on the
     information stored within.
@@ -122,7 +128,7 @@ def to_cirq(wfn):
     return qubit_wavefunction_from_vacuum(ops, qid)
 
 
-def from_cirq(state, thresh):
+def from_cirq(state: numpy.ndarray, thresh: float):
     """Interoperability between cirq and the openfermion-fqe.  This takes a
     cirq wavefunction and creates an FQE wavefunction object initialized with
     the correct data.
@@ -164,7 +170,7 @@ def apply(ops, wfn):
     return wfn.apply(ops)
 
 
-def dot(wfn1, wfn2):
+def dot(wfn1, wfn2) -> complex:
     """Calculate the dot product of two wavefunctions.  Note that this does
     not use the conjugate.  See vdot for the similar conjugate functionality.
 
@@ -189,7 +195,7 @@ def dot(wfn1, wfn2):
     return ipval
 
 
-def vdot(wfn1, wfn2):
+def vdot(wfn1, wfn2) -> complex:
     """Calculate the inner product of two wavefunctions using conjugation on
     the elements of wfn1.
 
@@ -214,7 +220,7 @@ def vdot(wfn1, wfn2):
     return ipval
 
 
-def get_quadratic_hamiltonian(ops, chem):
+def get_quadratic_hamiltonian(ops, chem: float):
     """Generate a quadratic hamiltonian object from Openfermion intrinsics
 
     Args:
@@ -230,7 +236,8 @@ def get_quadratic_hamiltonian(ops, chem):
     return quadratic_hamiltonian.Quadratic(0.0, h1e, chem, symmh)
 
 
-def get_two_body_hamiltonian(pot, h1e, g2e, chem, symmh, symmg):
+def get_two_body_hamiltonian(pot: -> complex, h1e: numpy.ndarray,
+                            g2e: numpy.ndarray, chem: float, symmh: sym2in, symmg: sym4ind):
     """Interface from the fqe to generate a two body hamiltonian.
 
         Args:
@@ -275,13 +282,13 @@ def get_hamiltonian_from_openfermion(hamiltonian):
     return quadratic_hamiltonian.Quadratic(0.0, h1e, chem, symmh)
 
 
-def get_hamiltonian_from_ops(ops, pot, chem):
+def get_hamiltonian_from_ops(ops, pot: complex, chem: float):
     """Given a string of OpenFermion operators, generate a Hamiltonian for the
     FQE.
 
     Args:
         ops (OpenFermion) - a string of OpenFermion operators
-        pot (double) - a constant potential to add
+        pot (complex) - a constant potential to add
         chem (double) - a value for a chemical poential
 
     Returns:

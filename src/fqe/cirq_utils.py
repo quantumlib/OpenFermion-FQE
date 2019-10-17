@@ -64,7 +64,8 @@ def qubit_op_to_gate(operation, qubit):
     raise ValueError('No gate identified in qubit_op_to_gate')
 
 
-def qubit_projection(ops, qubits, state, coeff):
+def qubit_projection(ops, qubits, state: numpy.ndarray,
+                     coeff: numpy.ndarray) -> numpy.ndarray:
     """Find the projection of each set of qubit operators on a
     wavefunction.
 
@@ -90,7 +91,7 @@ def qubit_projection(ops, qubits, state, coeff):
         coeff[indx] = result.final_state[0]
 
 
-def qubit_wavefunction_from_vacuum(ops, qubits):
+def qubit_wavefunction_from_vacuum(ops, qubits) -> numpy.ndarray:
     """Generate a cirq wavefunction from the vacuum given qubit operators and a
     set of qubits that this wavefunction will be represented on
 

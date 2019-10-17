@@ -481,7 +481,7 @@ class Wavefunction():
                   ' this wavefunction'.format(astr, bstr, key))
 
 
-    def get_ele(self, astr: int, bstr: int, vec: int =0):
+    def get_ele(self, astr: int, bstr: int, vec: int =0) ->. complex:
         """Return a specific element indexed by it's bitstring accessor and
         the key to the configuration.
 
@@ -552,7 +552,7 @@ class Wavefunction():
 
 
     def print_wfn(self, threshold: float = 0.001, fmt: str = 'str',
-                  states: Union[int, List[int] None] = None):
+                  states: Union[int, List[int] None] = None) -> None:
         """Print occupations and coefficients to the screen.
 
         Args:
