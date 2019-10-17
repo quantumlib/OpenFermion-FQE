@@ -46,7 +46,7 @@ def alpha_beta_electrons(nele: int, m_s: int) -> Tuple[int, int]:
     return nalpha, nbeta
 
 
-def bubblesort(arr: List[Any]) -> List[Any]:
+def bubblesort(arr: List[Any]) -> int:
     """Bubble Sort algorithm to arrange a list so that the lowest value is
     stored in 0 and the highest value is stored in len(arr)-1.  It is included
     here in order to access the swap count.

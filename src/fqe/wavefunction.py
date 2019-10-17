@@ -16,7 +16,14 @@
 """
 
 import copy
-from typing import Callable, Dict, Generator, List, Optional, Tuple, Union
+from typing import (Callable, 
+                    Dict, 
+                    Generator, 
+                    KeysView,
+                    List, 
+                    Optional, 
+                    Tuple, 
+                    Union)
 
 from scipy.special import factorial, jv
 from openfermion import FermionOperator
@@ -78,18 +85,18 @@ class Wavefunction():
                 electrons and the spin projection of the system.
         """
 
-        self._lena = None
-        self._lenb = None
-        self._gs_a = None
-        self._gs_b = None
-        self._nalpha = None
-        self._nbeta = None
-        self._cidim = None
-        self._spinconserve = conservespin
-        self._numberconserve = conserveparticlenumber
-        self._norb = 0
-        self._ncis = 0
-        self._civec = {}
+        self._lena: Optional[Dict[Tuple[int, int], int]] = None
+        self._lenb: Optional[Dict[Tuple[int, int], int]] = None
+        self._gs_a: Optional[Dict[Tuple[int, int], int]] = None
+        self._gs_b: Optional[Dict[Tuple[int, int], int]] = None
+        self._nalpha: Optional[Dict[Tuple[int, int], int]] = None
+        self._nbeta: Optional[Dict[Tuple[int, int], int]] = None
+        self._cidim: Optional[Dict[Tuple[int, int], int]] = None
+        self._spinconserve: bool = conservespin
+        self._numberconserve: bool= conserveparticlenumber
+        self._norb: int = 0
+        self._ncis: int = 0
+        self._civec: Dict[Tuple[int, int], 'FqeData'] = {}
         if param:
             self._norb = param[0][2]
             if self._numberconserve:
@@ -113,7 +120,7 @@ class Wavefunction():
                 self.add_config(i[0], i[1], i[2])
 
 
-    def __add__(self, wfn):
+    def __add__(self, wfn: 'Wavefunction') -> 'Wavefunction':
         """Intrinsic addition function to combine two wavefunctions.  This acts
         to iterate through the wavefunctions, combine coefficients of
         configurations they have in common and add configurations that are
@@ -145,7 +152,7 @@ class Wavefunction():
         return newwfn
 
 
-    def __sub__(self, wfn):
+    def __sub__(self, wfn: 'Wavefunction') -> 'Wavefunction':
         """Intrinsic subtraction function to combine two wavefunctions.  This
         acts to iterate through the wavefunctions, combine coefficients of
         configurations they have in common and include configurations that are
@@ -228,7 +235,7 @@ class Wavefunction():
 
 
     @property
-    def configs(self) -> List[Tuple[int, int]]:
+    def configs(self) -> KeysView[Tuple[int, int]]:
         """Return a list of the configuration keys in the wavefunction
         """
         return self._civec.keys()
@@ -318,7 +325,9 @@ class Wavefunction():
         return self._cidim
 
 
-    def get_coeff(self, key: int, vec: Optional[int] = None) -> numpy.ndarray:
+    def get_coeff(self,
+                  key: Tuple[int, int], 
+                  vec: Optional[int] = None) -> numpy.ndarray:
         """Retrieve a vector from a configuration in the wavefunction
 
         Args:
@@ -333,7 +342,7 @@ class Wavefunction():
         return self._civec[key].coeff
 
 
-    def apply(self, ops):
+    def apply(self, ops) -> 'Wavefunction':
         """Return a wavefunction subject to the creation and annhilation
         operations passed into apply.
 
@@ -367,7 +376,7 @@ class Wavefunction():
         return newwfn
 
 
-    def apply_generated_unitary(self, ops, algo: str, accuracy: float = 1.e-7):
+    def apply_generated_unitary(self, ops, algo: str, accuracy: float = 1.e-7) -> 'Wavefunction':
         """Perform the exponentialtion of fermionic algebras to the
         wavefunction according the method and accuracy.
 
@@ -504,7 +513,7 @@ class Wavefunction():
 
 
     def set_wfn(self, vrange: Optional[List[int]] = None, strategy: str = 'ones',
-                raw_data: Optional[numpy.ndarray] = None) -> None:
+                raw_data: Optional[Dict[Tuple[int, int], numpy.ndarray]] = None) -> None:
         """Set the values of the ciwfn based on an argument or data to
         initalize from.
 
@@ -515,6 +524,9 @@ class Wavefunction():
             raw_data (numpy.array(dtype=numpy.complex64)) - data to inject into
                 the configuration
         """
+        if strategy == 'from_data' and not raw_data:
+            raise ValueError('No data provided for set_wfn')
+
         if strategy == 'from_data':
             for key, data in raw_data.items():
                 self._civec[key].set_wfn(vrange=vrange, strategy=strategy,
