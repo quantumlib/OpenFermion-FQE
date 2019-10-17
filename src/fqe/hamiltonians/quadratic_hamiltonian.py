@@ -15,21 +15,26 @@
 """Quadratic Hamitlonian
 """
 
+from typing import List, Union
+
 import numpy
 
 from fqe.hamiltonians import hamiltonian
 from fqe.tensor import tensor_utils
 
 # typing alias
-sym2in = List[List[int, int], float, bool]
+SymT_1 = List[Union[List[int], float, bool]]
 
 class Quadratic(hamiltonian.Hamiltonian):
     """A hamiltonian class for terms with at most order 2 in QFT operators
     """
 
 
-    def __init__(self, pot: complex, h1e: numpy.ndarray, chem: float,
-                 symmh: sym2in):
+    def __init__(self,
+                 pot: Union[complex, float],
+                 h1e: numpy.ndarray,
+                 chem: float,
+                 symmh: SymT_1):
         """This hamiltonian has a potential and one body term.
         Any symmetries defined for the system must be explicitly added.
 
@@ -54,7 +59,7 @@ class Quadratic(hamiltonian.Hamiltonian):
 
 
     @property
-    def potential(self) -> complex:
+    def potential(self) -> Union[complex, float]:
         """Constant potential
         """
         return self._potential
@@ -82,7 +87,7 @@ class Quadratic(hamiltonian.Hamiltonian):
 
 
     @potential.setter
-    def potential(self, pot: complex) -> None:
+    def potential(self, pot: Union[complex, float]) -> None:
         self._potential = pot
 
 
@@ -91,7 +96,7 @@ class Quadratic(hamiltonian.Hamiltonian):
         self._mu = chem
 
 
-    def set_h(self, h1e: numpy.ndarray, symmh: sym2in) -> None:
+    def set_h(self, h1e: numpy.ndarray, symmh: SymT_1) -> None:
         """Set the one particle matrix elements with optional symmetry passed
         """
         tensor_utils.confirm_symmetry(h1e, symmh)

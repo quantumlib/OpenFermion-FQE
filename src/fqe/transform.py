@@ -15,6 +15,9 @@
 """Transformations between the various paradigms availible to OpenFermion
 that provide interoperability.
 """
+
+from typing import Optional
+
 from openfermion import FermionOperator
 
 import numpy

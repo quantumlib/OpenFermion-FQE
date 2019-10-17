@@ -15,7 +15,7 @@
 """Utilities which specifically require import from OpernFermion
 """
 
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Union
 
 from openfermion import FermionOperator, up_index, down_index, QubitOperator
 from openfermion.transforms import jordan_wigner, reverse_jordan_wigner
@@ -76,7 +76,7 @@ def ascending_index_order(ops, coeff: complex, order: str = ''):
     return coeff*ops*(-1.0 + 0.0j)**nperm
 
 
-def bit_to_fermion_creation(string: int, spin: Optional[string] = None):
+def bit_to_fermion_creation(string: int, spin: Optional[str] = None):
     """Convert an occupation bitstring representation for a single spin case
     into openfermion operators
 
@@ -242,7 +242,7 @@ def fermion_operator_to_bitstring(term) -> Tuple[int, int]:
     return upstring, downstring
 
 
-def fermion_opstring_to_bitstring(ops) -> List[List[int, int, complex]]:
+def fermion_opstring_to_bitstring(ops) -> List[List[Union[int, complex]]]:
     """Convert an openfermion FermionOperator object into the corresponding
     bitstring representation with the appropriate coefficient.
 
@@ -430,7 +430,7 @@ def mutate_config(stra: int, strb: int, term) -> Tuple[int, int, int]:
 
 
 def new_wfn_from_ops(ops, configs: List[Tuple(int, int)],
-                     norb: int) -> Tuple[List[List[int, int, int]], bool, bool]:
+                     norb: int) -> Tuple[List[List[int]], bool, bool]:
     """Look at each configuration in a wavefunction and compare it to the
     operations that will be applied.  Determine if there will be at least one
     non-zero configuration after this process and if so, add that configuration
@@ -507,7 +507,7 @@ def parse_two_particle_matrix_ops(term):
     return term[0][0], term[1][0], term[2][0], term[3][0]
 
 
-def particle_change(ops, norb: int) -> List[List[int, int]]:
+def particle_change(ops, norb: int) -> List[List[int]]:
     """Given a FermionOperator, return the change in particle number and spin
     that will occur upon the application to a state.  Also check for operator
     motifs which will make the entire term zero or for operators outside the

@@ -16,7 +16,7 @@
 """
 
 import copy
-from typing import Callable, Dict, Generator, List, Union
+from typing import Callable, Dict, Generator, List, Optional, Tuple, Union
 
 from scipy.special import factorial, jv
 from openfermion import FermionOperator
@@ -39,7 +39,7 @@ class Wavefunction():
     """
 
 
-    def __init__(self, param: Optional[List[List[int, int, int]]] = None,
+    def __init__(self, param: Optional[List[List[int]]] = None,
                  conservespin: bool = False,
                  conserveparticlenumber: bool = False) -> None:
         """
@@ -228,7 +228,7 @@ class Wavefunction():
 
 
     @property
-    def configs(self) -> List[Tuple[(int, int)]]:
+    def configs(self) -> List[Tuple[int, int]]:
         """Return a list of the configuration keys in the wavefunction
         """
         return self._civec.keys()
@@ -443,7 +443,7 @@ class Wavefunction():
         return maxval
 
 
-    def add_ele(self, astr: int, bstr: int, val: complex, vec: int = 0):
+    def add_ele(self, astr: int, bstr: int, val: complex, vec: int = 0)-> None:
         """Add a value to an element of a configuration given a key and string
         representation.
 
@@ -462,7 +462,7 @@ class Wavefunction():
                   ' this wavefunction'.format(astr, bstr, key))
 
 
-    def set_ele(self, astr: int, bstr: int, val: complex, vec: int = 0):
+    def set_ele(self, astr: int, bstr: int, val: complex, vec: int = 0) -> None:
         """Set an element of a configuration given a key and string
         representation.
 
@@ -481,7 +481,7 @@ class Wavefunction():
                   ' this wavefunction'.format(astr, bstr, key))
 
 
-    def get_ele(self, astr: int, bstr: int, vec: int =0) ->. complex:
+    def get_ele(self, astr: int, bstr: int, vec: int = 0) -> complex:
         """Return a specific element indexed by it's bitstring accessor and
         the key to the configuration.
 
@@ -503,8 +503,8 @@ class Wavefunction():
             return 0. + .0j
 
 
-    def set_wfn(self, vrange: List[int] = None, strategy: str = None,
-                raw_data: numpy.ndarray):
+    def set_wfn(self, vrange: Optional[List[int]] = None, strategy: str = 'ones',
+                raw_data: Optional[numpy.ndarray] = None) -> None:
         """Set the values of the ciwfn based on an argument or data to
         initalize from.
 
@@ -534,7 +534,7 @@ class Wavefunction():
             config.scale(sval)
 
 
-    def normalize(self, vec: Union[List[int], None] = None) -> None:
+    def normalize(self, vec: Optional[List[int]] = None) -> None:
         """Iterate through each vector of each data structure such that for a
         vector |i> the Frobenius inner product is 1.  Then scale everything by
         the number of configurations
@@ -552,7 +552,7 @@ class Wavefunction():
 
 
     def print_wfn(self, threshold: float = 0.001, fmt: str = 'str',
-                  states: Union[int, List[int] None] = None) -> None:
+                  states: Union[int, List[int], None] = None) -> None:
         """Print occupations and coefficients to the screen.
 
         Args:

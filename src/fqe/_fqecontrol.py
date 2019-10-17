@@ -16,7 +16,7 @@
 to the emulator.
 """
 
-from typing import List
+from typing import List, Union
 
 from openfermion import PolynomialTensor
 from openfermion.transforms import jordan_wigner
@@ -35,8 +35,7 @@ from fqe.hamiltonians import general_hamiltonian
 from fqe.hamiltonians import quadratic_hamiltonian
 
 # typing alias
-sym2in = List[List[int, int], double, bool]
-sym4in = List[List[int, int, int, int], double, bool]
+SymT_1 = List[Union[List[int], float, bool]]
 
 
 def apply_generated_unitary(ops, wfn, algo: str, accuracy: float = 1.e-7):
@@ -90,7 +89,7 @@ def get_wavefunction(nele: int, m_s: int, norb: int):
     return Wavefunction(param=arg)
 
 
-def get_wavefunction_multiple(param: List[List[int, int, int]]):
+def get_wavefunction_multiple(param: List[List[int]]):
     """Generate many different wavefunctions.
 
     Args:
@@ -236,8 +235,8 @@ def get_quadratic_hamiltonian(ops, chem: float):
     return quadratic_hamiltonian.Quadratic(0.0, h1e, chem, symmh)
 
 
-def get_two_body_hamiltonian(pot: -> complex, h1e: numpy.ndarray,
-                            g2e: numpy.ndarray, chem: float, symmh: sym2in, symmg: sym4ind):
+def get_two_body_hamiltonian(pot: Union[complex, float], h1e: numpy.ndarray,
+                            g2e: numpy.ndarray, chem: float, symmh: SymT_1, symmg: SymT_1):
     """Interface from the fqe to generate a two body hamiltonian.
 
         Args:
@@ -282,7 +281,7 @@ def get_hamiltonian_from_openfermion(hamiltonian):
     return quadratic_hamiltonian.Quadratic(0.0, h1e, chem, symmh)
 
 
-def get_hamiltonian_from_ops(ops, pot: complex, chem: float):
+def get_hamiltonian_from_ops(ops, pot: Union[complex, float], chem: float):
     """Given a string of OpenFermion operators, generate a Hamiltonian for the
     FQE.
 

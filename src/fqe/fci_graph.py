@@ -15,6 +15,8 @@
 """FciGraph hold the strings and lexical ordering for a set of strings
 """
 
+from typing import List
+
 from scipy.special import binom
 
 from fqe.bitstring import integer_index, lexicographic_bitstring_generator

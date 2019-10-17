@@ -127,14 +127,12 @@ class FqeData(fci_graph.FciGraph):
     def str_alpha(self, address: int) -> int:
         """Return the bitstring stored at the address for the alpha spin case
         """
-#        return super(FqeData, self).get_alpha(address)
         return self.get_alpha(address)
 
 
     def str_beta(self, address: int) -> int:
         """Return the bitstring stored at the address for the beta spin case
         """
-#        return super(FqeData, self).get_beta(address)
         return self.get_beta(address)
 
 
@@ -250,7 +248,8 @@ class FqeData(fci_graph.FciGraph):
         self.coeff[self._address_from_strings(astr, bstr), ivec] += value
 
 
-    def set_element(self, astr: int, bstr: int, ivec: int, value: complex) -> None:
+    def set_element(self, astr: int, bstr: int, ivec: int,
+                    value: complex) -> None:
         """Override a value stored in the wavefunction
 
         Args:
@@ -282,7 +281,8 @@ class FqeData(fci_graph.FciGraph):
         self.coeff *= sval
 
 
-    def insequence_generator(self, vector: int = 0) -> List[complex, int, int]:
+    def insequence_generator(self,
+                             vector: int = 0) -> List[Union[complex, int]]:
         """Iterate through the addresses of the wavefunction and return each
         determinant identifier and its coefficient.
 
