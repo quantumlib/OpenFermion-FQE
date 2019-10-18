@@ -94,7 +94,7 @@ def run_pylint():
             pipe = subprocess.PIPE
             try:
                 data = subprocess.run(cmd, stdout=pipe, stderr=pipe, check=True)
-                print(data.stdout.decode())
+                print('{} had no pylint errors or warnings'.format(path))
             except subprocess.CalledProcessError as err:
                 if err.returncode != 1:
                     pylinterr = err.stdout.decode()

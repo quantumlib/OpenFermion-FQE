@@ -30,7 +30,7 @@ class Hamiltonian(metaclass=ABCMeta):
     # Variable Annotation
     h1e: numpy.ndarray
     g2e: numpy.ndarray
-    
+
 
     @abstractmethod
     def __init__(self) -> None:

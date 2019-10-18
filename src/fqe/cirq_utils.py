@@ -15,14 +15,17 @@
 """Utilities which specifically require import from Cirq
 """
 
-from typing import Union
+from typing import TYPE_CHECKING, Union
 
 import numpy
 
-from cirq import X, Y, Z, Moment, LineQubit, Circuit, Simulator
-from openfermion import QubitOperator
+from cirq import X, Y, Z, Moment, Circuit, Simulator
 
 from fqe.util import init_qubit_vacuum
+
+if TYPE_CHECKING:
+    from cirq import LineQubit
+    from openfermion import QubitOperator
 
 
 def qubit_ops_to_circuit(ops: 'QubitOperator', qpu: 'LineQubit') -> 'Circuit':

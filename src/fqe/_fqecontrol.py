@@ -38,7 +38,6 @@ if TYPE_CHECKING:
     from openfermion import FermionOperator
     from openfermion.ops import QuadraticHamiltonian
     from fqe.hamiltonians import hamiltonian
-    
 
 
 def apply_generated_unitary(ops: 'FermionOperator',
@@ -244,9 +243,9 @@ def get_quadratic_hamiltonian(ops: 'FermionOperator',
 
 def get_two_body_hamiltonian(pot: Union[complex, float],
                              h1e: numpy.ndarray,
-                             g2e: numpy.ndarray, 
-                             chem: float, 
-                             symmh: List[Any], 
+                             g2e: numpy.ndarray,
+                             chem: float,
+                             symmh: List[Any],
                              symmg: List[Any]) -> 'general_hamiltonian.General':
     """Interface from the fqe to generate a two body hamiltonian.
 

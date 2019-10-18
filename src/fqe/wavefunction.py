@@ -16,13 +16,13 @@
 """
 
 import copy
-from typing import (Callable, 
-                    Dict, 
-                    Generator, 
+from typing import (Callable,
+                    Dict,
+                    Generator,
                     KeysView,
-                    List, 
-                    Optional, 
-                    Tuple, 
+                    List,
+                    Optional,
+                    Tuple,
                     Union)
 
 from scipy.special import factorial, jv
@@ -93,7 +93,7 @@ class Wavefunction():
         self._nbeta: Optional[Dict[Tuple[int, int], int]] = None
         self._cidim: Optional[Dict[Tuple[int, int], int]] = None
         self._spinconserve: bool = conservespin
-        self._numberconserve: bool= conserveparticlenumber
+        self._numberconserve: bool = conserveparticlenumber
         self._norb: int = 0
         self._ncis: int = 0
         self._civec: Dict[Tuple[int, int], 'FqeData'] = {}
@@ -326,7 +326,7 @@ class Wavefunction():
 
 
     def get_coeff(self,
-                  key: Tuple[int, int], 
+                  key: Tuple[int, int],
                   vec: Optional[int] = None) -> numpy.ndarray:
         """Retrieve a vector from a configuration in the wavefunction
 
@@ -385,7 +385,7 @@ class Wavefunction():
             algo (string) - which algorithm should we use
             time_final (float) - the final time value to evolve to
             accuracy (double) - the accuracy to which the system should be
-                propagated
+                propagated.  Implemented in Phase II.
 
         Returns:
             newwfn (Wavvefunction) - a new intialized wavefunction object
@@ -394,6 +394,8 @@ class Wavefunction():
             'taylor',
             'chebyshev'
         ]
+
+        set_accuracy = accuracy
 
         if not is_hermitian(ops):
             raise ValueError('Non-hermitian operator passed to'

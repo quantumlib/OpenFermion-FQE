@@ -16,7 +16,7 @@
 that provide interoperability.
 """
 
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
 from openfermion import FermionOperator
 
@@ -32,9 +32,13 @@ from fqe.openfermion_utils import update_operator_coeff
 from fqe.openfermion_utils import fermion_opstring_to_bitstring
 
 
+if TYPE_CHECKING:
+    from fqe.wavefunction import Wavefunction
+
+
 def cirq_to_fqe_single(cirq_wfn: numpy.ndarray,
-                       nele: int, 
-                       m_s: int, 
+                       nele: int,
+                       m_s: int,
                        qubin: Optional['LineQubit']) -> FermionOperator:
     """Given a wavefunction from cirq, create a FermionOperator string which
     will create the same state in the basis of Fermionic modes such that

@@ -14,17 +14,14 @@
 
 """Tensor utitlies to evaluate symmetry and eventually create dense storage
 """
-from typing import Any, Deque, List, Tuple, Union
+from typing import Any, Deque, List, Tuple
 
 from collections import deque
 
 import numpy
 
-# typing alias
-SymT_1 = List[Any]
 
-
-def build_symmetry_operations(symmetry: SymT_1) -> None:
+def build_symmetry_operations(symmetry: List[Any]) -> None:
     """Take the list of allowed permutations and build the symmetry operations
     allowed for the operation.
 
@@ -43,7 +40,7 @@ def build_symmetry_operations(symmetry: SymT_1) -> None:
         permutation[0] = perm
 
 
-def confirm_symmetry(mat: numpy.ndarray, symmetry: SymT_1) -> None:
+def confirm_symmetry(mat: numpy.ndarray, symmetry: List[Any]) -> None:
     """Digest the allowed permutations to validate the underlying structure
 
     Args:
@@ -96,7 +93,7 @@ def index_queue(dim: int, highest_index: int) -> Deque[Tuple[int, ...]]:
     return deque(i_queue)
 
 
-def validate_matrix_symmetry(matrix: numpy.ndarray, symmetry: SymT_1,
+def validate_matrix_symmetry(matrix: numpy.ndarray, symmetry: List[Any],
                              threshhold: float = 1.e-8) -> None:
     """Go through every element of the matrix and check that the symmetry
     operations are valid up to a threshhold.
@@ -134,7 +131,7 @@ def validate_matrix_symmetry(matrix: numpy.ndarray, symmetry: SymT_1,
                 pass
 
 
-def validate_unity(unity_permutation: SymT_1) -> bool:
+def validate_unity(unity_permutation: List[Any]) -> bool:
     """Check that the initial permutation passed in is the unity operation and
     return data useful for validating the remaining permutations
 

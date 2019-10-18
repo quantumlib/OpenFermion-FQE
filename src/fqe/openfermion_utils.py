@@ -15,23 +15,25 @@
 """Utilities which specifically require import from OpernFermion
 """
 
-from typing import Any, Dict, KeysView, List, Optional, Tuple, Union
+from typing import Any, Dict, KeysView, List, Optional, Tuple, TYPE_CHECKING
 
 from openfermion import FermionOperator, up_index, down_index, QubitOperator
 from openfermion.transforms import jordan_wigner, reverse_jordan_wigner
 
 import numpy
 
-from fqe.wavefunction import Wavefunction
 from fqe.bitstring import gbit_index, integer_index
 from fqe.bitstring import lexicographic_bitstring_generator
 from fqe.util import alpha_beta_electrons, bubblesort
 from fqe.util import init_bitstring_groundstate, paritysort
 from fqe.string_addressing import count_bits
 
+if TYPE_CHECKING:
+    from fqe.wavefunction import Wavefunction
+
 
 def ascending_index_order(ops: 'FermionOperator',
-                          coeff: complex, 
+                          coeff: complex,
                           order: str = '') -> 'FermionOperator':
     """Permute a product of creation FermionOperators so that the index goes
     from the lowest to the highest inside of each spin sector and multiply by
@@ -189,7 +191,7 @@ def determinant_to_ops(a_str: int, b_str: int, inorder: bool = False) -> 'Fermio
 
 
 def fci_fermion_operator_representation(norb: int,
-                                        nele: int, 
+                                        nele: int,
                                         m_s: int) -> 'FermionOperator':
     """Generate the Full Configuration interaction wavefunction in the
     openfermion FermionOperator representation with coefficients of 1.0.
@@ -215,7 +217,7 @@ def fci_fermion_operator_representation(norb: int,
 
 
 def fci_qubit_representation(norb: int,
-                             nele: int, 
+                             nele: int,
                              m_s: int) -> 'QubitOperator':
     """Create the qubit representation of Full CI according to the parameters
     passed
@@ -374,7 +376,7 @@ def largest_operator_index(ops: 'FermionOperator') -> Tuple[int, int]:
     return maxeven, maxodd
 
 
-def ladder_op(ind: int , step: int):
+def ladder_op(ind: int, step: int):
     """Local function to generate ladder operators in Qubit form given an index
     and action.
 
@@ -394,7 +396,7 @@ def ladder_op(ind: int , step: int):
 
 
 def mutate_config(stra: int,
-                  strb: int, 
+                  strb: int,
                   term: List[Tuple[int, int]]) -> Tuple[int, int, int]:
     """Apply creation and annihilation operators to a configuration in the
     bitstring representation and return the new configuration and the parity.

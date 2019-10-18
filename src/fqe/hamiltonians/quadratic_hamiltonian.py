@@ -22,8 +22,6 @@ import numpy
 from fqe.hamiltonians import hamiltonian
 from fqe.tensor import tensor_utils
 
-# typing alias
-SymT_1 = List[Any]
 
 class Quadratic(hamiltonian.Hamiltonian):
     """A hamiltonian class for terms with at most order 2 in QFT operators
@@ -34,7 +32,7 @@ class Quadratic(hamiltonian.Hamiltonian):
                  poten: Union[complex, float],
                  h1e: numpy.ndarray,
                  chem: float,
-                 symmh: SymT_1):
+                 symmh: List[Any]):
         """This hamiltonian has a potential and one body term.
         Any symmetries defined for the system must be explicitly added.
 
@@ -98,7 +96,7 @@ class Quadratic(hamiltonian.Hamiltonian):
         return self._h1e - self._mu*numpy.identity(self._h1e.shape[0])
 
 
-    def set_h(self, h1e: numpy.ndarray, symmh: SymT_1) -> None:
+    def set_h(self, h1e: numpy.ndarray, symmh: List[Any]) -> None:
         """Set the one particle matrix elements with optional symmetry passed
         """
         tensor_utils.confirm_symmetry(h1e, symmh)

@@ -16,7 +16,7 @@
 """
 
 from operator import itemgetter
-from typing import Any, Generator, Iterable, KeysView, List, Set, Tuple
+from typing import Any, Generator, KeysView, List, Set, Tuple
 
 from scipy.special import binom
 import numpy

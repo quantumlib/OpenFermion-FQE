@@ -22,8 +22,6 @@ import numpy
 from fqe.hamiltonians import hamiltonian
 from fqe.tensor import tensor_utils
 
-# typing alias
-SymT_1 = List[Any]
 
 class General(hamiltonian.Hamiltonian):
     """A general hamiltonian class.
@@ -35,8 +33,8 @@ class General(hamiltonian.Hamiltonian):
                  h1e: numpy.ndarray,
                  g2e: numpy.ndarray,
                  chem: float,
-                 symmh: SymT_1,
-                 symmg: SymT_1):
+                 symmh: List[Any],
+                 symmg: List[Any]):
         """This hamiltonian has a potential, one body and two body terms.
         Any symmetries defined for the system must be explicitly added.
 
@@ -111,14 +109,14 @@ class General(hamiltonian.Hamiltonian):
         return self._g2e
 
 
-    def set_h(self, h1e: numpy.ndarray, symmh: SymT_1) -> None:
+    def set_h(self, h1e: numpy.ndarray, symmh: List[Any]) -> None:
         """Set the one particle matrix elements with optional symmetry passed
         """
         tensor_utils.confirm_symmetry(h1e, symmh)
         self._h1e = h1e
 
 
-    def set_g(self, g2e: numpy.ndarray, symmg: SymT_1) -> None:
+    def set_g(self, g2e: numpy.ndarray, symmg: List[Any]) -> None:
         """Set the two particle matrix elements with optional symmetry passed
         """
         tensor_utils.confirm_symmetry(g2e, symmg)

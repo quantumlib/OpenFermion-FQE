@@ -15,7 +15,7 @@
 """ Fermionic Quantum Emulator data class for holding wavefunction data.
 """
 
-from typing import Any, List, Generator, Union
+from typing import Any, List, Generator
 
 import numpy
 
@@ -283,7 +283,7 @@ class FqeData(fci_graph.FciGraph):
 
     def insequence_generator(self,
                              vector: int = 0
-                             ) -> Generator[List[Any], None, None]:
+                            ) -> Generator[List[Any], None, None]:
         """Iterate through the addresses of the wavefunction and return each
         determinant identifier and its coefficient.
 
