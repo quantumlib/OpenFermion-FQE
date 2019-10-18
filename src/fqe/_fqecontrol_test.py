@@ -31,12 +31,12 @@ class FqeControlTest(unittest.TestCase):
 
 
     def test_fqe_control_dot_vdot(self):
-        """There should not be more particles than orbitals
+        """Find the dot product of two wavefunctions.
         """
         wfn1 = fqe.get_spin_nonconserving_wavefunction(1)
-        wfn1.set_wfn(strategy='lowest')
+        wfn1.set_wfn(strategy='lowest', vrange=[0])
         wfn2 = fqe.get_wavefunction_multiple([[1, 1, 2]])
-        wfn2[0].set_wfn(strategy='lowest')
+        wfn2[0].set_wfn(strategy='lowest', vrange=[0])
         self.assertAlmostEqual(fqe.vdot(wfn1, wfn2[0]), 1. + .0j)
         self.assertAlmostEqual(fqe.dot(wfn1, wfn2[0]), 1. + .0j)
         wfn3 = fqe.get_wavefunction_multiple([[0, 0, 1], [1, 1, 1]])
@@ -162,3 +162,7 @@ class FqeControlTest(unittest.TestCase):
         test_che = fqe.apply_generated_unitary(ops, che_wfn, 'chebyshev')
         self.assertTrue(numpy.allclose(test_tay.get_coeff((2, 0), vec=0),
                                        test_che.get_coeff((2, 0), vec=0)))
+
+
+if __name__ == '__main__':
+    unittest.main()

@@ -15,7 +15,7 @@
 """ Fermionic Quantum Emulator data class for holding wavefunction data.
 """
 
-from typing import Any, List, Generator
+from typing import Any, List, Generator, Optional
 
 import numpy
 
@@ -334,7 +334,7 @@ class FqeData(fci_graph.FciGraph):
                     raise
 
 
-    def set_wfn(self, vrange: List[int] = None, strategy: str = None,
+    def set_wfn(self, vrange: List[int] = None, strategy: Optional[str] = None,
                 raw_data: numpy.ndarray = None) -> None:
         """Set the values of the fqedata wavefunction based on a strategy
 

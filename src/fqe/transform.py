@@ -25,7 +25,6 @@ import numpy
 from cirq import LineQubit
 
 from fqe.cirq_utils import qubit_projection
-from fqe.wavefunction import Wavefunction
 from fqe.openfermion_utils import convert_qubit_wfn_to_fqe_syntax
 from fqe.openfermion_utils import fci_qubit_representation
 from fqe.openfermion_utils import update_operator_coeff

@@ -337,7 +337,7 @@ class Wavefunction():
         Returns:
             numpy.array(dtype=numpy.complex64)
         """
-        if vec:
+        if vec is not None:
             return self._civec[key].coeff[:, vec]
         return self._civec[key].coeff
 

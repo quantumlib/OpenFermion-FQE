@@ -44,7 +44,7 @@ class TransformTest(unittest.TestCase):
         """
         cirq_wfn = numpy.ones((2, 1), dtype=numpy.complex64)
         self.assertRaises(ValueError, transform.cirq_to_fqe_single, cirq_wfn,
-                          20, 1)
+                          20, 1, None)
 
 
     def test_cirq_to_fqe_single(self):
@@ -58,7 +58,7 @@ class TransformTest(unittest.TestCase):
         wfn_ops += cof[1]*(ladder_op(0, 1)*ladder_op(2, 1)*ladder_op(3, 1))
         qpu = LineQubit.range(count_qubits(wfn_ops))
         cirq_wfn = qubit_wavefunction_from_vacuum(wfn_ops, qpu)
-        fqe_wfn = transform.cirq_to_fqe_single(cirq_wfn, 3, 1)
+        fqe_wfn = transform.cirq_to_fqe_single(cirq_wfn, 3, 1, None)
         fqe_jw = jordan_wigner(fqe_wfn)
         test_key = list(wfn_ops.terms.keys())
         for keyval in list(fqe_jw.terms.keys()):
