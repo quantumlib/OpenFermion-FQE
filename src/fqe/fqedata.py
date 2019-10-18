@@ -15,6 +15,8 @@
 """ Fermionic Quantum Emulator data class for holding wavefunction data.
 """
 
+from typing import Any, List, Generator, Optional
+
 import numpy
 
 from fqe.bitstring import integer_index
@@ -31,7 +33,7 @@ class FqeData(fci_graph.FciGraph):
     """
 
 
-    def __init__(self, nalpha, nbeta, norb):
+    def __init__(self, nalpha: int, nbeta: int, norb: int) -> None:
         """The FqeData structure holds the wavefunction for a particular
         configuration and provides an interace for accessing the data through
         the fcigraph functionality.
@@ -60,81 +62,81 @@ class FqeData(fci_graph.FciGraph):
 
 
     @property
-    def conj(self):
+    def conj(self) -> None:
         """Conjugate the coefficients
         """
         numpy.conjugate(self.coeff, self.coeff)
 
 
     @property
-    def n_electrons(self):
+    def n_electrons(self) -> int:
         """Particle number getter
         """
         return self._nele
 
 
     @property
-    def m_s(self):
+    def m_s(self) -> int:
         """Spin projection along the z axis
         """
         return self._m_s
 
 
     @property
-    def nalpha(self):
+    def nalpha(self) -> int:
         """Number of alpha electrons
         """
         return self._nalpha
 
 
     @property
-    def nbeta(self):
+    def nbeta(self) -> int:
         """Number of beta electrons
         """
         return self._nbeta
 
 
     @property
-    def lena(self):
+    def lena(self) -> int:
         """Length of the alpha configuration space
         """
         return self._lena
 
 
     @property
-    def lenb(self):
+    def lenb(self) -> int:
         """Length of the beta configuration space
         """
         return self._lenb
 
 
     @property
-    def ci_space_length(self):
+    def ci_space_length(self) -> int:
         """Return the length ci space
         """
         return self._lena*self._lenb
 
 
     @property
-    def ci_configuration_dimension(self):
+    def ci_configuration_dimension(self) -> int:
         """Return the number of states possible given this configuration
         """
         return self._cidim
 
 
-    def str_alpha(self, address):
+    def str_alpha(self, address: int) -> int:
         """Return the bitstring stored at the address for the alpha spin case
         """
-        return super(FqeData, self).get_alpha(address)
+        return self.get_alpha(address)
 
 
-    def str_beta(self, address):
+    def str_beta(self, address: int) -> int:
         """Return the bitstring stored at the address for the beta spin case
         """
-        return super(FqeData, self).get_beta(address)
+        return self.get_beta(address)
 
 
-    def _index_to_address(self, i_a, i_b):
+    def _index_to_address(self, i_a: int, i_b: int) -> int:
         """The CI vector is accessed as a rectangular array C(i_a, i_b)
         but it is stored as C(len_alpha*len_beta) in row-major order consistent
         with C and the numpy default for reshaping.
@@ -146,7 +148,7 @@ class FqeData(fci_graph.FciGraph):
         return i_a*self._lenb + i_b
 
 
-    def cc_i(self, i_a, i_b, ivec):
+    def cc_i(self, i_a: int, i_b: int, ivec: int) -> complex:
         """Given the address for the alpha string and the beta string
         return the element of the CIvector at C( i_a, i_b), ivec
 
@@ -162,7 +164,7 @@ class FqeData(fci_graph.FciGraph):
         return self.coeff[self._index_to_address(i_a, i_b), ivec]
 
 
-    def _address_from_strings(self, a_str, b_str):
+    def _address_from_strings(self, a_str: int, b_str: int) -> int:
         """Passing in the occupation representation of the system is often more
         convenient than the index associated with that string.
 
@@ -183,7 +185,7 @@ class FqeData(fci_graph.FciGraph):
         return self._index_to_address(i_a, i_b)
 
 
-    def _string_from_address(self, address):
+    def _string_from_address(self, address: int) -> List[int]:
         """Find out which strings are connected to the address index.
 
         Args:
@@ -198,7 +200,7 @@ class FqeData(fci_graph.FciGraph):
                                                      adr_a*self._lenb)]
 
 
-    def ci_i(self, address, ivec):
+    def ci_i(self, address: int, ivec: int) -> complex:
         """Returns the value of the coefficient corresponding to the
             determinant accessed by a specific address and configuration
             index.
@@ -214,7 +216,7 @@ class FqeData(fci_graph.FciGraph):
         return self.coeff[address, ivec]
 
 
-    def cc_s(self, astr, bstr, ivec):
+    def cc_s(self, astr: int, bstr: int, ivec: int) -> complex:
         """Returns the value of the coefficient corresponding to the
         determinant given by the string representation and a configuration
         index.
@@ -231,7 +233,7 @@ class FqeData(fci_graph.FciGraph):
         return self.coeff[self._address_from_strings(astr, bstr), ivec]
 
 
-    def add_element(self, astr, bstr, ivec, value):
+    def add_element(self, astr: int, bstr: int, ivec: int, value: complex) -> None:
         """Add a value to an existing element in the wavefunction
 
         Args:
@@ -246,7 +248,8 @@ class FqeData(fci_graph.FciGraph):
         self.coeff[self._address_from_strings(astr, bstr), ivec] += value
 
 
-    def set_element(self, astr, bstr, ivec, value):
+    def set_element(self, astr: int, bstr: int, ivec: int,
+                    value: complex) -> None:
         """Override a value stored in the wavefunction
 
         Args:
@@ -261,7 +264,7 @@ class FqeData(fci_graph.FciGraph):
         self.coeff[self._address_from_strings(astr, bstr), ivec] = value
 
 
-    def scale(self, sval, ivec=None):
+    def scale(self, sval: complex, ivec: int = None):
         """ Scale the wavefunction by the value sval
 
         Args:
@@ -278,7 +281,9 @@ class FqeData(fci_graph.FciGraph):
         self.coeff *= sval
 
 
-    def insequence_generator(self, vector=0):
+    def insequence_generator(self,
+                             vector: int = 0
+                            ) -> Generator[List[Any], None, None]:
         """Iterate through the addresses of the wavefunction and return each
         determinant identifier and its coefficient.
 
@@ -297,13 +302,16 @@ class FqeData(fci_graph.FciGraph):
             addr += 1
 
 
-    def normalize(self, vec=None):
+    def normalize(self, vec: List[int] = None) -> None:
         """For each vector in the ci space, scale it such that the Frobenius
         inner product equals 1.
 
         Args:
             vec (list[int]) - a list of integers indicating which vectors
                 should be normalized.
+
+        Returns:
+            none - modified in place
         """
         if vec is None:
             vec = list(range(self._cidim))
@@ -326,7 +334,8 @@ class FqeData(fci_graph.FciGraph):
                     raise
 
 
-    def set_wfn(self, vrange=None, strategy=None, raw_data=None):
+    def set_wfn(self, vrange: List[int] = None, strategy: Optional[str] = None,
+                raw_data: numpy.ndarray = None) -> None:
         """Set the values of the fqedata wavefunction based on a strategy
 
         Args:

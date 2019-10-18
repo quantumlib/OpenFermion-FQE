@@ -14,23 +14,24 @@
 
 """Tensor utitlies to evaluate symmetry and eventually create dense storage
 """
+from typing import Any, Deque, List, Tuple
 
 from collections import deque
 
 import numpy
 
 
-def build_symmetry_operations(symmetry):
+def build_symmetry_operations(symmetry: List[Any]) -> None:
     """Take the list of allowed permutations and build the symmetry operations
     allowed for the operation.
 
     Args:
-        symmetry (list[list[ints], float, bool]) - a list containing all the
+        symmetry (list[list[int], float, bool]) - a list containing all the
             allowed permuations
 
     Returns:
-        symmetry (list[numpy.array(dtype=int), float, bool]) - a list
-            containing the symmetry operation and the affliated properties
+        symmetry (list[numpy.array(dtype=int), float, bool]) - modifes the
+        symmetry in place
     """
     dim = len(symmetry[0][0])
     unit = numpy.identity(dim, dtype=int)
@@ -39,7 +40,7 @@ def build_symmetry_operations(symmetry):
         permutation[0] = perm
 
 
-def confirm_symmetry(mat, symmetry):
+def confirm_symmetry(mat: numpy.ndarray, symmetry: List[Any]) -> None:
     """Digest the allowed permutations to validate the underlying structure
 
     Args:
@@ -61,7 +62,7 @@ def confirm_symmetry(mat, symmetry):
     validate_matrix_symmetry(mat, symmetry)
 
 
-def index_queue(dim, highest_index):
+def index_queue(dim: int, highest_index: int) -> Deque[Tuple[int, ...]]:
     """Generate all index pointers into the matrix of interest
 
     Args:
@@ -69,15 +70,17 @@ def index_queue(dim, highest_index):
         highest_index (int) - the maximum value allowable in the matrix
 
     Returns:
-        queue (lsit) - a queue containing all possbile pointers into the
+        queue (list) - a queue containing all possbile pointers into the
             matrix:w
     """
+    i_queue: List[Tuple[int, ...]] = []
     if dim == 1:
-        i_queue = [i for i in range(highest_index)]
+        for i in range(highest_index):
+            i_queue.append(tuple([i]))
     else:
         total = highest_index**dim - 1
         ticker = [0 for _ in range(dim)]
-        i_queue = [tuple(ticker)]
+        i_queue.append(tuple(ticker))
 
         for _ in range(total):
             for i in reversed(range(dim)):
@@ -90,7 +93,8 @@ def index_queue(dim, highest_index):
     return deque(i_queue)
 
 
-def validate_matrix_symmetry(matrix, symmetry, threshhold=1.e-8):
+def validate_matrix_symmetry(matrix: numpy.ndarray, symmetry: List[Any],
+                             threshhold: float = 1.e-8) -> None:
     """Go through every element of the matrix and check that the symmetry
     operations are valid up to a threshhold.
 
@@ -98,6 +102,7 @@ def validate_matrix_symmetry(matrix, symmetry, threshhold=1.e-8):
         matrix (numpy.array) - a matrix of interest
         symmetry (list[numpy.array(dtype=int), float, bool]) - symmetry that
             should be validated
+        threshold (float) - the limit at which a symmetry operation is valid
 
     Returns:
         nothing - checks for errors in the passed matrix
@@ -126,7 +131,7 @@ def validate_matrix_symmetry(matrix, symmetry, threshhold=1.e-8):
                 pass
 
 
-def validate_unity(unity_permutation):
+def validate_unity(unity_permutation: List[Any]) -> bool:
     """Check that the initial permutation passed in is the unity operation and
     return data useful for validating the remaining permutations
 
@@ -134,7 +139,7 @@ def validate_unity(unity_permutation):
         unity_permutation (list[int], complex, bool)
 
     Returns:
-        nothing - raises errors if the unit permutation is false
+        bool - raises errors if the unit permutation is false
     """
     static = unity_permutation[0]
     lowlimit = -1

@@ -15,6 +15,8 @@
 """Quadratic Hamitlonian
 """
 
+from typing import Any, List, Union
+
 import numpy
 
 from fqe.hamiltonians import hamiltonian
@@ -26,7 +28,11 @@ class Quadratic(hamiltonian.Hamiltonian):
     """
 
 
-    def __init__(self, pot, h1e, chem, symmh):
+    def __init__(self,
+                 poten: Union[complex, float],
+                 h1e: numpy.ndarray,
+                 chem: float,
+                 symmh: List[Any]):
         """This hamiltonian has a potential and one body term.
         Any symmetries defined for the system must be explicitly added.
 
@@ -38,57 +44,59 @@ class Quadratic(hamiltonian.Hamiltonian):
             symmh (list[list[int], double, bool]) - symmetry permutations for
                 the one body matrix elements
         """
-        self._potential = pot
+        self._potential: Union[complex, float] = poten
         self._mu = chem
-        self._h1e = None
+        self._h1e = numpy.empty_like(h1e)
         self.set_h(h1e, symmh)
 
 
-    def identity(self):
+    def identity(self) -> str:
         """This is a quadratic Hamiltonian.
         """
         return 'Quadratic'
 
 
     @property
-    def potential(self):
+    def potential(self) -> Union[complex, float]:
         """Constant potential
         """
         return self._potential
 
 
+    @potential.setter
+    def potential(self, poten: Union[complex, float]) -> None:
+        """Set the potential
+        """
+        self._potential = poten
+
+
     @property
-    def mu_c(self):
+    def mu_c(self) -> float:
         """Chemical potential
         """
         return self._mu
 
 
+    @mu_c.setter
+    def mu_c(self, chem: float) -> None:
+        self._mu = chem
+
+
     @property
-    def h1e(self):
+    def h1e(self) -> numpy.ndarray:
         """One electron hamiltonian matrix elements
         """
         return self._h1e
 
 
     @property
-    def h_mu(self):
+    def h_mu(self) -> numpy.ndarray:
         """One electron hamiltonian matrix elements
         """
         return self._h1e - self._mu*numpy.identity(self._h1e.shape[0])
 
 
-    @potential.setter
-    def potential(self, pot):
-        self._potential = pot
-
-
-    @mu_c.setter
-    def mu_c(self, chem):
-        self._mu = chem
-
-
-    def set_h(self, h1e, symmh):
+    def set_h(self, h1e: numpy.ndarray, symmh: List[Any]) -> None:
         """Set the one particle matrix elements with optional symmetry passed
         """
         tensor_utils.confirm_symmetry(h1e, symmh)

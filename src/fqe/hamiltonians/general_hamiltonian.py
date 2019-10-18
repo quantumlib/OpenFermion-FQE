@@ -15,6 +15,8 @@
 """The most generally defined Hamiltonian
 """
 
+from typing import Any, List, Union
+
 import numpy
 
 from fqe.hamiltonians import hamiltonian
@@ -26,7 +28,13 @@ class General(hamiltonian.Hamiltonian):
     """
 
 
-    def __init__(self, pot, h1e, g2e, chem, symmh, symmg):
+    def __init__(self,
+                 pot: Union[complex, float],
+                 h1e: numpy.ndarray,
+                 g2e: numpy.ndarray,
+                 chem: float,
+                 symmh: List[Any],
+                 symmg: List[Any]):
         """This hamiltonian has a potential, one body and two body terms.
         Any symmetries defined for the system must be explicitly added.
 
@@ -43,72 +51,72 @@ class General(hamiltonian.Hamiltonian):
                 the two body matrix elements
         """
         self._potential = pot
-        self._h1e = None
-        self._g2e = None
+        self._h1e = numpy.empty_like(h1e)
+        self._g2e = numpy.empty_like(g2e)
         self.set_h(h1e, symmh)
         self._mu = chem
         self.set_g(g2e, symmg)
 
 
-    def identity(self):
+    def identity(self) -> str:
         """This is the most generic and general hamiltonian supported.
         """
         return 'General'
 
 
     @property
-    def potential(self):
+    def potential(self) -> Union[complex, float]:
         """Constant potential
         """
         return self._potential
 
 
+    @potential.setter
+    def potential(self, pot: Union[complex, float]) -> None:
+        self._potential = pot
+
+
     @property
-    def mu_c(self):
+    def mu_c(self) -> float:
         """Chemical potential
         """
         return self._mu
 
 
+    @mu_c.setter
+    def mu_c(self, chem: float) -> None:
+        self._mu = chem
+
+
     @property
-    def h1e(self):
+    def h1e(self) -> numpy.ndarray:
         """One electron hamiltonian matrix elements
         """
         return self._h1e
 
 
     @property
-    def h_mu(self):
+    def h_mu(self) -> numpy.ndarray:
         """One electron hamiltonian matrix elements
         """
         return self._h1e - self._mu*numpy.identity(self._h1e.shape[0])
 
 
     @property
-    def g2e(self):
+    def g2e(self) -> numpy.ndarray:
         """Two electron hamiltonian matrix elements
         """
         return self._g2e
 
 
-    @potential.setter
-    def potential(self, pot):
-        self._potential = pot
-
-
-    @mu_c.setter
-    def mu_c(self, chem):
-        self._mu = chem
-
-
-    def set_h(self, h1e, symmh):
+    def set_h(self, h1e: numpy.ndarray, symmh: List[Any]) -> None:
         """Set the one particle matrix elements with optional symmetry passed
         """
         tensor_utils.confirm_symmetry(h1e, symmh)
         self._h1e = h1e
 
 
-    def set_g(self, g2e, symmg):
+    def set_g(self, g2e: numpy.ndarray, symmg: List[Any]) -> None:
         """Set the two particle matrix elements with optional symmetry passed
         """
         tensor_utils.confirm_symmetry(g2e, symmg)

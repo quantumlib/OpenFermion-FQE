@@ -16,11 +16,14 @@
 frequently used operations.
 """
 
+from typing import Generator, List
+
 from itertools import permutations
 
 
-def check_conserved_bits(str0, conserved):
-    """Are all the bits set in conserved also set in str0
+def check_conserved_bits(str0: int, conserved: int) -> bool:
+    """Check that str0 has bits set in the same place that conserved has bits
+    set.
 
     Args:
         str0 (bitstring) - a bitstring representing an occupation state of a
@@ -34,7 +37,7 @@ def check_conserved_bits(str0, conserved):
     return (str0 & conserved) == conserved
 
 
-def gbit_index(str0):
+def gbit_index(str0: int) -> Generator[int, None, None]:
     """Generator for returning integers that associate each bit in sequence with
     a corresponding orbital index
 
@@ -60,7 +63,7 @@ def gbit_index(str0):
         bit_index += 1
 
 
-def integer_index(str0):
+def integer_index(str0: int) -> List[int]:
     """Generate integers indicating the position of occupied orbitals in a
     bitstring starting from 0.  This is a convience wrapper for the gbit_index
     generator
@@ -75,14 +78,14 @@ def integer_index(str0):
     return list(gbit_index(str0))
 
 
-def lexicographic_bitstring_generator(str0, norb):
+def lexicographic_bitstring_generator(str0: int, norb: int) -> List[int]:
     """
     Generate all bitstrings with a definite bit count starting from an initial
     state
 
     Args:
          str0 (bitstring) - integer representing bitstring ground state
-         norb (bitstring) - number of spatial orbitals to distribute the
+         norb (int) - number of spatial orbitals to distribute the
          particles into
 
     Returns:

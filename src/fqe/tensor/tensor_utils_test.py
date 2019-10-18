@@ -152,7 +152,7 @@ class TensorUtilsTest(unittest.TestCase):
         """Genreate tuples as pointers into all elements of an arbitray sized
         matrix to confirm the symmetry operations
         """
-        test = deque([i for i in range(10)])
+        test = deque([tuple([i]) for i in range(10)])
         self.assertEqual(test, tensor_utils.index_queue(1, 10))
 
         test = deque([

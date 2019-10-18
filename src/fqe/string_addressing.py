@@ -15,12 +15,14 @@
 """This module implements the basic operations for determinant strings
 """
 
+from typing import List, Tuple
+
 from scipy import special
 
 from fqe.bitstring import gbit_index
 
 
-def build_string_address(nele, norb, occupation):
+def build_string_address(nele: int, norb: int, occupation: List[int]) -> int:
     """Given a list of occupied orbitals in ascending order generate the
     index into the CI matrix.
 
@@ -39,7 +41,8 @@ def build_string_address(nele, norb, occupation):
         raise ValueError("The number of electrons is not equal to occupation")
     det_addr = 0
 
-    def _addressing_array_element(norb, nele, el_i, or_i):
+    def _addressing_array_element(norb: int, nele: int, el_i: int,
+                                  or_i: int) -> int:
         """Calculate an addressing array element zar( el_i, or_i)
 
         Args:
@@ -56,7 +59,7 @@ def build_string_address(nele, norb, occupation):
         else:
             zar = 0
 
-            def _addressing_array_summand(oc_i, nmk):
+            def _addressing_array_summand(oc_i: int, nmk: int) -> int:
                 """Calculate a summand in the addressing array
                 """
                 assert nmk > 0, '-1 meaningless in binomial address'
@@ -73,7 +76,7 @@ def build_string_address(nele, norb, occupation):
     return int(det_addr)
 
 
-def count_bits(string, bitval='1'):
+def count_bits(string: int, bitval: str = '1') -> int:
     """Count the bit value in a bistring
 
     Args:
@@ -86,7 +89,7 @@ def count_bits(string, bitval='1'):
     return bin(string).count(bitval)
 
 
-def generate_excitations(det, norb):
+def generate_excitations(det: int, norb: int) -> List[Tuple[int, int, int]]:
     """Given an occupation representation return all single excitations out of
        that bitstring. -> sum_{kl} E_{kl}|psi>
 
@@ -114,7 +117,7 @@ def generate_excitations(det, norb):
     return out
 
 
-def string_parity(string1, string0):
+def string_parity(string1: int, string0: int) -> int:
     """Given two strings of equal particle number, determine the parity of
     going the process string1 = (p^q) string0
 

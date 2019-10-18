@@ -15,6 +15,9 @@
 """Transformations between the various paradigms availible to OpenFermion
 that provide interoperability.
 """
+
+from typing import Optional, TYPE_CHECKING
+
 from openfermion import FermionOperator
 
 import numpy
@@ -28,7 +31,14 @@ from fqe.openfermion_utils import update_operator_coeff
 from fqe.openfermion_utils import fermion_opstring_to_bitstring
 
 
-def cirq_to_fqe_single(cirq_wfn, nele, m_s, qubin=None):
+if TYPE_CHECKING:
+    from fqe.wavefunction import Wavefunction
+
+
+def cirq_to_fqe_single(cirq_wfn: numpy.ndarray,
+                       nele: int,
+                       m_s: int,
+                       qubin: Optional['LineQubit']) -> FermionOperator:
     """Given a wavefunction from cirq, create a FermionOperator string which
     will create the same state in the basis of Fermionic modes such that
 
@@ -40,6 +50,12 @@ def cirq_to_fqe_single(cirq_wfn, nele, m_s, qubin=None):
     Args:
         cirq-wfn (numpy.array(ndim=1, numpy.dtype=complex64)) - coeffcients in
             the qubit basis.
+        nele (int) - the number of electrons
+        m_s (int) - the s_z spin angular momentum
+        qubiin (LineQUibit) - LineQubits to process the representation
+
+    Returns:
+        FermionOperator
     """
     if nele == 0:
         return FermionOperator('', cirq_wfn[0]*1.)
@@ -64,7 +80,7 @@ def cirq_to_fqe_single(cirq_wfn, nele, m_s, qubin=None):
     return convert_qubit_wfn_to_fqe_syntax(jw_ops)
 
 
-def from_cirq(wfn, state):
+def from_cirq(wfn: 'Wavefunction', state: numpy.ndarray) -> None:
     """For each availble FqeData structure, find the projection onto the cirq
     wavefunction and set the coefficients to the proper value.
 
