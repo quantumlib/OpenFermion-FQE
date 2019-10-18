@@ -342,7 +342,7 @@ class Wavefunction():
         return self._civec[key].coeff
 
 
-    def apply(self, ops) -> 'Wavefunction':
+    def apply(self, ops: 'FermionOperator') -> 'Wavefunction':
         """Return a wavefunction subject to the creation and annhilation
         operations passed into apply.
 
@@ -555,7 +555,7 @@ class Wavefunction():
             config.normalize(vec=vec)
 
 
-    def generator(self) -> Generator[Tuple[int, int], None, None]:
+    def generator(self) -> Generator['FqeData', None, None]:
         """Return each configuration in the wavefunction for convenient
         manipulation
         """

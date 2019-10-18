@@ -15,7 +15,7 @@
 """The most generally defined Hamiltonian
 """
 
-from typing import List, Union
+from typing import Any, List, Union
 
 import numpy
 
@@ -23,7 +23,7 @@ from fqe.hamiltonians import hamiltonian
 from fqe.tensor import tensor_utils
 
 # typing alias
-SymT_1 = List[Union[List[int], float, bool]]
+SymT_1 = List[Any]
 
 class General(hamiltonian.Hamiltonian):
     """A general hamiltonian class.
@@ -53,8 +53,8 @@ class General(hamiltonian.Hamiltonian):
                 the two body matrix elements
         """
         self._potential = pot
-        self._h1e = None
-        self._g2e = None
+        self._h1e = numpy.empty_like(h1e)
+        self._g2e = numpy.empty_like(g2e)
         self.set_h(h1e, symmh)
         self._mu = chem
         self.set_g(g2e, symmg)
@@ -73,11 +73,21 @@ class General(hamiltonian.Hamiltonian):
         return self._potential
 
 
+    @potential.setter
+    def potential(self, pot: Union[complex, float]) -> None:
+        self._potential = pot
+
+
     @property
     def mu_c(self) -> float:
         """Chemical potential
         """
         return self._mu
+
+
+    @mu_c.setter
+    def mu_c(self, chem: float) -> None:
+        self._mu = chem
 
 
     @property
@@ -99,16 +109,6 @@ class General(hamiltonian.Hamiltonian):
         """Two electron hamiltonian matrix elements
         """
         return self._g2e
-
-
-    @potential.setter
-    def potential(self, pot: Union[complex, float]) -> None:
-        self._potential = pot
-
-
-    @mu_c.setter
-    def mu_c(self, chem: float) -> None:
-        self._mu = chem
 
 
     def set_h(self, h1e: numpy.ndarray, symmh: SymT_1) -> None:

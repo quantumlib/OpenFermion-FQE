@@ -15,7 +15,7 @@
 """ Fermionic Quantum Emulator data class for holding wavefunction data.
 """
 
-from typing import List
+from typing import Any, List, Generator, Union
 
 import numpy
 
@@ -185,7 +185,7 @@ class FqeData(fci_graph.FciGraph):
         return self._index_to_address(i_a, i_b)
 
 
-    def _string_from_address(self, address: int) -> int:
+    def _string_from_address(self, address: int) -> List[int]:
         """Find out which strings are connected to the address index.
 
         Args:
@@ -282,7 +282,8 @@ class FqeData(fci_graph.FciGraph):
 
 
     def insequence_generator(self,
-                             vector: int = 0) -> List[Union[complex, int]]:
+                             vector: int = 0
+                             ) -> Generator[List[Any], None, None]:
         """Iterate through the addresses of the wavefunction and return each
         determinant identifier and its coefficient.
 

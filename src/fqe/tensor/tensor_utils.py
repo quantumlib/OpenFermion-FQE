@@ -14,15 +14,14 @@
 
 """Tensor utitlies to evaluate symmetry and eventually create dense storage
 """
-from typing import Deque, List, Union
+from typing import Any, Deque, List, Tuple, Union
 
 from collections import deque
 
 import numpy
 
 # typing alias
-SymT_1 = List[Union[List[int], float, bool]]
-SymT_2 = List[Union[numpy.ndarray, float, bool]]
+SymT_1 = List[Any]
 
 
 def build_symmetry_operations(symmetry: SymT_1) -> None:
@@ -66,7 +65,7 @@ def confirm_symmetry(mat: numpy.ndarray, symmetry: SymT_1) -> None:
     validate_matrix_symmetry(mat, symmetry)
 
 
-def index_queue(dim: int, highest_index: int) -> Deque[List[int]]:
+def index_queue(dim: int, highest_index: int) -> Deque[Tuple[int, ...]]:
     """Generate all index pointers into the matrix of interest
 
     Args:
@@ -77,12 +76,14 @@ def index_queue(dim: int, highest_index: int) -> Deque[List[int]]:
         queue (list) - a queue containing all possbile pointers into the
             matrix:w
     """
+    i_queue: List[Tuple[int, ...]] = []
     if dim == 1:
-        i_queue = list(range(highest_index))
+        for i in range(highest_index):
+            i_queue.append(tuple([i]))
     else:
         total = highest_index**dim - 1
         ticker = [0 for _ in range(dim)]
-        i_queue = [tuple(ticker)]
+        i_queue.append(tuple(ticker))
 
         for _ in range(total):
             for i in reversed(range(dim)):
@@ -95,7 +96,7 @@ def index_queue(dim: int, highest_index: int) -> Deque[List[int]]:
     return deque(i_queue)
 
 
-def validate_matrix_symmetry(matrix: numpy.ndarray, symmetry: SymT_2,
+def validate_matrix_symmetry(matrix: numpy.ndarray, symmetry: SymT_1,
                              threshhold: float = 1.e-8) -> None:
     """Go through every element of the matrix and check that the symmetry
     operations are valid up to a threshhold.

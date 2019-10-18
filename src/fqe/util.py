@@ -16,7 +16,7 @@
 """
 
 from operator import itemgetter
-from typing import Any, Generator, List, Tuple
+from typing import Any, Generator, Iterable, KeysView, List, Set, Tuple
 
 from scipy.special import binom
 import numpy
@@ -72,7 +72,7 @@ def bubblesort(arr: List[Any]) -> int:
     return swap_count
 
 
-def configuration_key_union(*argv: List[Tuple[int, int]]) -> List[Tuple[int, int]]:
+def configuration_key_union(*argv: KeysView[Tuple[int, int]]) -> List[Tuple[int, int]]:
     """Given a list of configuration keys, build a list which is the union of
     all configuration keys in the list
 
@@ -83,9 +83,9 @@ def configuration_key_union(*argv: List[Tuple[int, int]]) -> List[Tuple[int, int
         list[(int, int)] - a list of unique configuration keys found among all
             the passed arguments
     """
-    keyunion = set()
-    for keys in argv:
-        keyunion.update(keys)
+    keyunion: Set[Tuple[int, int]] = set()
+    for configs in argv:
+        keyunion.update(configs)
     return list(keyunion)
 
 
@@ -382,7 +382,7 @@ def rand_wfn(dim: int, sparse: str = 'none') -> numpy.ndarray:
 
 
 def sort_configuration_keys(configs:
-                            List[Tuple[int, int]]) -> List[Tuple[int, int]]:
+                            KeysView[Tuple[int, int]]) -> List[Tuple[int, int]]:
     """Return a standard sorting of configuration keys in a wavefunction for
     comparison.  The configurations are sorted first by the number of particles
     and then by the spin quantum number.

@@ -15,14 +15,17 @@
 """Utilities which specifically require import from Cirq
 """
 
+from typing import Union
+
 import numpy
 
-from cirq import X, Y, Z, Moment, Circuit, Simulator
+from cirq import X, Y, Z, Moment, LineQubit, Circuit, Simulator
+from openfermion import QubitOperator
 
 from fqe.util import init_qubit_vacuum
 
 
-def qubit_ops_to_circuit(ops, qpu):
+def qubit_ops_to_circuit(ops: 'QubitOperator', qpu: 'LineQubit') -> 'Circuit':
     """Generate a circuit that can be run on a Cirq simulator from the ops
     passed
 
@@ -44,7 +47,7 @@ def qubit_ops_to_circuit(ops, qpu):
     return Circuit(moment)
 
 
-def qubit_op_to_gate(operation, qubit):
+def qubit_op_to_gate(operation: 'QubitOperator', qubit) -> Union['X', 'Y', 'Z']:
     """Convert a qubit operation into a gate operations that can be digested
     by a Cirq simulator.
 
@@ -64,7 +67,9 @@ def qubit_op_to_gate(operation, qubit):
     raise ValueError('No gate identified in qubit_op_to_gate')
 
 
-def qubit_projection(ops, qubits, state: numpy.ndarray,
+def qubit_projection(ops: 'QubitOperator',
+                     qubits: 'LineQubit',
+                     state: numpy.ndarray,
                      coeff: numpy.ndarray) -> numpy.ndarray:
     """Find the projection of each set of qubit operators on a
     wavefunction.
@@ -91,7 +96,8 @@ def qubit_projection(ops, qubits, state: numpy.ndarray,
         coeff[indx] = result.final_state[0]
 
 
-def qubit_wavefunction_from_vacuum(ops, qubits) -> numpy.ndarray:
+def qubit_wavefunction_from_vacuum(ops: 'QubitOperator',
+                                   qubits: 'LineQubit') -> numpy.ndarray:
     """Generate a cirq wavefunction from the vacuum given qubit operators and a
     set of qubits that this wavefunction will be represented on
 

@@ -15,7 +15,7 @@
 """Quadratic Hamitlonian
 """
 
-from typing import List, Union
+from typing import Any, List, Union
 
 import numpy
 
@@ -23,7 +23,7 @@ from fqe.hamiltonians import hamiltonian
 from fqe.tensor import tensor_utils
 
 # typing alias
-SymT_1 = List[Union[List[int], float, bool]]
+SymT_1 = List[Any]
 
 class Quadratic(hamiltonian.Hamiltonian):
     """A hamiltonian class for terms with at most order 2 in QFT operators
@@ -31,7 +31,7 @@ class Quadratic(hamiltonian.Hamiltonian):
 
 
     def __init__(self,
-                 pot: Union[complex, float],
+                 poten: Union[complex, float],
                  h1e: numpy.ndarray,
                  chem: float,
                  symmh: SymT_1):
@@ -46,9 +46,9 @@ class Quadratic(hamiltonian.Hamiltonian):
             symmh (list[list[int], double, bool]) - symmetry permutations for
                 the one body matrix elements
         """
-        self._potential = pot
+        self._potential: Union[complex, float] = poten
         self._mu = chem
-        self._h1e = None
+        self._h1e = numpy.empty_like(h1e)
         self.set_h(h1e, symmh)
 
 
@@ -65,11 +65,23 @@ class Quadratic(hamiltonian.Hamiltonian):
         return self._potential
 
 
+    @potential.setter
+    def potential(self, poten: Union[complex, float]) -> None:
+        """Set the potential
+        """
+        self._potential = poten
+
+
     @property
     def mu_c(self) -> float:
         """Chemical potential
         """
         return self._mu
+
+
+    @mu_c.setter
+    def mu_c(self, chem: float) -> None:
+        self._mu = chem
 
 
     @property
@@ -84,16 +96,6 @@ class Quadratic(hamiltonian.Hamiltonian):
         """One electron hamiltonian matrix elements
         """
         return self._h1e - self._mu*numpy.identity(self._h1e.shape[0])
-
-
-    @potential.setter
-    def potential(self, pot: Union[complex, float]) -> None:
-        self._potential = pot
-
-
-    @mu_c.setter
-    def mu_c(self, chem: float) -> None:
-        self._mu = chem
 
 
     def set_h(self, h1e: numpy.ndarray, symmh: SymT_1) -> None:

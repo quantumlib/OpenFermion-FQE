@@ -25,13 +25,17 @@ import numpy
 from cirq import LineQubit
 
 from fqe.cirq_utils import qubit_projection
+from fqe.wavefunction import Wavefunction
 from fqe.openfermion_utils import convert_qubit_wfn_to_fqe_syntax
 from fqe.openfermion_utils import fci_qubit_representation
 from fqe.openfermion_utils import update_operator_coeff
 from fqe.openfermion_utils import fermion_opstring_to_bitstring
 
 
-def cirq_to_fqe_single(cirq_wfn: numpy.ndarray, nele: int, m_s: int, qubin=None):
+def cirq_to_fqe_single(cirq_wfn: numpy.ndarray,
+                       nele: int, 
+                       m_s: int, 
+                       qubin: Optional['LineQubit']) -> FermionOperator:
     """Given a wavefunction from cirq, create a FermionOperator string which
     will create the same state in the basis of Fermionic modes such that
 
@@ -43,6 +47,12 @@ def cirq_to_fqe_single(cirq_wfn: numpy.ndarray, nele: int, m_s: int, qubin=None)
     Args:
         cirq-wfn (numpy.array(ndim=1, numpy.dtype=complex64)) - coeffcients in
             the qubit basis.
+        nele (int) - the number of electrons
+        m_s (int) - the s_z spin angular momentum
+        qubiin (LineQUibit) - LineQubits to process the representation
+
+    Returns:
+        FermionOperator
     """
     if nele == 0:
         return FermionOperator('', cirq_wfn[0]*1.)
@@ -67,7 +77,7 @@ def cirq_to_fqe_single(cirq_wfn: numpy.ndarray, nele: int, m_s: int, qubin=None)
     return convert_qubit_wfn_to_fqe_syntax(jw_ops)
 
 
-def from_cirq(wfn, state: numpy.ndarray) -> None:
+def from_cirq(wfn: 'Wavefunction', state: numpy.ndarray) -> None:
     """For each availble FqeData structure, find the projection onto the cirq
     wavefunction and set the coefficients to the proper value.
 

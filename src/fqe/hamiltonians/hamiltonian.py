@@ -15,9 +15,11 @@
 """ Hamiltonian class for the OpenFermion-FQE.
 """
 
-import abc
+from abc import ABCMeta, abstractmethod
 
-class Hamiltonian(metaclass=abc.ABCMeta):
+import numpy
+
+class Hamiltonian(metaclass=ABCMeta):
     """ Abstract class to mediate the functions of Hamiltonian with the
     emulator.  Since the structure of the Hamiltonian may contain symmeties
     which can greatly speed up operations that act up on the object, defining
@@ -25,14 +27,20 @@ class Hamiltonian(metaclass=abc.ABCMeta):
     efficient.
     """
 
+    # Variable Annotation
+    h1e: numpy.ndarray
+    g2e: numpy.ndarray
+    
 
+    @abstractmethod
     def __init__(self) -> None:
         """The abstract class cannot instantiate
         """
         raise TypeError
 
 
-    def identity(self) -> None:
+    @abstractmethod
+    def identity(self) -> str:
         """The proper name of the Hamiltonian
         Returns a string with the name of the hamiltonian or general otherwise
         """
