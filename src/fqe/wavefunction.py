@@ -16,6 +16,7 @@
 """
 
 import copy
+import os
 from typing import (Callable,
                     Dict,
                     Generator,
@@ -655,3 +656,36 @@ class Wavefunction():
                             print("Vector : {}".format(ivec))
                         conadr = print_format(base[1], base[2])
                         print(" {} : {}".format(conadr, base[0]))
+
+
+    def save(self, filename: str, path: str = os.getcwd()) -> None:
+        """Save the wavefunction into path/filename.
+
+        Args:
+            filename (str) - the name of the file to write the wavefunction to
+            path (str) - the path to save the file.  If no path is given then
+                it is saved in the current working directory.
+        """
+        wfn_data = [self._norb]
+
+        for key in self._civec:
+            wfn_data.append([key, self._civec[key].coeff])
+
+        with open(path + '/' + filename, 'w+b') as wfnfile:
+            numpy.save(wfnfile, wfn_data, allow_pickle=True)
+
+
+    def read(self, filename: str, path: str = os.getcwd()) -> None:
+        """Initialize a wavefunction from a binary file.
+
+        Args:
+            filename (str) - the name of the file to write the wavefunction to
+            path (str) - the path to save the file.  If no path is given then
+                it is saved in the current working directory.
+        """
+        with open(path + '/' + filename, 'r+b') as wfnfile:
+            wfn_data = numpy.load(wfnfile, allow_pickle=True)
+
+        norb = wfn_data[0]
+        for config in wfn_data[1:]:
+            self.add_config(config[0][0], config[0][1], norb, data=config[1])
