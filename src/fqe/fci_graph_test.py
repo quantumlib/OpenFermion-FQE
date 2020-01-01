@@ -17,6 +17,7 @@
 
 import unittest
 
+from scipy import special
 from fqe import fci_graph
 
 class FciGraphTest(unittest.TestCase):
@@ -24,55 +25,101 @@ class FciGraphTest(unittest.TestCase):
     """
 
 
-    def test_fci_graph_validate_nparticles(self):
-        """There should not be more particles than orbitals
+    @unittest.SkipTest
+    def test_fci_graph(self):
+        """Check the basic initializers and getter functions.
         """
-        self.assertRaises(ValueError, fci_graph.FciGraph, 4, 4, 1)
-        self.assertRaises(ValueError, fci_graph.FciGraph, 4, -4, 1)
+        reflist = [15, 23, 39, 71, 135, 27, 43, 75, 139, 51, 83, 147, 99, \
+                    163, 195, 29, 45, 77, 141, 53, 85, 149, 101, 165, 197, \
+                    57, 89, 153, 105, 169, 201, 113, 177, 209, 225, 30, 46,\
+                    78, 142, 54, 86, 150, 102, 166, 198, 58, 90, 154, 106, \
+                    170, 202, 114, 178, 210, 226, 60, 92, 156, 108, 172, \
+                    204, 116, 180, 212, 228, 120, 184, 216, 232, 240]
+        refdict = {15: 0, 23: 1, 27: 5, 29: 15, 30: 35, 39: 2, 43: 6, 45: 16, \
+                    46: 36, 51: 9, 53: 19, 54: 39, 57: 25, 58: 45, 60: 55, \
+                    71: 3, 75: 7, 77: 17, 78: 37, 83: 10, 85: 20, 86: 40, \
+                    89: 26, 90: 46, 92: 56, 99: 12, 101: 22, 102: 42, 105: 28, \
+                    106: 48, 108: 58, 113: 31, 114: 51, 116: 61, 120: 65, \
+                    135: 4, 139: 8, 141: 18, 142: 38, 147: 11, 149: 21, \
+                    150: 41, 153: 27, 154: 47, 156: 57, 163: 13, 165: 23, \
+                    166: 43, 169: 29, 170: 49, 172: 59, 177: 32, 178: 52, \
+                    180: 62, 184: 66, 195: 14, 197: 24, 198: 44, 201: 30, \
+                    202: 50, 204: 60, 209: 33, 210: 53, 212: 63, 216: 67, \
+                    225: 34, 226: 54, 228: 64, 232: 68, 240: 69}
+        norb = 8
+        nalpha = 4
+        nbeta = 0
+        lena = int(special.binom(norb, nalpha))
+        max_bitstring = (1 << norb) - (1 << (norb - nalpha))
+        testgraph = fci_graph.FciGraph(nalpha, nbeta, norb)
+        self.assertEqual(testgraph.build_string_address(nalpha, norb, [0, 1, 2, 3]), 0)
+        self.assertEqual(testgraph.build_string_address(nalpha, norb, [1, 2, 3, 7]), 38)
+        test_list, test_dict = testgraph.build_strings(nalpha, lena)
+        self.assertListEqual(test_list, reflist)
+        self.assertDictEqual(test_dict, refdict)
+        self.assertEqual(testgraph.string_beta(0), 0)
+        self.assertEqual(testgraph.string_alpha(lena-1), max_bitstring)
+        self.assertEqual(testgraph.index_beta(0), 0)
+        self.assertEqual(testgraph.index_alpha(max_bitstring), lena-1)
+        self.assertEqual(testgraph.lena(), lena)
+        self.assertEqual(testgraph.lenb(), 1)
+        self.assertEqual(testgraph.nalpha(), nalpha)
+        self.assertEqual(testgraph.nbeta(), nbeta)
+        self.assertEqual(testgraph.norb(), norb)
+        self.assertEqual(testgraph.string_alpha(lena-1), max_bitstring)
+        self.assertListEqual(testgraph.string_alpha_all(), reflist)
+        self.assertListEqual(testgraph.string_beta_all(), [0])
+        self.assertDictEqual(testgraph.index_alpha_all(), refdict)
+        self.assertDictEqual(testgraph.index_beta_all(), {0: 0})
 
 
-    def test_fci_graph_validate_existence(self):
-        """Negative numbers of particles in not useful
+    def test_fci_graph_maps(self):
+        """Check graph mapping functions
         """
-        self.assertRaises(ValueError, fci_graph.FciGraph, -8, 0, 1)
-
-
-    def test_fci_graph_index_range_alpha(self):
-        """Accessing elements outside of our space is not allowed
-        """
-        testgraph = fci_graph.FciGraph(1, 0, 4)
-        self.assertRaises(IndexError, testgraph.get_alpha, 25)
-
-
-    def test_fci_graph_index_range_beta(self):
-        """No determinants are indexed with negative values.
-        """
-        testgraph = fci_graph.FciGraph(0, 1, 4)
-        self.assertRaises(IndexError, testgraph.get_beta, -25)
-
-
-    def test_fci_graph_check_value_min(self):
-        """The bitstring corresponding to the occupation of the lowest n
-        orbitals and the first element accessed should be sum_{n} 2**n.
-        """
-        testgraph = fci_graph.FciGraph(4, 4, 8)
-        self.assertEqual(15, testgraph.get_alpha(0))
-
-
-    def test_fci_graph_check_value_max(self):
-        """The bitstring corresponding to the occupation of the highest n
-        orbitals will be in bitwise operations
-
-            (1<<norbs) - (1<<(norbs - nele)) - 2
-
-        """
-        testgraph = fci_graph.FciGraph(4, 4, 8)
-        self.assertEqual(240, testgraph.get_beta(69))
-
-
-    def test_fci_graph_vacuum(self):
-        """The vacuum should just be a coefficient
-        """
-        testgraph = fci_graph.FciGraph(0, 0, 8)
-        self.assertEqual(0, testgraph.get_alpha(0))
-        self.assertEqual(0, testgraph.get_beta(0))
+        ref_alpha_map = {(0, 0): [(0, 0, 1), (1, 1, 1), (2, 2, 1)],
+                         (0, 1): [(3, 1, 1), (4, 2, 1)],
+                         (0, 2): [(3, 0, -1), (5, 2, 1)],
+                         (0, 3): [(4, 0, -1), (5, 1, -1)],
+                         (1, 0): [(1, 3, 1), (2, 4, 1)],
+                         (1, 1): [(0, 0, 1), (3, 3, 1), (4, 4, 1)], 
+                         (1, 2): [(1, 0, 1), (5, 4, 1)],
+                         (1, 3): [(2, 0, 1), (5, 3, -1)],
+                         (2, 0): [(0, 3, -1), (2, 5, 1)],
+                         (2, 1): [(0, 1, 1), (4, 5, 1)],
+                         (2, 2): [(1, 1, 1), (3, 3, 1), (5, 5, 1)],
+                         (2, 3): [(2, 1, 1), (4, 3, 1)],
+                         (3, 0): [(0, 4, -1), (1, 5, -1)],
+                         (3, 1): [(0, 2, 1), (3, 5, -1)],
+                         (3, 2): [(1, 2, 1), (3, 4, 1)],
+                         (3, 3): [(2, 2, 1), (4, 4, 1), (5, 5, 1)]}
+        ref_beta_map = {(0, 0): [(0, 0, 1)],
+                        (0, 1): [(1, 0, 1)],
+                        (0, 2): [(2, 0, 1)],
+                        (0, 3): [(3, 0, 1)],
+                        (1, 0): [(0, 1, 1)],
+                        (1, 1): [(1, 1, 1)],
+                        (1, 2): [(2, 1, 1)],
+                        (1, 3): [(3, 1, 1)],
+                        (2, 0): [(0, 2, 1)],
+                        (2, 1): [(1, 2, 1)],
+                        (2, 2): [(2, 2, 1)],
+                        (2, 3): [(3, 2, 1)],
+                        (3, 0): [(0, 3, 1)],
+                        (3, 1): [(1, 3, 1)],
+                        (3, 2): [(2, 3, 1)],
+                        (3, 3): [(3, 3, 1)]}
+        alist = [3, 5, 9, 6, 10, 12]
+        blist = [1, 2, 4, 8]
+        aind = {3: 0, 5: 1, 6: 3, 9: 2, 10: 4, 12: 5}
+        bind = {1: 0, 2: 1, 4: 2, 8: 3}
+        norb = 4
+        nalpha = 2
+        nbeta = 1
+        testgraph = fci_graph.FciGraph(nalpha, nbeta, norb)
+        alpha_map = testgraph.build_mapping(alist, aind)
+        self.assertDictEqual(alpha_map, ref_alpha_map)
+        beta_map = testgraph.build_mapping(blist, bind)
+        self.assertDictEqual(beta_map, ref_beta_map)
+        dummy_map = ({(1, 1): (0, 1, 2)}, {(-1, -1), (0, 1, 2)})
+        testgraph.insert_mapping(1, -1, dummy_map)
+        self.assertEqual(testgraph.find_mapping(1, -1), dummy_map)

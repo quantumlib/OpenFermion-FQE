@@ -16,6 +16,6 @@
 Fermionic Quantum Emulator
 """
 
-from fqe._fqecontrol import *
+from fqe._fqe_control import *
 
 from ._version import __version__

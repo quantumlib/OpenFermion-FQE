@@ -11,25 +11,23 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
-"""General nbody hamiltonian 
+"""Restricted class for the OpenFermion-FQE.
 """
 
-from typing import Any, Dict, List, Union
-
 import numpy
+from numpy import linalg
 
 from fqe.hamiltonians import hamiltonian, hamiltonian_utils
 
 
-class General(hamiltonian.Hamiltonian):
-    """The most general Hamiltonian supported by the fqe
+class Restricted(hamiltonian.Hamiltonian):
+    """
     """
 
-
-    def __init__(self, tensor, conserve_number=True, symmetrize=True) -> None:
+    def __init__(self, tensor, conserve_number=True) -> None:
         """
         """
-        super().__init__(conserve_number=conserve_number)
+        super().__init__(conserve_number)
         self._tensor = {}
 
         for rank in range(len(tensor)):
@@ -50,8 +48,8 @@ class General(hamiltonian.Hamiltonian):
         self._dim = list(self._tensor.values())[0].shape[0]
 
 
-    def dim(self):
-        """
+    def dim(self) -> int:
+        """Return the dimension of the hamiltonian
         """
         return self._dim
 
@@ -60,20 +58,6 @@ class General(hamiltonian.Hamiltonian):
         """
         """
         return 2*len(self._tensor)
-
-
-    def calc_diag_transform(self):
-        """
-        """
-        _, trans = linalg.eigh(self._tensor[2])
-        return trans
-
-
-    def transform(self, trans):
-        """Using the transformation stored, mutate the hamiltonian to
-        diagonal
-        """
-        return trans.conj().T @ self._tensor[2] @ trans
 
 
     def tensor(self, rank):
@@ -91,6 +75,10 @@ class General(hamiltonian.Hamiltonian):
         return tuple(out)
 
 
+    def quadratic(self) -> bool:
+        return self._quadratic
+
+
     def iht(self, time, full=True):
         """
         """
@@ -99,3 +87,30 @@ class General(hamiltonian.Hamiltonian):
             iht_mat.append(-1.j*time*self._tensor[2*(rank + 1)])
 
         return tuple(iht_mat)
+
+
+    def calc_diag_transform(self):
+        """Diagonalize the Hamiltonian and store the transformation locally.
+        """
+        norb = self._tensor[2].shape[0]
+        h1e = numpy.zeros((2*norb, 2*norb), dtype=self._tensor[2].dtype)
+
+        h1e[:norb, :norb] = self._tensor[2]
+        h1e[norb:, norb:] = self._tensor[2]
+
+        _, trans = linalg.eigh(h1e)
+
+        return trans
+
+
+    def transform(self, trans):
+        """Using the transformation stored, mutate the hamiltonian to
+        diagonal
+        """
+        norb = self._tensor[2].shape[0]
+        h1e = numpy.zeros((2*norb, 2*norb), dtype=self._tensor[2].dtype)
+
+        h1e[:norb, :norb] = self._tensor[2]
+        h1e[norb:, norb:] = self._tensor[2]
+
+        return trans.conj().T @ h1e @ trans

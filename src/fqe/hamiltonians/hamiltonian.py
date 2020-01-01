@@ -11,37 +11,49 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
-
 """ Hamiltonian class for the OpenFermion-FQE.
 """
 
-from abc import ABCMeta, abstractmethod
+from abc import ABCMeta, abstractmethod, abstractproperty
 
-import numpy
 
 class Hamiltonian(metaclass=ABCMeta):
     """ Abstract class to mediate the functions of Hamiltonian with the
-    emulator.  Since the structure of the Hamiltonian may contain symmeties
+    emulator.  Since the structure of the Hamiltonian may contain symmetries
     which can greatly speed up operations that act up on the object, defining
     unique classes for each case can be a key towards making the code more
     efficient.
     """
 
-    # Variable Annotation
-    h1e: numpy.ndarray
-    g2e: numpy.ndarray
+    def __init__(self, conserve_number):
+        self._conserve_number = conserve_number
 
 
     @abstractmethod
-    def __init__(self) -> None:
-        """The abstract class cannot instantiate
+    def dim(self) -> int:
+        """Return the dimension of the hamiltonian
         """
-        raise TypeError
+        return 0
 
 
     @abstractmethod
-    def identity(self) -> str:
-        """The proper name of the Hamiltonian
-        Returns a string with the name of the hamiltonian or general otherwise
+    def rank(self) -> int:
+        """Return the dimension of the hamiltonian
         """
-        pass
+        return 0
+
+
+    def quadratic(self) -> bool:
+        return False 
+
+
+    def diagonal(self) -> bool:
+        return False 
+
+
+    def diagonal_coulomb(self) -> bool:
+        return False 
+
+
+    def conserve_number(self) -> bool:
+        return self._conserve_number

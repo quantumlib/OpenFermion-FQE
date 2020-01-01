@@ -22,8 +22,7 @@ from scipy.special import binom
 import numpy
 
 from fqe.bitstring import lexicographic_bitstring_generator
-from fqe.bitstring import check_conserved_bits
-from fqe.string_addressing import count_bits
+from fqe.bitstring import check_conserved_bits, count_bits
 
 
 def alpha_beta_electrons(nele: int, m_s: int) -> Tuple[int, int]:
@@ -40,10 +39,38 @@ def alpha_beta_electrons(nele: int, m_s: int) -> Tuple[int, int]:
     if nele < 0:
         raise ValueError('Cannot have negative electrons')
     if nele < abs(m_s):
-        raise ValueError('Spin projection exceeds physical limits')
+        raise ValueError('Spin quantum number exceeds physical limits')
     nalpha = int(nele + m_s) // 2
     nbeta = nele - nalpha
     return nalpha, nbeta
+
+
+def reverse_bubble_list(arr: List[Any]) -> int:
+    """Bubble Sort algorithm to arrange a list so that the lowest value is
+    stored in 0 and the highest value is stored in len(arr)-1.  It is included
+    here in order to access the swap count.
+
+    Args:
+        arr (list) - object to be sorted
+
+    Returns:
+        arr (list) - sorted
+        swap_count (int) - number of permutations to achieve the sort
+    """
+    larr = len(arr)
+    swap_count = 0
+    for i in range(larr):
+        swapped = False
+        for j in range(0, larr-i-1):
+            if arr[j][0] < arr[j+1][0]:
+                arr[j][0], arr[j+1][0] = arr[j+1][0], arr[j][0]
+                swapped = True
+                swap_count += 1
+
+        if not swapped:
+            break
+
+    return swap_count
 
 
 def bubblesort(arr: List[Any]) -> int:
@@ -180,24 +207,76 @@ def paritysort(arr: List[int]) -> int:
         arr [list] - mutated in place
         swap_count (int) - number of exchanges needed to complete the sorting
     """
+
+    nswaps = 0
+    new = []
+
+    if isinstance(arr[0], int):
+        nswaps, new = paritysort_int(arr)
+    if isinstance(arr[0], list):
+        nswaps, new = paritysort_list(arr)
+
+    return nswaps, new
+
+
+def paritysort_int(arr: List[int]) -> int:
+    """Move all even numbers to the left and all odd numbers to the right
+
+    Args:
+        arr list[int] - a list of integers to be sorted
+
+    Returns:
+        arr [list] - mutated in place
+        swap_count (int) - number of exchanges needed to complete the sorting
+    """
     larr = len(arr)
-    _parr = [[i % 2, i] for i in arr]
+    parr = [[i % 2, i] for i in arr]
 
     swap_count = 0
     for i in range(larr):
         swapped = False
         for j in range(0, larr-i-1):
-            if _parr[j][0] > _parr[j+1][0]:
-                _parr[j], _parr[j+1] = _parr[j+1], _parr[j]
+            if parr[j][0] > parr[j+1][0]:
+                parr[j], parr[j+1] = parr[j+1], parr[j]
                 swapped = True
                 swap_count += 1
         if not swapped:
             break
 
-    for indx, val in enumerate(_parr):
+    for indx, val in enumerate(parr):
         arr[indx] = val[1]
 
-    return swap_count
+    return swap_count, arr
+
+
+def paritysort_list(arr: List[List[int]]) -> int:
+    """Move all even numbers to the left and all odd numbers to the right
+
+    Args:
+        arr list[int] - a list of integers to be sorted
+
+    Returns:
+        arr [list] - mutated in place
+        swap_count (int) - number of exchanges needed to complete the sorting
+    """
+    larr = len(arr)
+    parr = [[i[0] % 2, i] for i in arr]
+
+    swap_count = 0
+    for i in range(larr):
+        swapped = False
+        for j in range(0, larr-i-1):
+            if parr[j][0] > parr[j+1][0]:
+                parr[j], parr[j+1] = parr[j+1], parr[j]
+                swapped = True
+                swap_count += 1
+        if not swapped:
+            break
+
+    for indx, val in enumerate(parr):
+        arr[indx] = list(val[1])
+
+    return swap_count, arr
 
 
 def qubit_particle_number_sector(nqubits: int, pnum: int) -> List[numpy.ndarray]:
@@ -209,7 +288,7 @@ def qubit_particle_number_sector(nqubits: int, pnum: int) -> List[numpy.ndarray]
         pnum (int) - the number of particles to build vectors into
 
     Returns:
-        list[numpy.array(dtype=nmpy.complex64)]
+        list[numpy.array(dtype=numpy.complex64)]
     """
     occ = numpy.array([0, 1], dtype=numpy.int)
     uno = numpy.array([1, 0], dtype=numpy.int)
@@ -243,7 +322,7 @@ def qubit_config_sector(nqubits: int, pnum: int,
         m_s (int) - the s_z spin quantum number
 
     Returns:
-        list[numpy.array(dtype=nmpy.complex64)]
+        list[numpy.array(dtype=numpy.complex64)]
     """
     occ = numpy.array([0, 1], dtype=numpy.int)
     uno = numpy.array([1, 0], dtype=numpy.int)
@@ -349,7 +428,7 @@ def qubit_particle_number_index_spin(nqubits: int,
     return indexes
 
 
-def rand_wfn(dim: int, sparse: str = 'none') -> numpy.ndarray:
+def rand_wfn(adim: int, bdim: int) -> numpy.ndarray:
     """Utility for generating random normalized wavefunctions.
 
     Args:
@@ -360,23 +439,10 @@ def rand_wfn(dim: int, sparse: str = 'none') -> numpy.ndarray:
     Returns:
         numpy.array(dim=dim, dtype=numpy.complex64)
     """
-    wfn = numpy.random.randn(dim) + numpy.random.randn(dim)*1.j
-    if sparse == 'low':
-        nzero = max(int(dim*(0.3 - numpy.random.ranf()*0.15)), 1)
-        zind = numpy.random.randint(0, dim, nzero)
-        wfn[zind] = 0. + .0j
+    wfn = numpy.random.randn(adim, bdim).astype(numpy.complex128) + \
+          numpy.random.randn(adim, bdim).astype(numpy.complex128)*1.j
 
-    if sparse == 'med':
-        nzero = max(int(dim*(0.65 - numpy.random.ranf()*0.25)), 1)
-        zind = numpy.random.randint(0, dim, nzero)
-        wfn[zind] = 0. + .0j
-
-    if sparse == 'high':
-        nzero = max(int(dim*(0.85 - numpy.random.ranf()*0.15)) - 1, dim//2)
-        zind = numpy.random.randint(0, high=dim, size=nzero)
-        wfn[zind] = 0. + .0j
-
-    norm = numpy.sqrt(numpy.vdot(wfn, wfn))
+    norm = numpy.sqrt(numpy.vdot(wfn.flatten(), wfn.flatten()))
     wfn /= norm
     return wfn
 
@@ -419,26 +485,6 @@ def validate_config(nalpha: int, nbeta: int, norb: int) -> None:
     if norb < nalpha or norb < nbeta:
         raise ValueError("Insufficient number of orbitals")
 
-
-def weyl_paldus(nele: int, m_s: int, norb: int) -> int:
-    """Weyl-Paldus formula for calculating the number of CSF necessary for a
-    configuration.
-
-    Args:
-        m_s (int) - the 2*Sz spin quantum number
-        norb (int) - the number of spatial orbital
-        nele (int) - the number of electrons
-
-    Returns:
-        ncsf (int) - the number of configuration state functions that describe
-            the CI space
-    """
-    ams = abs(m_s)
-    ncsf = binom(norb + 1, (nele - ams)//2)
-    ncsf *= binom(norb + 1, norb - (nele + ams)//2)
-    ncsf *= (ams + 1)
-    ncsf /= (norb + 1)
-    return int(ncsf)
 
 
 def zero_transform(string0: int, unocc: int, occ: int, norb: int) -> bool:

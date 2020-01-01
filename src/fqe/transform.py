@@ -72,7 +72,7 @@ def cirq_to_fqe_single(cirq_wfn: numpy.ndarray,
     jw_ops = fci_qubit_representation(norb, nele, m_s)
 
     qubits = LineQubit.range(nqubits)
-    proj_coeff = numpy.zeros(len(jw_ops.terms), dtype=numpy.complex64)
+    proj_coeff = numpy.zeros(len(jw_ops.terms), dtype=numpy.complex128)
     qubit_projection(jw_ops, qubits, cirq_wfn, proj_coeff)
     proj_coeff /= (2.**nele)
 
@@ -94,9 +94,10 @@ def from_cirq(wfn: 'Wavefunction', state: numpy.ndarray) -> None:
         nothing - mutates the wfn in place
     """
     nqubits = int(numpy.log2(state.size))
-    for key in wfn.configs:
+    for key in wfn.sectors():
         usevec = state.copy()
         fqe_wfn = cirq_to_fqe_single(usevec, key[0], key[1], nqubits)
         wfndata = fermion_opstring_to_bitstring(fqe_wfn)
         for val in wfndata:
-            wfn.set_ele(val[0], val[1], val[2])
+            print(val)
+            wfn[(val[0], val[1])] = val[2]

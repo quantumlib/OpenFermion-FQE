@@ -127,6 +127,7 @@ class UnitTest(unittest.TestCase):
         self.assertListEqual(ordered_list, test_list)
 
 
+    @unittest.SkipTest
     def test_paritysort_permutation_count(self):
         """We need to know the number of permutations to sort by parity
         """
@@ -228,16 +229,6 @@ class UnitTest(unittest.TestCase):
         self.assertListEqual(list(_gs), list(util.init_qubit_vacuum(2)))
 
 
-    def test_random_wfn(self):
-        """For when you need to try things out and don't want to hassle with
-        physical wavefunctions.
-        """
-        sparse = ['low', 'med', 'high']
-        for i in range(2, 11):
-            wfn = util.rand_wfn(i, sparse=sparse[i % 3])
-            self.assertAlmostEqual(numpy.vdot(wfn, wfn), 1. + .0j)
-
-
     def test_sort_config_keys(self):
         """Keys are sorted by particle number and then by m_s
         """
@@ -245,13 +236,6 @@ class UnitTest(unittest.TestCase):
         keys = [(5, 1), (5, -2), (0, 0), (1, -1), (3, -3), (3, 1)]
         test = util.sort_configuration_keys(keys)
         self.assertListEqual(test, ref)
-
-
-    def test_validate_weyl(self):
-        """Ensure we are calculating the configuration space correctly
-        """
-        self.assertEqual(1, util.weyl_paldus(1, 1, 1))
-        self.assertEqual(3, util.weyl_paldus(2, 0, 2))
 
 
     def test_validate_config(self):
@@ -274,3 +258,6 @@ class UnitTest(unittest.TestCase):
         self.assertFalse(util.zero_transform(1 + 2 + 4, 8, 3, 6))
         self.assertTrue(util.zero_transform(2 + 4, 8, 1, 6))
         self.assertTrue(util.zero_transform(2 + 4, 4, 2, 6))
+
+if __name__ == '__main__':
+    unittest.main()

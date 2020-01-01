@@ -21,6 +21,7 @@ from typing import Any, Dict, List, Tuple, Type, TYPE_CHECKING, Union
 from openfermion import PolynomialTensor
 from openfermion.transforms import jordan_wigner
 
+import importlib.abc
 import cirq
 import numpy
 from fqe.util import qubit_particle_number_index_spin
@@ -32,11 +33,9 @@ from fqe.openfermion_utils import generate_one_particle_matrix
 from fqe.openfermion_utils import generate_two_particle_matrix
 from fqe.openfermion_utils import fqe_to_fermion_operator
 from fqe.hamiltonians import general_hamiltonian
-from fqe.hamiltonians import quadratic_hamiltonian
 
 if TYPE_CHECKING:
     from openfermion import FermionOperator
-    from openfermion.ops import QuadraticHamiltonian
     from fqe.hamiltonians import hamiltonian
 
 
@@ -60,22 +59,25 @@ def apply_generated_unitary(ops: 'FermionOperator',
     return wfn.apply_generated_unitary(ops, algo, accuracy)
 
 
-def get_spin_nonconserving_wavefunction(nele: int) -> 'Wavefunction':
+def get_spin_nonconserving_wavefunction(nele: int, norb: int) -> 'Wavefunction':
     """Build a wavefunction with definite particle number and spin.
 
     Args:
         nele (int) - the number of electrons in the system
+        norb (int) - the number of orbitals
 
     Returns:
         (wavefunction.Wavefunction) - a wavefunction object meeting the
             criteria laid out in the calling argument
     """
-    norb = 2*nele
-    if nele % 2:
-        m_s = 1
-    else:
-        m_s = 0
-    return Wavefunction(param=[[nele, m_s, norb]])
+    
+    param = []
+    maxb = min(norb, nele)
+    minb = nele - maxb
+    for nbeta in range(minb, maxb+1):
+        m_s = nele - nbeta*2
+        param.append([nele, m_s, norb])
+    return Wavefunction(param, broken=['spin'])
 
 
 def get_wavefunction(nele: int, m_s: int, norb: int) -> 'Wavefunction':
@@ -123,10 +125,10 @@ def to_cirq(wfn: 'Wavefunction') -> numpy.ndarray:
         wfn (wavefunction.Wavefunction) - a openfermion-fqe wavefunction object
 
     Returns:
-        numpy.array(dtype=numpy.complex64) - a cirq wavefunction that can be
+        numpy.array(dtype=numpy.complex128) - a cirq wavefunction that can be
             used in a simulator object.
     """
-    nqubit = wfn.norb*2
+    nqubit = wfn.norb()*2
     ops = jordan_wigner(fqe_to_fermion_operator(wfn))
     qid = cirq.LineQubit.range(nqubit)
     return qubit_wavefunction_from_vacuum(ops, qid)
@@ -138,7 +140,7 @@ def from_cirq(state: numpy.ndarray, thresh: float) -> 'Wavefunction':
     the correct data.
 
     Args:
-        state (numpy.array(dtype=numpy.complex64)) - a cirq wavefunction
+        state (numpy.array(dtype=numpy.complex128)) - a cirq wavefunction
         thresh (double) - set the limit at which a cirq element should be
             considered zero and not make a contribution to the FQE wavefunction
 
@@ -187,15 +189,15 @@ def dot(wfn1: 'Wavefunction', wfn2: 'Wavefunction') -> complex:
     Returns:
         (complex) - scalar as result of the dot product
     """
-    brakeys = wfn1.configs
-    ketkeys = wfn2.configs
+    brakeys = wfn1.sectors()
+    ketkeys = wfn2.sectors()
     keylist = [config for config in brakeys if config in ketkeys]
     ipval = .0 + .0j
     if not keylist:
         return ipval
     for config in keylist:
-        ipval += numpy.dot(wfn1.get_coeff(config, vec=0).T,
-                           wfn2.get_coeff(config, vec=0))
+        ipval += numpy.dot(wfn1.get_coeff(config).flatten(),
+                           wfn2.get_coeff(config).flatten())
     return ipval
 
 
@@ -212,33 +214,16 @@ def vdot(wfn1: 'Wavefunction', wfn2: 'Wavefunction') -> complex:
     Returns:
         (complex) - scalar as result of the dot product
     """
-    brakeys = wfn1.configs
-    ketkeys = wfn2.configs
+    brakeys = wfn1.sectors()
+    ketkeys = wfn2.sectors()
     keylist = [config for config in brakeys if config in ketkeys]
     ipval = .0 + .0j
     if not keylist:
         return ipval
     for config in keylist:
-        ipval += numpy.vdot(wfn1.get_coeff(config, vec=0),
-                            wfn2.get_coeff(config, vec=0))
+        ipval += numpy.vdot(wfn1.get_coeff(config).flatten(),
+                            wfn2.get_coeff(config).flatten())
     return ipval
-
-
-def get_quadratic_hamiltonian(ops: 'FermionOperator',
-                              chem: float) -> 'quadratic_hamiltonian.Quadratic':
-    """Generate a quadratic hamiltonian object from Openfermion intrinsics
-
-    Args:
-        ops (FermionOperator) - a Fermion Operator string to apply to convert
-        chem (double) - a chemical potential
-
-    Returns:
-        Quadratic - an fqe Qudratic Hamiltonian Object
-    """
-    split = split_openfermion_tensor(ops)
-    h1e = generate_one_particle_matrix(split[2])
-    symmh = [[[1, 2], 1.0, False]]
-    return quadratic_hamiltonian.Quadratic(0.0, h1e, chem, symmh)
 
 
 def get_two_body_hamiltonian(pot: Union[complex, float],
@@ -251,9 +236,9 @@ def get_two_body_hamiltonian(pot: Union[complex, float],
 
         Args:
             pot (complex) - a complex scalar
-            h1e (numpy.array(dim=2, dtype=complex64)) - matrix elements for
+            h1e (numpy.array(dim=2, dtype=complex128)) - matrix elements for
                 single particle states
-            g2e (numpy.array(dim=4, dtype=complex64)) - matrix elements for
+            g2e (numpy.array(dim=4, dtype=complex128)) - matrix elements for
                 two particle states
             chem (double) - a value for the chemical potential
             symmh (list[list[int], double, bool]) - symmetry permutations for
@@ -267,34 +252,9 @@ def get_two_body_hamiltonian(pot: Union[complex, float],
     return general_hamiltonian.General(pot, h1e, g2e, chem, symmh, symmg)
 
 
-def get_hamiltonian_from_openfermion(hamiltonian: 'QuadraticHamiltonian'
-                                    ) -> 'hamiltonian.Hamiltonian':
-    """Wrapper to parse Openfermion Hamiltonians and put them into the FQE.
-    Currently only QudraticHamiltonian is supported
-
-    Args:
-        hamiltonian (openfermion.Hamiltonian)
-
-    Returns:
-        FQE-Hamiltonian
-    """
-    hamiltonian_type = hamiltonian.__class__.__name__
-
-    if hamiltonian_type == 'QuadraticHamiltonian':
-        h1e = hamiltonian.n_body_tensors[(1, 0)]
-        chem = hamiltonian.chemical_potential
-        h1e += chem*numpy.identity(h1e.shape[0], dtype=numpy.complex64)
-        symmh = [
-            [[1, 2], 1.0, False],
-            [[2, 1], 1.0, True]
-            ]
-
-    return quadratic_hamiltonian.Quadratic(0.0, h1e, chem, symmh)
-
-
-def get_hamiltonian_from_ops(ops: 'FermionOperator',
-                             pot: Union[complex, float],
-                             chem: float) -> 'general_hamiltonian.General':
+def get_hamiltonian_from_ops(ops: 'FermionOperator') -> 'hamiltonian.Hamiltonian':
+#                             pot: Union[complex, float],
+#                             chem: float) -> 'general_hamiltonian.General':
     """Given a string of OpenFermion operators, generate a Hamiltonian for the
     FQE.
 
@@ -306,29 +266,97 @@ def get_hamiltonian_from_ops(ops: 'FermionOperator',
     Returns:
         (fqe.hamiltonian.general_hamiltonian) - no symmetry
     """
+    quadratic_hamiltonian = False
+    quartic_hamiltonian = False
+
+    a_spin_conserve = False
+    b_spin_conserve = False
+    diagonal_coulomb = False
+
+    a_particle_conserve = False
+    b_particle_conserve = False
+
     split = split_openfermion_tensor(ops)
-    h1e = generate_one_particle_matrix(split[2])
+
+    
+
+    h1a, h1b, h1b_conj = generate_one_particle_matrix(split[2])
+
+    dimension = h1a.shape[0]
+    block_index = dimension // 2
     g2e = generate_two_particle_matrix(split[4])
+
+    if (h1a.any() or h1b.any()) and g2e.any():
+        symmh = [[[1, 2], 1.0, False]]
+        symmg = [[[1, 2, 3, 4], 1.0, False]]
+        return general_hamiltonian.General(pot, h1a, h1b, g2e, chem, symmh, symmg)
+
+    if h1b.any() or h1b_conj.any():
+        quadratic_hamiltonian = True
+        if not numpy.allclose(h1b, h1b_conj.conj()):
+            diff = abs(h1b - h1b_conj.conj())
+            i, j = numpy.unravel_index(diff.argmax(), diff.shape)
+            print('Elements {} {} outside tolerance'.format(i, j))
+            print('{} != {} '.format(h1b[i, j], h1b_conj[i, j].conj()))
+            raise ValueError
+
+        if h1b[:block_index, :block_index].any():
+            b_spin_conserve = False
+        elif h1b[block_index:, block_index:].any():
+            b_spin_conserve = False
+        else:
+            b_spin_conserve = True
+
+    else:
+        b_particle_conserve = True
+
+    if h1a.any():
+        quadratic_hamiltonian = True
+        if h1a[block_index:, :block_index].any():
+            a_spin_conserve = False
+
+        elif h1a[:block_index, block_index:].any():
+            a_spin_conserve = False
+
+        else:
+            a_spin_conserve = True
+
+    if g2e.any():
+        quartic_hamiltonian = False
+        for index in range(dimension):
+            for jndex in range(dimension):
+                for kndex in range(dimension):
+                    for lndex in range(dimension):
+                        if index == kndex and jndex == lndex:
+                            continue
+                        if g[index, jndex, kndex, lndex]:
+                            diagonal_coulomb = False
+                            break
+
+        if g2e == numpy.tranpose(g2e, axes=[2, 3, 0, 1]):
+            diagonal_coulomb = True
+
+    if quartic_hamiltonian and quadratic_hamiltonian:
+        symmh = [[[1, 2], 1.0, False]]
+        symmg = [[[1, 2, 3, 4], 1.0, False]]
+        return general_hamiltonian.General(pot, h1a, h1b, h1b_conj, g2e, chem, symmh, symmg)
+
+    if quartic_hamiltonian:
+        if diagonal_coulomb:
+            return diagonal_coulomb_hamiltonian.DiagonalCoulomb()
+        return two_body_hamiltonian.TwoBody()
+
+    if quadratic_hamiltonian:
+
+        spin_conserve = a_spin_conserve and b_spin_conserve
+
+        if spin_conserve and particle_conserve:
+            return restrcted_hamiltonian.Restricted()
+        if spin_conserve and particle_conserve:
+            return gso_hamiltonian.Gso()
+        if spin_conserve and particle_conserve:
+            return bcs_hamiltonian.Bcs()
+
     symmh = [[[1, 2], 1.0, False]]
     symmg = [[[1, 2, 3, 4], 1.0, False]]
-    return general_hamiltonian.General(pot, h1e, g2e, chem, symmh, symmg)
-
-
-def hamiltonian_to_openfermion(fqe_hamiltonian: Type['hamiltonian.Hamiltonian']
-                              ) -> 'PolynomialTensor':
-    """Return a polynomial tensor for Openfermion by parsing the Hamiltonian
-    elements into dict.
-    """
-    tensors: Dict[Tuple[int, ...], numpy.ndarray] = {}
-    hamiltonian_type = fqe_hamiltonian.__class__.__name__
-
-    if hamiltonian_type == 'General':
-
-        tensors[(1, 0)] = fqe_hamiltonian.h1e
-        tensors[(1, 1, 0, 0)] = fqe_hamiltonian.g2e
-
-    if hamiltonian_type == 'Quadratic':
-
-        tensors[(1, 0)] = fqe_hamiltonian.h1e
-
-    return PolynomialTensor(tensors)
+    return general_hamiltonian.General(pot, h1a, h1b, h1b_conj, g2e, chem, symmh, symmg)

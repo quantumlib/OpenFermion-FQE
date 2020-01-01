@@ -12,5 +12,29 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-"""Define version number here and read it from setup.py automatically"""
-__version__ = "0.0.0.dev1"
+from fqe import vdot
+from fqe.fqe_ops import fqe_operator
+
+
+class NumberOperator(fqe_operator.FqeOperator):
+
+
+    def contract(self, brastate, ketstate):
+        """
+        """
+        out = copy.deepcopy(ketstate)
+        for _, sector in out._civec.items():
+            sector.scale(sector.nalpha() + sector.nbeta())
+        return vdot(brastate, out)
+
+
+    def representation(self):
+        """
+        """
+        return 'N'
+
+
+    def rank(self):
+        """
+        """
+        return 2

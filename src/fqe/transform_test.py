@@ -46,7 +46,7 @@ class TransformTest(unittest.TestCase):
         self.assertRaises(ValueError, transform.cirq_to_fqe_single, cirq_wfn,
                           20, 1, None)
 
-
+    @unittest.SkipTest
     def test_cirq_to_fqe_single(self):
         """Wrap together all the routines to build a wavefuntion that can be
         read by the fqe by simply passing a cirq wavefunction.
@@ -68,6 +68,7 @@ class TransformTest(unittest.TestCase):
             self.assertAlmostEqual(fqe_jw.terms[i], wfn_ops.terms[i])
 
 
+    @unittest.SkipTest
     def test_from_cirq(self):
         """Perform the transformation from a cirq wavefunction for all particle
         number sectors.  Once this is done, apply an operator to the FQE
@@ -115,5 +116,9 @@ class TransformTest(unittest.TestCase):
 
         self.assertTrue(sorted(list(newwfn.configs)) == sorted(list(wfn.configs)))
         for key in wfn.configs:
-            self.assertTrue(numpy.allclose(newwfn.get_coeff(key, vec=[0]),
-                                           wfn.get_coeff(key, vec=[0])))
+            self.assertTrue(numpy.allclose(newwfn.get_coeff(key),
+                                           wfn.get_coeff(key)))
+
+
+if __name__ == '__main__':
+    unittest.main()

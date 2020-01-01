@@ -78,6 +78,16 @@ def integer_index(str0: int) -> List[int]:
     return list(gbit_index(str0))
 
 
+def bitstring_generator(str0: int) -> int:
+    """Generate the bitstrings
+    """
+    w = str0
+    while True:
+        yield w
+        v = (w | (w-1)) + 1
+        w = v | ((((v & -v) // (w & -w)) >> 1)-1)
+
+
 def lexicographic_bitstring_generator(str0: int, norb: int) -> List[int]:
     """
     Generate all bitstrings with a definite bit count starting from an initial
@@ -99,3 +109,59 @@ def lexicographic_bitstring_generator(str0: int, norb: int) -> List[int]:
         out.append(int(''.join(string), 2))
 
     return sorted(out)
+
+
+def count_bits(string: int, bitval: str = '1') -> int:
+    """Count the bit value in a bistring
+
+    Args:
+        string (bitstring) - a bitstring to count the bits of
+        bitval (string) - include the option to count unset bits
+
+    Returns:
+        int - the number of bits equal to bitval
+    """
+    return bin(string).count(bitval)
+
+
+def get_bit(string: int, pos: int) -> int:
+    """Return a bit located at the position
+    """
+    return string & (2**pos) 
+
+
+def set_bit(string: int, pos: int) -> int:
+    """Return bitstring with the bit at the position set
+    """
+    return string | (2**pos) 
+
+
+def unset_bit(string: int, pos: int) -> int:
+    """Return bitstring with the bit at the position unset
+    """
+    return string & ~(2**pos)
+
+
+def count_bits_above(string: int, pos: int) -> int:
+    """Return the number of set bits higher than the position
+    """
+    return count_bits(string & ~(2**(pos+1)-1))
+
+
+def count_bits_below(string: int, pos: int) -> int:
+    """Return the number of set bits lower than the position
+    """
+    return count_bits(string & (2**pos-1))
+
+
+def count_bits_between(string: int, pos1: int, pos2: int) -> int:
+    """Count the number of bits between position1 and position2
+    """
+    mask = (2**max(pos1, pos2)-1) ^ (2**(min(pos1, pos2)+1)-1)
+    return count_bits(string & mask)
+
+
+def show_bits(string: int, nbits: int = 16) -> str:
+    """Return a string showing the occupations of the bitstring
+    """
+    return str(bin(string)[2:].zfill(nbits))

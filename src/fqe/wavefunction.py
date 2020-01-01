@@ -17,6 +17,7 @@
 
 import copy
 import os
+import math
 from typing import (Callable,
                     Dict,
                     Generator,
@@ -24,32 +25,54 @@ from typing import (Callable,
                     List,
                     Optional,
                     Tuple,
+                    Type,
                     Union)
 
 from scipy.special import factorial, jv
 from openfermion import FermionOperator
-from openfermion.utils import is_hermitian
+from openfermion.utils import is_hermitian, hermitian_conjugated
 
 import numpy
+from numpy import linalg
+import scipy
+from scipy import special
 
-from fqe.fqedata import FqeData
+import fqe
+from fqe.fqe_decorators import wrap_apply, wrap_apply_generated_unitary
+from fqe.fqe_decorators import wrap_time_evolve
+from fqe.fqe_data import FqeData
+from fqe.fqe_data_set import FqeDataSet
+from fqe.fci_graph import FciGraph
+from fqe.fci_graph_set import FciGraphSet
 from fqe.util import alpha_beta_electrons, init_bitstring_groundstate
 from fqe.util import sort_configuration_keys
 from fqe.util import configuration_key_union
-from fqe.openfermion_utils import new_wfn_from_ops
-from fqe.openfermion_utils import mutate_config
-from fqe.string_addressing import count_bits
+from fqe.openfermion_utils import new_wfn_from_ops, mutate_config
+from fqe.openfermion_utils import mutate_config, classify_symmetries
+from fqe.openfermion_utils import split_openfermion_tensor
+from fqe.openfermion_utils import generate_one_particle_matrix
+from fqe.openfermion_utils import generate_two_particle_matrix
+from fqe.hamiltonians import hamiltonian, sparse_hamiltonian
+from fqe.hamiltonians import gso_hamiltonian, sso_hamiltonian
+from fqe.hamiltonians import general_hamiltonian
+from fqe.bitstring import integer_index, count_bits
+from fqe.fqe_ops import fqe_operator, fqe_ops_utils
+from fqe.wick import wick
+#from fqe._fqe_control import get_hamiltonian_from_ops
 
 
-class Wavefunction():
+#TODO after unittesting is implemented, change the keys of _civec such that the key is (nalpha, nbeta).
+# this is the only place where (N, Sz) key is used, which is terrible
+
+
+class Wavefunction:
     """Wavefunction is the central object for manipulaion in the
     OpenFermion-FQE.
     """
 
 
     def __init__(self, param: Optional[List[List[int]]] = None,
-                 conservespin: bool = False,
-                 conserveparticlenumber: bool = False) -> None:
+                 broken: Optional[Union[List[str], str]] = None) -> None:
         """
         Args:
             param (list[list[n, ms, norb]]) - the constructor accepts a list of
@@ -59,69 +82,41 @@ class Wavefunction():
               p[1] (integer) - z component of spin angular momentum
               p[2] (integer) - number of spatial orbitals
 
-            convervespin (Bool) - Set to true If the wavefunction should only
-                have configs with the same m_s
-            converveparticlenumber (Bool) - Set to true if the wavefunction
-                should only have configs with the same number of particles
+            broken (str) - pass in the symmetries that should be preserved by
+                the wavefunction.
 
         Member Variables:
-            Properties of the wavefunction are stored as dicts using the config
-                key as the accessor and the corresponding FqeData value as the
-                value.  These are not initialzed until they are called.
-                _lena = None
-                _lenb = None
-                _gs_a = None
-                _gs_b = None
-                _nalpha = None
-                _nbeta = None
-                _cidim = None
-            _spinconserve (Bool) - When this flag is true, the wavefunction
+            _conserve_spin (Bool) - When this flag is true, the wavefunction
                 will maintain a constant m_s
-            _numberconserve (Bool) - When this flag is true, the wavefunction
+            _conserve_number (Bool) - When this flag is true, the wavefunction
                 will maintain a constant nele
-            _ncis (int) - the number of FqeData objects stored in this
-                wavefunction.
             _civec (dict[(int, int)] -> FqeData) - This is a dictionary for
                 FqeData objects.  The key is a tuple defined by the number of
                 electrons and the spin projection of the system.
         """
 
-        self._lena: Optional[Dict[Tuple[int, int], int]] = None
-        self._lenb: Optional[Dict[Tuple[int, int], int]] = None
-        self._gs_a: Optional[Dict[Tuple[int, int], int]] = None
-        self._gs_b: Optional[Dict[Tuple[int, int], int]] = None
-        self._nalpha: Optional[Dict[Tuple[int, int], int]] = None
-        self._nbeta: Optional[Dict[Tuple[int, int], int]] = None
-        self._cidim: Optional[Dict[Tuple[int, int], int]] = None
-        self._spinconserve: bool = conservespin
-        self._numberconserve: bool = conserveparticlenumber
+        self._conserve_spin: bool = True if (broken is None or not 'spin' in broken) else False
+        self._conserve_number: bool = True if (broken is None or not 'number' in broken) else False
         self._norb: int = 0
-        self._ncis: int = 0
         self._civec: Dict[Tuple[int, int], 'FqeData'] = {}
+
+        if not self._conserve_spin and not self._conserve_number:
+            raise TypeError('Number and spin non-conserving waveunfction is' \
+                            ' the complete Fock space.')
+
         if param:
-            self._norb = param[0][2]
-            if self._numberconserve:
-                testnumber = param[0][0]
-                for state in param:
-                    if testnumber != state[0]:
-                        raise ValueError('Inconsistent particle number passed'
-                                         ' into particle number preserving '
-                                         ' wavefunction.')
-
-            if self._spinconserve:
-                testnumber = param[0][1]
-                for state in param:
-                    if testnumber != state[1]:
-                        raise ValueError('Inconsistent spin eigenfunction number'
-                                         ' passed into particle number preserving'
-                                         ' wavefunction.')
-
+            for i in param:
+                self._norb = i[2]
+                nalpha, nbeta = alpha_beta_electrons(i[0], i[1])
+                self._civec[(i[0], i[1])] = FqeData(nalpha, nbeta, self._norb)
 
             for i in param:
-                self.add_config(i[0], i[1], i[2])
+                if i[2] != self._norb:
+                    raise ValueError('Number of orbitals is not consistent')
 
 
-    def __add__(self, wfn: 'Wavefunction') -> 'Wavefunction':
+
+    def __add__(self, other: 'Wavefunction') -> 'Wavefunction':
         """Intrinsic addition function to combine two wavefunctions.  This acts
         to iterate through the wavefunctions, combine coefficients of
         configurations they have in common and add configurations that are
@@ -129,60 +124,21 @@ class Wavefunction():
         wavefunction object
 
         Args:
-            wfn (wavefunction.Wavefunction) - the second wavefunction to
+            other (wavefunction.Wavefunction) - the second wavefunction to
                 add with the local wavefunction
 
         Returns:
             wfn (wavefunction.Wavefunction) - a new wavefunction with the
                 values set by adding together values
         """
-        local_keys = self._civec.keys()
-        wfn_keys = wfn.configs
-        param = configuration_key_union(local_keys, wfn_keys)
-
-        newwfn = Wavefunction()
-        for config in param:
-            if config in local_keys and config in wfn_keys:
-                data = self.get_coeff(config) + wfn.get_coeff(config)
-            elif config in local_keys:
-                data = self.get_coeff(config)
-            elif config in wfn_keys:
-                data = wfn.get_coeff(config)
-            newwfn.add_config(config[0], config[1], self._norb, data)
-
-        return newwfn
+        out = copy.deepcopy(self)
+        out.ax_plus_y(1.0, other)
+        return out
 
 
-    def __sub__(self, wfn: 'Wavefunction') -> 'Wavefunction':
-        """Intrinsic subtraction function to combine two wavefunctions.  This
-        acts to iterate through the wavefunctions, combine coefficients of
-        configurations they have in common and include configurations that are
-        unique to each one. The values are all combined into a new
-        wavefunction object
-
-        Args:
-            wfn (wavefunction.Wavefunction) - the second wavefunction that will
-                be subtracted from the first wavefunction
-
-        Returns:
-            wfn (wavefunction.Wavefunction) - a new wavefunction with the
-                values set by subtracting the wfn from the first
-        """
-        local_keys = self._civec.keys()
-        wfn_keys = wfn.configs
-        param = configuration_key_union(local_keys, wfn_keys)
-
-        newwfn = Wavefunction()
-        for config in param:
-            if config in local_keys and config in wfn_keys:
-                data = self.get_coeff(config) - wfn.get_coeff(config)
-            elif config in local_keys:
-                data = self.get_coeff(config)
-            elif config in wfn_keys:
-                data = -wfn.get_coeff(config)
-            newwfn.add_config(config[0], config[1], self._norb, data)
-
-        return newwfn
+    def __iadd__(self, wfn: 'Wavefunction') -> 'Wavefunction':
+        self.ax_plus_y(1.0, wfn)
+        return self
 
 
     def __mul__(self, sval: complex) -> None:
@@ -197,138 +153,413 @@ class Wavefunction():
         self.scale(sval)
 
 
-    def add_config(self, nele: int, m_s: int, norb: int,
-                   data: Optional[numpy.ndarray] = None) -> None:
-        """Add a FqeData configuration to the wavefunction.  Discard it if it is
-        unphysical.
+    def __sub__(self, other: 'Wavefunction') -> 'Wavefunction':
+        """Intrinsic subtraction function to combine two wavefunctions.  This
+        acts to iterate through the wavefunctions, combine coefficients of
+        configurations they have in common and include configurations that are
+        unique to each one. The values are all combined into a new
+        wavefunction object
 
         Args:
-            nele (int) - the number of electrons in the configuration to add
-            m_s (int) - the s_z quantum number of the configuration to add
-            norb (int) - the number of orbitals in the configuration to add
-            data (numpy.array) - an array containing data to initialize the new
-                configuration with
+            wfn (wavefunction.Wavefunction) - the second wavefunction that will
+                be subtracted from the first wavefunction
 
         Returns:
-            nothing - configuration is added in place
+            wfn (wavefunction.Wavefunction) - a new wavefunction with the
+                values set by subtracting the wfn from the first
         """
-
-        try:
-            nalpha, nbeta = alpha_beta_electrons(nele, m_s)
-        except ValueError:
-            return
-
-        key = (nele, m_s)
-        if key in self._civec:
-            if data is not None:
-                raise ValueError('Configuration already exists in the '
-                                 'wavefunction. It is unclear if data passed '
-                                 'into the wavefunction should replace what is'
-                                 ' currently set')
-        else:
-            self._ncis += 1
-            self._civec[key] = FqeData(nalpha, nbeta, norb)
-            self._norb = norb
-            if data is not None:
-                self._civec[key].set_wfn(strategy='from_data', raw_data=data)
-            else:
-                self._civec[key].set_wfn(strategy='zero')
+        out = copy.deepcopy(self)
+        out.ax_plus_y(-1.0, other)
+        return out
 
 
-    @property
-    def configs(self) -> KeysView[Tuple[int, int]]:
+    def __getitem__(self, key):
+        """
+        """
+        astr, bstr = key[0], key[1]
+        sector = (count_bits(astr) + count_bits(bstr),
+                  count_bits(astr) - count_bits(bstr))
+        inda = self._civec[sector].index_alpha(astr)
+        indb = self._civec[sector].index_alpha(astr)
+        return self._civec[sector].coeff[inda, indb]
+
+
+    def __setitem__(self, key, value):
+        """
+        """
+        astr, bstr = key[0], key[1]
+        sector = (count_bits(astr) + count_bits(bstr),
+                  count_bits(astr) - count_bits(bstr))
+        inda = self._civec[sector].index_alpha(astr)
+        indb = self._civec[sector].index_alpha(astr)
+        self._civec[sector].coeff[inda, indb] = value
+
+
+    def ax_plus_y(self, sval: complex, wfn: 'Wavefunction') -> None:
+        if self._civec.keys() != wfn._civec.keys():
+            raise ValueError('inconsistent sectors in Wavefunction.ax_plus_y')
+
+        for sector in self._civec.keys():
+            self._civec[sector].ax_plus_y(sval, wfn._civec[sector])
+
+
+    def sectors(self) -> KeysView[Tuple[int, int]]:
         """Return a list of the configuration keys in the wavefunction
         """
         return self._civec.keys()
 
 
-    @property
-    def lena(self) -> Dict[Tuple[int, int], int]:
-        """Return a dict of the {(nele, m_s) : lena] for each configuration
+    def conserve_number(self) -> bool:
         """
-        if not self._lena:
-            self._lena = {}
-            for key, config in self._civec.items():
-                self._lena[key] = config.lena
-        return self._lena
-
-
-    @property
-    def lenb(self) -> Dict[Tuple[int, int], int]:
-        """Return a dict of the {(nele, m_s) : lenb] for each configuration
         """
-        if not self._lenb:
-            self._lenb = {}
-            for key, config in self._civec.items():
-                self._lenb[key] = config.lenb
-        return self._lenb
+        return self._conserve_number
 
 
-    @property
-    def gs_a(self) -> Dict[Tuple[int, int], int]:
-        """Return a dict of the {(nele, m_s) : gs_a] for each configuration
+    def conserve_spin(self) -> bool:
         """
-        if not self._gs_a:
-            self._gs_a = {}
-            for key, config in self._civec.items():
-                self._gs_a[key] = init_bitstring_groundstate(config.nalpha)
-        return self._gs_a
-
-
-    @property
-    def gs_b(self) -> Dict[Tuple[int, int], int]:
-        """Return a dict of the {(nele, m_s) : gs_b] for each configuration
         """
-        if not self._gs_b:
-            self._gs_b = {}
-            for key, config in self._civec.items():
-                self._gs_b[key] = init_bitstring_groundstate(config.nbeta)
-        return self._gs_b
+        return self._conserve_spin
 
 
-    @property
-    def nalpha(self) -> Dict[Tuple[int, int], int]:
-        """Return a dict of the {(nele, m_s) : nalpha] for each configuration
-        """
-        if not self._nalpha:
-            self._nalpha = {}
-            for key, config in self._civec.items():
-                self._nalpha[key] = config.nalpha
-        return self._nalpha
-
-
-    @property
-    def nbeta(self) -> Dict[Tuple[int, int], int]:
-        """Return a dict of the {(nele, m_s) : nbeta] for each configuration
-        """
-        if not self._nbeta:
-            self._nbeta = {}
-            for key, config in self._civec.items():
-                self._nbeta[key] = config.nbeta
-        return self._nbeta
-
-
-    @property
     def norb(self) -> int:
         """Return the number of orbitals
         """
         return self._norb
 
 
-    @property
-    def cidim(self) -> Dict[Tuple[int, int], int]:
-        """Return a dict of the {(nele, m_s) : cidim] for each configuration
+    def norm(self) -> float:
+        """Calculate the norm of the wavefuntion
         """
-        if not self._cidim:
-            self._cidim = {}
-            for key, config in self._civec.items():
-                self._cidim[key] = config.ci_space_length
-        return self._cidim
+        normall = 0.0
+        for sector in self._civec.values():
+            normall += sector.norm() ** 2
+        normall = math.sqrt(normall)
+        return normall
 
 
-    def get_coeff(self,
-                  key: Tuple[int, int],
-                  vec: Optional[int] = None) -> numpy.ndarray:
+    def normalize(self) -> None:
+        """Generte the wavefunction norm and then scale each element by that
+        value.
+        """
+        self.scale(1.0/self.norm())
+
+
+    def number_sectors(self) -> Dict[int, FqeDataSet]:
+        """An internal utility function that groups FqeData into
+        a set of FqeDataSet that corresponds to the same number of electrons.
+        It checks spin completeness and raises an exception if the wave function space
+        is not spin complete
+        """
+        numbers = set()
+        norb = self.norb()
+        for key in self._civec:
+            numbers.add(key[0])
+        numbersectors = {}
+        for nele in numbers:
+            # generate all possible sz
+            maxalpha = min(norb, nele)
+            minalpha = nele - maxalpha
+            check = True
+            sectors = {}
+            for nalpha in range(minalpha, maxalpha+1):
+                nbeta = nele - nalpha
+                check &= (nele, nalpha-nbeta) in self._civec.keys()
+            if not check:
+                raise Exception('Wave function does not have all of the spin sectors')
+            for nalpha in range(minalpha, maxalpha+1):
+                nbeta = nele - nalpha
+                sectors[(nalpha,nbeta)] = self._civec[(nele, nalpha-nbeta)]
+            dataset = FqeDataSet(nele, norb, sectors)
+            numbersectors[nele] = dataset
+        return numbersectors
+
+
+    @wrap_apply
+    def apply(self, hamil: 'Hamiltonian') -> 'Wavefunction':
+        """
+        """
+        if not isinstance(hamil, hamiltonian.Hamiltonian):
+            raise TypeError('Expected a Hamiltonian Object but received' \
+                            ' []'.format(type(hamil)))
+
+        work_wfn = copy.deepcopy(self)
+
+        if isinstance(hamil, sparse_hamiltonian.SparseHamiltonian):
+
+            return work_wfn.apply_few_nbody(hamil)
+
+        else:
+
+            return work_wfn.apply_array(hamil.tensors())
+
+
+    def apply_array(self, array: Tuple[numpy.ndarray]) -> 'Wavefunction':
+        """Return a wavefunction subject to application of the numpy array as
+
+            h[i, j]a_i^+ a_j|Psi>
+            h[i, j, k, l]a_i^+(rho) a_j^+(eta) a_k(rho) a_l(eta)|Psi>
+
+        Arg:
+            array (numpy.array) - numpy array
+
+        Returns:
+            newwfn (Wavvefunction) - a new intialized wavefunction object
+
+        """
+
+        if self._conserve_spin:
+            assert array[0].shape[0] == self._norb or array[0].shape[0] == self._norb * 2
+            out = copy.deepcopy(self)
+            for _, sector in out._civec.items():
+                sector.apply_inplace(array)
+            return out
+        else:
+            assert array[0].shape[0] == self._norb * 2
+            out = copy.deepcopy(self)
+            nsectors = out.number_sectors()
+            for _, sector in nsectors.items():
+                sector.apply_inplace(array)
+            return out
+
+
+    def compute_rdm(self, rank: int, brawfn: 'Wavefunction' = None):
+        """compute RDM up to rank = rank
+        """
+        if rank < 1 or rank > 4:
+            raise ValueError('invalid rank in Wavefunction.compute_rdm')
+
+        if self._conserve_spin:
+            out = [None, None, None, None]
+            tmp = [None, None, None, None]
+            for key, sector in self._civec.items():
+                assert brawfn is None or key in brawfn.sectors()
+                bra = None if brawfn is None else brawfn._civec[key]
+                if rank == 1:
+                    (tmp[0],) = sector.rdm1(bra)
+                elif rank == 2:
+                    (tmp[0], tmp[1]) = sector.rdm12(bra)
+                elif rank == 3:
+                    (tmp[0], tmp[1], tmp[2]) = sector.rdm123(bra)
+                elif rank == 4:
+                    (tmp[0], tmp[1], tmp[2], tmp[3]) = sector.rdm1234(bra)
+                for i in range(4):
+                    if tmp[i] is not None:
+                        out[i] = tmp[i] if out[i] is None else out[i] + tmp[i]
+            out2 = []
+            for i in range(4):
+                if out[i] is not None:
+                    out2.append(out[i])
+            return tuple(out2)
+        else:
+            numbersectors = self.number_sectors()
+            brasectors = None if brawfn is None else brawfn.number_sectors()
+            out = [None, None, None, None]
+            tmp = [None, None, None, None]
+            for key, dataset in numbersectors.items():
+                assert brasectors is None or key in brasectors.keys()
+                bra = None if brawfn is None else brasectors[key]
+                if rank == 1:
+                    (tmp[0],) = dataset.rdm1(bra)
+                elif rank == 2:
+                    (tmp[0], tmp[1]) = dataset.rdm12(bra)
+                elif rank == 3:
+                    (tmp[0], tmp[1], tmp[2]) = dataset.rdm123(bra)
+                elif rank == 4:
+                    (tmp[0], tmp[1], tmp[2], tmp[3]) = dataset.rdm1234(bra)
+                for i in range(4):
+                    if tmp[i] is not None:
+                        out[i] = tmp[i] if out[i] is None else out[i] + tmp[i]
+            out2 = []
+            for i in range(4):
+                if out[i] is not None:
+                    out2.append(out[i])
+            return tuple(out2)
+
+
+    @wrap_apply_generated_unitary
+    def apply_generated_unitary(self,
+                                time: float,
+                                algo: str,
+                                hamil,
+                                accuracy: Optional[float] = None,
+                                expansion: int = 30,
+                                spec_lim = None,
+                                safety = 0.025) -> 'Wavefunction':
+        """Perform the exponentiation of fermionic algebras to the
+        wavefunction according the method and accuracy.
+
+        Args:
+            time_final (float) - the final time value to evolve to
+            algo (string) - which algorithm should we use
+            accuracy (double) - the accuracy to which the system should be evovled
+
+        Returns:
+            newwfn (Wavefunction) - a new intialized wavefunction object
+        """
+
+        if not isinstance(hamil, hamiltonian.Hamiltonian):
+            raise TypeError('Expected a Hamiltonian Object but received' \
+                            ' []'.format(type(hamil)))
+
+
+        algo_avail = [
+            'taylor',
+            'chebyshev'
+            ]
+
+        if algo not in algo_avail:
+            raise ValueError('{} is not availible'.format(algo))
+
+        max_expansion = min(30, expansion)
+
+        if isinstance(hamil, sparse_hamiltonian.SparseHamiltonian):
+
+            hamil_time = hamil.generated_unitary(time)
+
+            if algo == 'taylor':
+
+                if accuracy:
+                    time_evol = copy.deepcopy(self)
+                    work = copy.deepcopy(self)
+
+                    for order in range(1, max_expansion):
+                        work = work.apply(hamil_time)
+                        delta = copy.deepcopy(work)
+                        delta.scale(1.0 / factorial(order))
+                        if delta.max_element() < accuracy:
+                            time_evol += delta
+                            return time_evol
+
+                        time_evol += delta
+
+                    print('Accuracy not achieved'\
+                          ' after {} terms'.format(max_expansion))
+
+                    return time_evol
+
+                else:
+                    time_evol = copy.deepcopy(self)
+                    work = copy.deepcopy(self)
+
+                    for order in range(1, max_expansion):
+                        work = work.apply(hamil_time)
+                        time_evol.ax_plus_y(1.0 / factorial(order), work)
+
+                    return time_evol
+
+
+            if algo == 'chebyshev':
+                if accuracy is None:
+                    accuracy = 1.e-10
+
+                e_o = self.expectationValue(hamil)
+                if spec_lim:
+                    spec_min = 2.0*spec_lim[0]
+                    spec_max = 2.0*spec_lim[1]
+                else:
+                    raise ValueError('Spectral width can\'t be estimated.' \
+                                     ' Provide upper and lower limits.')
+
+                t_minus1 = copy.deepcopy(self)
+                t_n = t_minus1.apply(hamil_time)
+                t_x2 = t_n.apply(hamil_time)
+                t_x2.scale(2.0)
+                t_plus1 = t_x2 - t_minus1
+                time_evol = copy.deepcopy(self)
+                time_evol.scale(jv(0, 1.j))
+
+                for order in range(1, max_expansion):
+                    chebyshev_con = copy.deepcopy(t_n)
+                    scale_fac = 2.0*(1.j**order)*jv(order, -1.j)
+                    chebyshev_con.scale(scale_fac)
+                    if numpy.abs(fqe.vdot(chebyshev_con, self)) < accuracy:
+                        time_evol += chebyshev_con
+                        return time_evol
+
+                    time_evol += chebyshev_con
+                    t_minus1 = copy.deepcopy(t_n)
+                    t_n = copy.deepcopy(t_plus1)
+                    t_x2 = t_n.apply(hamil_time)
+                    t_x2.scale(2.0)
+                    t_plus1 = t_x2 - t_minus1
+
+                return time_evol
+
+        else:
+
+            ham_arrays = hamil.iht(time, full=True)
+
+            if algo == 'taylor':
+
+                if accuracy:
+                    time_evol = copy.deepcopy(self)
+                    work = copy.deepcopy(self)
+
+                    for order in range(1, max_expansion):
+                        work = work.apply_array(ham_arrays)
+                        delta = copy.deepcopy(work)
+                        delta.scale(1.0 / factorial(order))
+                        if delta.max_element() < accuracy:
+                            time_evol += delta
+                            return time_evol
+
+                        time_evol += delta
+
+                    print('Accuracy not achieved'\
+                          ' after {} terms'.format(max_expansion))
+
+                    return time_evol
+
+                else:
+                    time_evol = copy.deepcopy(self)
+                    work = copy.deepcopy(self)
+
+                    for order in range(1, max_expansion):
+                        work = work.apply_array(ham_arrays)
+                        time_evol.ax_plus_y(1.0 / factorial(order), work)
+
+                    return time_evol
+
+
+            if algo == 'chebyshev':
+                if accuracy is None:
+                    accuracy = 1.e-10
+
+                e_o = self.expectationValue(hamil)
+                if spec_lim:
+                    spec_min = 2.0*spec_lim[0]
+                    spec_max = 2.0*spec_lim[1]
+                else:
+                    raise ValueError('Spectral width can\'t be estimated.' \
+                                     ' Provide upper and lower limits.')
+
+                t_minus1 = copy.deepcopy(self)
+                t_n = t_minus1.apply_array(ham_arrays)
+                t_x2 = t_n.apply_array(ham_arrays)
+                t_x2.scale(2.0)
+                t_plus1 = t_x2 - t_minus1
+                time_evol = copy.deepcopy(self)
+                time_evol.scale(jv(0, 1.j))
+
+                for order in range(1, max_expansion):
+                    chebyshev_con = copy.deepcopy(t_n)
+                    scale_fac = 2.0*(1.j**order)*jv(order, -1.j)
+                    chebyshev_con.scale(scale_fac)
+                    if numpy.abs(fqe.vdot(chebyshev_con, self)) < accuracy:
+                        time_evol += chebyshev_con
+                        return time_evol
+
+                    time_evol += chebyshev_con
+                    t_minus1 = copy.deepcopy(t_n)
+                    t_n = copy.deepcopy(t_plus1)
+                    t_x2 = t_n.apply_array(ham_arrays)
+                    t_x2.scale(2.0)
+                    t_plus1 = t_x2 - t_minus1
+
+                return time_evol
+
+
+    def get_coeff(self, key: Tuple[int, int]) -> numpy.ndarray:
         """Retrieve a vector from a configuration in the wavefunction
 
         Args:
@@ -336,112 +567,9 @@ class Wavefunction():
             vec (int) - an integer indicating which state should be returned
 
         Returns:
-            numpy.array(dtype=numpy.complex64)
+            numpy.array(dtype=numpy.complex128)
         """
-        if vec is not None:
-            return self._civec[key].coeff[:, vec]
         return self._civec[key].coeff
-
-
-    def apply(self, ops: 'FermionOperator') -> 'Wavefunction':
-        """Return a wavefunction subject to the creation and annhilation
-        operations passed into apply.
-
-        Arg:
-            ops (FermionOperator) - Fermion operators to apply to the
-                wavefunction
-
-        Returns:
-            newwfn (Wavvefunction) - a new intialized wavefunction object
-        """
-        newkh, partchg, spinchg = new_wfn_from_ops(ops, self.configs,
-                                                   self._norb)
-        if self._numberconserve and partchg:
-            raise ValueError('This wavefunction is set to conserve particle'
-                             ' number but apply breaks particle number')
-        if self._spinconserve and spinchg:
-            raise ValueError('This wavefunction is set to conserve spin'
-                             ' number but apply breaks spin number')
-
-        newwfn = Wavefunction(newkh)
-
-        for term in ops.terms:
-            for config in self._civec.values():
-                gen_config = config.insequence_generator(0)
-                for conf_info in gen_config:
-                    newa, newb, parity = mutate_config(conf_info[1],
-                                                       conf_info[2], term)
-                    if newa != -1 and newb != -1 and parity != 0:
-                        newval = conf_info[0]*ops.terms[term]*parity
-                        newwfn.add_ele(newa, newb, newval)
-        return newwfn
-
-
-    def apply_generated_unitary(self, ops, algo: str, accuracy: float = 1.e-7) -> 'Wavefunction':
-        """Perform the exponentialtion of fermionic algebras to the
-        wavefunction according the method and accuracy.
-
-        Args:
-            ops (FermionOperator) - a FermionOperator string to apply
-            algo (string) - which algorithm should we use
-            time_final (float) - the final time value to evolve to
-            accuracy (double) - the accuracy to which the system should be
-                propagated.  Implemented in Phase II.
-
-        Returns:
-            newwfn (Wavvefunction) - a new intialized wavefunction object
-        """
-        algo_avail = [
-            'taylor',
-            'chebyshev'
-        ]
-
-        set_accuracy = accuracy
-
-        if not is_hermitian(ops):
-            raise ValueError('Non-hermitian operator passed to'
-                             ' apply_generated_unitary')
-
-        if algo not in algo_avail:
-            raise ValueError('{} is not availible'.format(algo))
-
-        expand = 8
-        ops *= -1.j
-        oldwfn = Wavefunction()
-
-        if algo == 'taylor':
-            apply_ops = FermionOperator('', 1.)
-            for poly in range(1, expand):
-                apply_ops *= ops
-                wfn = self.apply(apply_ops)
-                wfn.scale(1.0/factorial(poly))
-                if poly == 1:
-                    newwfn = wfn
-                else:
-                    newwfn = oldwfn + wfn
-                oldwfn = newwfn
-
-        if algo == 'chebyshev':
-            t_n_m1 = FermionOperator('', 1.)
-            t_n = ops
-            t_n_p1 = 2*ops*t_n - t_n_m1
-            for poly in range(1, expand):
-                wfn = self.apply(t_n)
-                scale_fac = 2.0*(1.j**poly)*jv(poly, -1.j)
-                wfn.scale(scale_fac)
-                if poly == 1:
-                    newwfn = wfn
-                else:
-                    newwfn = oldwfn + wfn
-                oldwfn = newwfn
-                t_n_m1 = copy.copy(t_n)
-                t_n = copy.copy(t_n_p1)
-                t_n_p1 = 2*ops*t_n - t_n_m1
-            self.scale(jv(0, 1.j))
-
-        wfnout = self.__add__(newwfn)
-        wfnout.normalize()
-        return wfnout
 
 
     def max_element(self) -> complex:
@@ -455,119 +583,7 @@ class Wavefunction():
         return maxval
 
 
-    def add_ele(self, astr: int, bstr: int, val: complex, vec: int = 0)-> None:
-        """Add a value to an element of a configuration given a key and string
-        representation.
-
-        Args:
-            astr (bitstring) - bitsrting of the alpha configuration
-            bstr (bitstring) - bitsrting of the beta configuration
-            val (complex double) - value to set
-            vec (int) - state to access
-        """
-        key = (count_bits(astr) + count_bits(bstr),
-               count_bits(astr) - count_bits(bstr))
-        try:
-            self._civec[key].add_element(astr, bstr, vec, val)
-        except KeyError:
-            print('The a{} b{} configuration belongs to key {} which is not in'
-                  ' this wavefunction'.format(astr, bstr, key))
-
-
-    def set_ele(self, astr: int, bstr: int, val: complex, vec: int = 0) -> None:
-        """Set an element of a configuration given a key and string
-        representation.
-
-        Args:
-            astr (bitstring) - bitsrting of the alpha configuration
-            bstr (bitstring) - bitsrting of the beta configuration
-            val (complex double) - value to set
-            vec (int) - state to access
-        """
-        key = (count_bits(astr) + count_bits(bstr),
-               count_bits(astr) - count_bits(bstr))
-        try:
-            self._civec[key].set_element(astr, bstr, vec, val)
-        except KeyError:
-            print('The a{} b{} configuration belongs to key {} which is not in'
-                  ' this wavefunction'.format(astr, bstr, key))
-
-
-    def get_ele(self, astr: int, bstr: int, vec: int = 0) -> complex:
-        """Return a specific element indexed by it's bitstring accessor and
-        the key to the configuration.
-
-        Args:
-            astr (bitstring) - bitsrting of the alpha configuration
-            bstr (bitstring) - bitsrting of the beta configuration
-            vec (int) - element to access
-
-        Returns:
-            (complex)
-        """
-        key = (count_bits(astr) + count_bits(bstr),
-               count_bits(astr) - count_bits(bstr))
-        try:
-            return self._civec[key].cc_s(astr, bstr, vec)
-        except KeyError:
-            print('The a{} b{} configuration belongs to key {} which is not in'
-                  ' this wavefunction'.format(astr, bstr, key))
-            return 0. + .0j
-
-
-    def set_wfn(self, vrange: Optional[List[int]] = None, strategy: str = 'ones',
-                raw_data: Optional[Dict[Tuple[int, int], numpy.ndarray]] = None) -> None:
-        """Set the values of the ciwfn based on an argument or data to
-        initalize from.
-
-        Args:
-            vrange (list[int]) - integers indicating which state of the
-                wavefunction should be set
-            strategy (string) - an option controlling how the values are set
-            raw_data (numpy.array(dtype=numpy.complex64)) - data to inject into
-                the configuration
-        """
-        if strategy == 'from_data' and not raw_data:
-            raise ValueError('No data provided for set_wfn')
-
-        if strategy == 'from_data':
-            for key, data in raw_data.items():
-                self._civec[key].set_wfn(vrange=vrange, strategy=strategy,
-                                         raw_data=data)
-        else:
-            for key, config in self._civec.items():
-                config.set_wfn(vrange=vrange, strategy=strategy, raw_data=None)
-
-
-    def scale(self, sval: complex) -> None:
-        """ Scale each configuration space by the value sval
-
-        Args:
-            sval (complex) - value to scale by
-        """
-        for config in self._civec.values():
-            config.scale(sval)
-
-
-    def normalize(self, vec: Optional[List[int]] = None) -> None:
-        """Iterate through each vector of each data structure such that for a
-        vector |i> the Frobenius inner product is 1.  Then scale everything by
-        the number of configurations
-        """
-        for config in self._civec.values():
-            config.normalize(vec=vec)
-
-
-    def generator(self) -> Generator['FqeData', None, None]:
-        """Return each configuration in the wavefunction for convenient
-        manipulation
-        """
-        for config in self._civec.values():
-            yield config
-
-
-    def print_wfn(self, threshold: float = 0.001, fmt: str = 'str',
-                  states: Union[int, List[int], None] = None) -> None:
+    def print_wfn(self, threshold: float = 0.001, fmt: str = 'str') -> None:
         """Print occupations and coefficients to the screen.
 
         Args:
@@ -631,31 +647,28 @@ class Wavefunction():
 
 
         print_format = _print_format(fmt)
-        if states is None:
-            vrange = [0]
-        elif isinstance(states, int):
-            vrange = [i for i in range(states)]
-        else:
-            vrange = states
 
-        config_in_order = sort_configuration_keys(self.configs)
+        config_in_order = sort_configuration_keys(self.sectors())
         for key in config_in_order:
-            config = self._civec[key]
-            title_print = False
-            for ivec in vrange:
-                g_con = config.insequence_generator(ivec)
-                vec_print = False
-                for base in g_con:
-                    if numpy.absolute(base[0]) > threshold:
-                        if not title_print:
-                            title_print = True
-                            print('\nConfiguration nelectrons: {} m_s: {}'
-                                  .format(key[0], key[1]))
-                        if not vec_print:
-                            vec_print = True
-                            print("Vector : {}".format(ivec))
-                        conadr = print_format(base[1], base[2])
-                        print(" {} : {}".format(conadr, base[0]))
+            sector = self._civec[key]
+            sector.print_sector(print_format=print_format, threshold=threshold)
+
+
+    def read(self, filename: str, path: str = os.getcwd()) -> None:
+        """Initialize a wavefunction from a binary file.
+
+        Args:
+            filename (str) - the name of the file to write the wavefunction to
+            path (str) - the path to save the file.  If no path is given then
+                it is saved in the current working directory.
+        """
+        with open(path + '/' + filename, 'r+b') as wfnfile:
+            wfn_data = numpy.load(wfnfile, allow_pickle=True)
+
+        # TODO how about _conserve_spin?
+        norb = wfn_data[0]
+        for sector in wfn_data[1:]:
+            self._civec[(sector[0][0], sector[0][1])] = sector[1]
 
 
     def save(self, filename: str, path: str = os.getcwd()) -> None:
@@ -675,17 +688,406 @@ class Wavefunction():
             numpy.save(wfnfile, wfn_data, allow_pickle=True)
 
 
-    def read(self, filename: str, path: str = os.getcwd()) -> None:
-        """Initialize a wavefunction from a binary file.
+    def scale(self, sval: complex) -> None:
+        """ Scale each configuration space by the value sval
 
         Args:
-            filename (str) - the name of the file to write the wavefunction to
-            path (str) - the path to save the file.  If no path is given then
-                it is saved in the current working directory.
+            sval (complex) - value to scale by
         """
-        with open(path + '/' + filename, 'r+b') as wfnfile:
-            wfn_data = numpy.load(wfnfile, allow_pickle=True)
 
-        norb = wfn_data[0]
-        for config in wfn_data[1:]:
-            self.add_config(config[0][0], config[0][1], norb, data=config[1])
+        sval = complex(sval)
+
+        for sector in self._civec.values():
+            sector.scale(sval)
+
+
+    def set_wfn(self, strategy: str = 'ones',
+                raw_data: Optional[Dict[Tuple[int, int], numpy.ndarray]] = None) -> None:
+        """Set the values of the ciwfn based on an argument or data to
+        initalize from.
+
+        Args:
+            strategy (string) - an option controlling how the values are set
+            raw_data (numpy.array(dtype=numpy.complex128)) - data to inject into
+                the configuration
+        """
+        if strategy == 'from_data' and not raw_data:
+            raise ValueError('No data provided for set_wfn')
+
+        if strategy == 'from_data':
+            for key, data in raw_data.items():
+                self._civec[key].coeff = data
+        else:
+            for sector in self._civec.values():
+                sector.set_wfn(strategy=strategy)
+
+
+    def transform(self, rotation) -> Tuple[numpy.ndarray, 'WaveFunction']:
+        """Transform the wavefunction using the orbtial rotation matrix and
+        return the new wavefunction and the permutation matrix for the unitary
+        transformation. This is an internal code, so performs minimal checking
+        """
+        norb = self._norb
+
+        def process_matrix(rotmat: numpy.ndarray) -> numpy.ndarray:
+            ndim = rotmat.shape[0]
+            assert rotmat.shape[1] == ndim
+            tmat = rotmat.transpose().conjugate()
+            (p, l, u) = scipy.linalg.lu(tmat)
+            for irow in range(ndim):
+                for icol in range(irow+1, ndim):
+                    u[irow, icol] /= u[irow, irow]
+                l[irow, irow], u[irow, irow] = u[irow, irow], l[irow, irow]
+                for icol in range(irow):
+                    l[irow, icol] *= l[icol, icol]
+
+            lt = l.transpose().conjugate()
+            ut = u.transpose().conjugate()
+
+            unitmat = numpy.identity(ndim)
+            output = scipy.linalg.solve_triangular(lt, unitmat)
+
+            for icol in range(ndim):
+                for irow in range(icol+1, ndim):
+                    output[irow, icol] -= ut[irow, icol]
+                output[icol, icol] -= 1.0
+            return (p, output)
+
+        current = copy.deepcopy(self)
+
+        if not self._conserve_spin:
+            (p, output) = process_matrix(rotation)
+            for icol in range(norb*2):
+                work = numpy.zeros_like(rotation)
+                work[:,icol] = output[:,icol]
+                onefwfn = current.apply_array((work,))
+                current.ax_plus_y(1.0, onefwfn)
+        else:
+            if rotation.shape[0] == norb:
+                (p, output) = process_matrix(rotation)
+                for icol in range(norb):
+                    work = numpy.zeros_like(rotation)
+                    work[:,icol] = output[:,icol]
+                    onefwfn = current.apply_array((work,))
+                    twofwfn = onefwfn.apply_array((work,))
+                    current.ax_plus_y(1.0-0.5*work[icol,icol], onefwfn)
+                    current.ax_plus_y(0.5, twofwfn)
+            elif rotation.shape[0] == norb*2:
+                assert numpy.std(rotation[:norb,norb:]) + numpy.std(rotation[norb:,:norb]) < 1.0e-8
+                (p1, output1) = process_matrix(rotation[:norb, :norb])
+                (p2, output2) = process_matrix(rotation[norb:, norb:])
+                for icol in range(norb):
+                    work = numpy.zeros_like(rotation)
+                    work[:norb,icol] = output1[:,icol]
+                    onefwfn = current.apply_array((work,))
+                    current.ax_plus_y(1.0, onefwfn)
+                for icol in range(norb):
+                    work = numpy.zeros_like(rotation)
+                    work[norb:,icol+norb] = output2[:,icol]
+                    onefwfn = current.apply_array((work,))
+                    current.ax_plus_y(1.0, onefwfn)
+                p = numpy.zeros_like(rotation)
+                p[:norb,:norb] = p1[:,:]
+                p[norb:,norb:] = p2[:,:]
+
+        return p, current
+
+
+    @wrap_time_evolve
+    def time_evolve(self, time: float, hamil) -> 'Wavefunction':
+        """Perform time evolution of the wavefunction given Fermion Operators
+        either as raw operations or wrapped up in a Hamiltonian.
+
+        Args:
+            ops (FermionOperators) - FermionOperators which are to be time evolved.
+            time (float) - the duration by which to evolve the operators
+
+        Returns:
+            Wavefunction - a wavefunction object that has been time evolved.
+        """
+        if not isinstance(hamil, hamiltonian.Hamiltonian):
+            raise TypeError('Expected Hamiltonian Object but received {}'.format(type(hamil)))
+
+        if not self._conserve_number or not hamil.conserve_number:
+            if self._conserve_number:
+                raise TypeError('Number non-conserving hamiltonian passed to' \
+                                ' number conserving wavefunction')
+            if hamil.conserve_number:
+                raise TypeError('Number conserving hamiltonian passed to' \
+                                ' number non-conserving wavefunction')
+
+        work_wfn = copy.deepcopy(self)
+
+
+        if hamil.quadratic():
+            if hamil.diagonal():
+
+                ihtdiag = hamil.iht(time, full=False)
+                final_wfn = work_wfn.evolve_diagonal(ihtdiag[0])
+
+            else:
+                transformation = hamil.calc_diag_transform()
+
+                permu, work_wfn = work_wfn.transform(transformation)
+                ci_trans = transformation @ permu
+
+                h1e = hamil.transform(ci_trans)
+
+                ihtdiag = -1.j*time*h1e.diagonal()
+                evolved_wfn = work_wfn.evolve_diagonal(ihtdiag)
+
+                permutation, final_wfn = evolved_wfn.transform(ci_trans.conj().T)
+
+                if not numpy.allclose(permutation, numpy.eye(hamil.dim())):
+                    raise ValueError('Tranformation to original CI basis' \
+                                     'is performing permutation.')
+        elif hamil.diagonal_coulomb():
+
+            diag, vij = hamil.iht(time)
+
+            final_wfn = work_wfn.evolve_diagonal_coulomb(diag, vij)
+
+        elif isinstance(hamil, sparse_hamiltonian.SparseHamiltonian):
+
+            final_wfn = work_wfn.evolve_individual_nbody(time, hamil)
+
+        else:
+
+            final_wfn = work_wfn.apply_generated_unitary(time, 'taylor', hamil)
+
+        return final_wfn
+
+
+    def evolve_diagonal(self, ithdiag) -> None:
+        """Evolve a diagonal Hamiltonian on the wavefunction
+        """
+        wfn = copy.deepcopy(self)
+
+        for key, sector in self._civec.items():
+            wfn._civec[key].coeff = sector.apply_diagonal_unitary_array(ithdiag)
+
+        return wfn
+
+
+    def evolve_diagonal_coulomb(self, diag, vij) -> None:
+        """Evolve a diagonal coulomb Hamiltonian on the wavefunction
+        """
+
+        wfn = copy.deepcopy(self)
+        for key, sector in self._civec.items():
+            wfn._civec[key].coeff = sector.diagonal_coulomb(diag, vij)
+
+        return wfn
+
+
+    def expectationValue(self, ops, brawfn = None) -> complex:
+        """
+        """
+        if isinstance(ops, fqe_operator.FqeOperator):
+            if brawfn:
+                return ops.contract(brawfn, self)
+            return ops.contract(self, self)
+
+
+        if not isinstance(ops, hamiltonian.Hamiltonian):
+            raise TypeError('Expected an Fqe Hamiltonian or Operator' \
+                            ' but recieved {}'.format(type(ops)))
+
+
+        if isinstance(ops, gso_hamiltonian.GSOHamiltonian) or \
+            isinstance(ops, sso_hamiltonian.SSOHamiltonian) or \
+            isinstance(ops, general_hamiltonian.General):
+
+            work = copy.deepcopy(self)
+            workwfn = work.apply(ops)
+
+            if brawfn:
+                return fqe.vdot(brawfn, workwfn)
+            else:
+                return fqe.vdot(self, workwfn)
+
+        expval = 0. + 0.j
+        rdm_lib = self.compute_rdm(ops.rank() // 2, brawfn)
+
+        for rank in range(2, ops.rank() + 1, 2):
+            axes = list(range(rank))
+            expval += numpy.tensordot(ops.tensor(rank), rdm_lib[(rank - 1) // 2], axes=(axes, axes))
+        return expval
+
+
+    def apply_individual_nbody(self, op: 'SparseHamiltonian') -> 'Wavefunction':
+        """
+        Applies an individual n-body operator to the wave function self.
+        """
+        if op.nterms() > 1:
+            raise Exception('Indivisual n-body code is called with multiple terms')
+        [(coeff, alpha, beta)] = op.terms()
+        daga = []
+        dagb = []
+        undaga = []
+        undagb = []
+        for oper in alpha:
+            assert oper[0] < self._norb
+            if oper[1] == 1: daga.append(oper[0])
+            else:          undaga.append(oper[0])
+        for oper in beta:
+            assert oper[0] < self._norb
+            if oper[1] == 1: dagb.append(oper[0])
+            else:          undagb.append(oper[0])
+
+        if len(daga)+len(dagb) != len(undaga)+len(undagb):
+            raise Exception('Number non-conserving operators specified')
+
+        out = copy.deepcopy(self)
+        if len(daga) == len(undaga) and len(dagb) == len(undagb):
+            for key, sector in self._civec.items():
+                out._civec[key] = sector.apply_individual_nbody(coeff, daga, undaga, dagb, undagb)
+        else:
+            nsectors = out.number_sectors()
+            for _, sector in nsectors.items():
+                sector.apply_inplace_individual_nbody(coeff, daga, undaga, dagb, undagb)
+        return out
+
+
+    def evolve_individual_nbody(self, time: float, hamil: 'SparseHamiltonian') -> 'Wavefunction':
+        """Apply up to 4-body individual operator
+        """
+
+        if not isinstance(hamil, sparse_hamiltonian.SparseHamiltonian):
+            raise TypeError('Expected a Hamiltonian Object but received' \
+                            ' []'.format(hamil))
+
+        if hamil.nterms() > 2:
+            raise Exception('Indivisual n-body code is called with multiple terms')
+
+        # check if everything is paired
+        if hamil.nterms() == 2:
+            [(coeff0, alpha0, beta0), (coeff1, alpha1, beta1)] = hamil.terms()
+            check = True
+            for aop in alpha0:
+                check &= [aop[0], aop[1] ^ 1] in alpha1
+            for bop in beta0:
+                check &= [bop[0], bop[1] ^ 1] in beta1
+            if not check:
+                raise Exception('Operators in evolve_individual_nbody is not Hermitian')
+        else:
+            [(coeff0, alpha0, beta0), ] = hamil.terms()
+            check = True
+            for aop in alpha0:
+                check &= [aop[0], aop[1] ^ 1] in alpha0
+            for bop in beta0:
+                check &= [bop[0], bop[1] ^ 1] in beta0
+            if not check:
+                raise Exception('Operators in evolve_individual_nbody is not Hermitian')
+            coeff0 *= 0.5
+
+        daga = []
+        dagb = []
+        undaga = []
+        undagb = []
+        for oper in alpha0:
+            assert oper[0] < self._norb
+            if oper[1] == 1: daga.append(oper[0])
+            else:          undaga.append(oper[0])
+        for oper in beta0:
+            assert oper[0] < self._norb
+            if oper[1] == 1: dagb.append(oper[0])
+            else:          undagb.append(oper[0])
+
+        if hamil.nterms() == 2:
+            parity = (-1)**(len(alpha0)*len(beta0) + len(daga)*(len(daga)-1)//2 + len(dagb)*(len(dagb)-1)//2 \
+                            + len(undaga)*(len(undaga)-1)//2 + len(undagb)*(len(undagb)-1)//2)
+            if not numpy.abs(coeff0 - numpy.conj(coeff1)*parity) < 1.0e-8:
+                raise Exception('Coefficients in evolve_individual_nbody is not Hermitian')
+
+        out = copy.deepcopy(self)
+        if daga == undaga and dagb == undagb:
+            for _, sector in out._civec.items():
+                sector.evolve_inplace_individual_nbody_trivial(time, coeff0, daga, dagb)
+        else:
+            if len(daga) == len(undaga) and len(dagb) == len(undagb):
+                for _, sector in out._civec.items():
+                    sector.evolve_inplace_individual_nbody_nontrivial(time, coeff0, daga, undaga, dagb, undagb)
+            else:
+                nsectors = out.number_sectors()
+                for _, sector in nsectors.items():
+                    sector.evolve_inplace_individual_nbody(time, coeff0, daga, undaga, dagb, undagb)
+        return out
+
+
+    def evovle_few_nbody(self, op: 'SparseHamiltonian') -> 'Wavefunction':
+        """ Applies SparseHamiltonian by looping over all of the operators.
+        Useful when the operator is extremely sparse
+        """
+        out = copy.deepcopy(self)
+        out.set_wfn(strategy="zero")
+        for oper in op.terms_hamiltonian():
+            out += self.apply_individual_nbody(oper)
+        return out
+
+
+    def apply_few_nbody(self, op: 'SparseHamiltonian') -> 'Wavefunction':
+        """ Applies SparseHamiltonian by looping over all of the operators.
+        Useful when the operator is extremely sparse
+        """
+        out = copy.deepcopy(self)
+        out.set_wfn(strategy="zero")
+        for oper in op.terms_hamiltonian():
+            out += self.apply_individual_nbody(oper)
+        return out
+
+
+    def rdm1(self, string):
+        target = 1
+        work = fqe_ops_utils.validate_rdm_string(string, target)
+
+        if work == 'element':
+            result = self.apply(sparse_hamiltonian.SparseHamiltonian(string))
+            return vdot(self, result)
+        elif work == 'tensor':
+            rdm = self.compute_rdm(target)
+            return wick(string, [rdm], self._conserve_spin)
+        else:
+            raise ValueError(work)
+
+
+    def rdm2(self, string):
+        target = 2
+        work = fqe_ops_utils.validate_rdm_string(string, target)
+
+        if work == 'element':
+            result = self.apply(sparse_hamiltonian.SparseHamiltonian(string))
+            return vdot(self, result)
+        elif work == 'tensor':
+            rdm = self.compute_rdm(target)
+            return wick(string, [rdm], self._conserve_spin)
+        else:
+            raise ValueError(work)
+
+
+    def rdm3(self, string):
+        target = 3
+        work = fqe_ops_utils.validate_rdm_string(string, target)
+
+        if work == 'element':
+            result = self.apply(sparse_hamiltonian.SparseHamiltonian(string))
+            return vdot(self, result)
+        elif work == 'tensor':
+            rdm = self.compute_rdm(target)
+            return wick(string, [rdm], self._conserve_spin)
+        else:
+            raise ValueError(work)
+
+
+    def rdm4(self, string):
+        target = 4
+        work = fqe_ops_utils.validate_rdm_string(string, target)
+
+        if work == 'element':
+            result = self.apply(sparse_hamiltonian.SparseHamiltonian(string))
+            return vdot(self, result)
+        elif work == 'tensor':
+            rdm = self.compute_rdm(target)
+            return wick(string, [rdm], self._conserve_spin)
+        else:
+            raise ValueError(work)

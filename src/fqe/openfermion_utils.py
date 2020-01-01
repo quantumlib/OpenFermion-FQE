@@ -22,11 +22,10 @@ from openfermion.transforms import jordan_wigner, reverse_jordan_wigner
 
 import numpy
 
-from fqe.bitstring import gbit_index, integer_index
+from fqe.bitstring import gbit_index, integer_index, count_bits
 from fqe.bitstring import lexicographic_bitstring_generator
 from fqe.util import alpha_beta_electrons, bubblesort
-from fqe.util import init_bitstring_groundstate, paritysort
-from fqe.string_addressing import count_bits
+from fqe.util import init_bitstring_groundstate, paritysort_int
 
 if TYPE_CHECKING:
     from fqe.wavefunction import Wavefunction
@@ -63,7 +62,7 @@ def ascending_index_order(ops: 'FermionOperator',
     else:
         for term in ops:
             ilist.append(term[0])
-        nperm = paritysort(ilist)
+        nperm, _ = paritysort_int(ilist)
         alpl = []
         betl = []
         for i in ilist:
@@ -118,6 +117,26 @@ def bit_to_fermion_creation(string: int,
     return ops
 
 
+def classify_symmetries(operator: 'FermionOperator') -> Tuple[bool]:
+    """Given FermionOperators, classify it's effect on the fqe space.
+
+    Args:
+        ops (FermionOperator) - a FermionOperator
+
+    Returns:
+        (bool, bool) - return a pair of boolean values from the routine
+            indicating if the particle number and spin will change
+    """
+    pn_change = 0
+    spin_change = 0
+    for cluster in operator.terms:
+        for ops in cluster:
+            pn_change += (-1)**(ops[1] + 1)
+            spin_change += (-1)**(ops[0])
+
+    return pn_change, spin_change
+
+
 def fqe_to_fermion_operator(wfn: 'Wavefunction') -> 'FermionOperator':
     """Given an FQE wavefunction, convert it into strings of openfermion
     operators with appropriate coefficients for weights.
@@ -130,10 +149,9 @@ def fqe_to_fermion_operator(wfn: 'Wavefunction') -> 'FermionOperator':
     """
     ops = FermionOperator('', 1.0)
     genstate = wfn.generator()
-    for state in genstate:
-        genconfig = state.insequence_generator(0)
-        for det in genconfig:
-            ops += det[0]*determinant_to_ops(det[1], det[2])
+    for sector in genstate:
+        for alpha, beta, coeffcient in sector.generator():
+            ops += coeffcient*determinant_to_ops(alpha, beta)
     return ops - FermionOperator('', 1.0)
 
 
@@ -272,7 +290,8 @@ def fermion_opstring_to_bitstring(ops) -> List[List[Any]]:
     return raw_data
 
 
-def generate_one_particle_matrix(ops: 'FermionOperator') -> numpy.ndarray:
+def generate_one_particle_matrix(ops: 'FermionOperator'
+                                ) -> Tuple[numpy.ndarray]:
     """Convert a string of FermionOperators into a matrix.  If the dimension
     is not passed we will search the string to find the largest value.
 
@@ -280,17 +299,20 @@ def generate_one_particle_matrix(ops: 'FermionOperator') -> numpy.ndarray:
         ops (FermionOperator) - a string of FermionOperators
 
     Returns:
-        numpy.array(dtype=numpy.complex64)
+        Tuple(numpy.array(dtype=numpy.complex64),
+              numpy.array(dtype=numpy.complex64),
+              numpy.array(dtype=numpy.complex64))
     """
     ablk, bblk = largest_operator_index(ops)
     dim = max(2*ablk, 2*bblk)
     ablk = dim //2
-    h1e = numpy.zeros((dim, dim), dtype=numpy.complex64)
+    h1a = numpy.zeros((dim, dim), dtype=numpy.complex64)
+    h1b = numpy.zeros((dim, dim), dtype=numpy.complex64)
+    h1b_conj = numpy.zeros((dim, dim), dtype=numpy.complex64)
     for term in ops.terms:
-        left, right = parse_one_particle_matrix_ops(term)
-        if left == -1 or right == -1:
-            raise ValueError('FermionOperator {} is not a matrix'
-                             ' element'.format(term))
+
+        left, right = term[0][0], term[1][0]
+
         if left % 2:
             ind = (left - 1)//2 + ablk
         else:
@@ -301,14 +323,20 @@ def generate_one_particle_matrix(ops: 'FermionOperator') -> numpy.ndarray:
         else:
             jnd = right // 2
 
-        h1e[ind, jnd] = ops.terms[term]
+        if term[0][1] and term[1][1]:
+            h1b[ind, jnd] += ops.terms[term]
+        elif term[0][1] and not term[1][1]:
+            h1a[ind, jnd] += ops.terms[term]
+        else:
+            h1b_conj[ind, jnd] += ops.terms[term]
 
-    return h1e
+    return h1a, 2.0*h1b, 2.0*h1b_conj
 
 
 def generate_two_particle_matrix(ops: 'FermionOperator') -> numpy.ndarray:
-    """Convert a string of FermionOperators into a matrix.  If the dimension
-    is not passed we will search the string to find the largest value.
+    """Convert a string of FermionOperators into a matrix.  If the operators
+    in the term do not fit the action form of (1, 1, 0, 0) then permute them
+    to git the form
 
     Args:
         ops (FermionOperator) - a string of FermionOperators
@@ -321,10 +349,32 @@ def generate_two_particle_matrix(ops: 'FermionOperator') -> numpy.ndarray:
     ablk = dim // 2
     g2e = numpy.zeros((dim, dim, dim, dim), dtype=numpy.complex64)
     for term in ops.terms:
-        first, second, third, fourth = parse_two_particle_matrix_ops(term)
-        if first == -1 or second == -1 or third == -1 or fourth == -1:
-            raise ValueError('FermionOperator {} is not a matrix'
-                             ' element'.format(term))
+
+        iact, jact, kact, lact = term[0][1], term[1][1], term[2][1], term[3][1]
+
+        if iact + jact + kact + lact != 2:
+            raise ValueError('Unsupported four index tensor')
+
+        first, second, third, fourth = term[0][0], term[1][0], term[2][0], term[3][0] 
+
+        nper = 0
+        if not iact:
+            if not jact:
+                jact, kact = kact, jact
+                second, third = third, second
+                nper += 1
+            iact, jact = jact, iact
+            first, second = second, first
+            nper += 1
+
+        if not jact:
+            if not kact:
+                kact, lact = lact, kact
+                third, fourth = fourth, third
+                nper += 1
+            jact, kact = kact, jact
+            second, third = third, second
+            nper += 1
 
         if first % 2:
             ind = (first - 1)//2 + ablk
@@ -346,7 +396,7 @@ def generate_two_particle_matrix(ops: 'FermionOperator') -> numpy.ndarray:
         else:
             lnd = fourth // 2
 
-        g2e[ind, jnd, knd, lnd] = ops.terms[term]
+        g2e[ind, jnd, knd, lnd] = ((-1.0)**nper)*ops.terms[term]
 
     return g2e
 
@@ -397,7 +447,7 @@ def ladder_op(ind: int, step: int):
 
 def mutate_config(stra: int,
                   strb: int,
-                  term: List[Tuple[int, int]]) -> Tuple[int, int, int]:
+                  term: Tuple[Tuple[int, int]]) -> Tuple[int, int, int]:
     """Apply creation and annihilation operators to a configuration in the
     bitstring representation and return the new configuration and the parity.
 
@@ -413,32 +463,44 @@ def mutate_config(stra: int,
     newa = stra
     newb = strb
     parity = 1
+
     for ops in reversed(term):
         if ops[0] % 2:
             abits = count_bits(newa)
             indx = (ops[0] - 1)//2
-            lowbit = (1<<(indx)) - 1
-            parity *= (-1)**(count_bits(lowbit & newb) + abits)
             if ops[1] == 1:
                 if newb & 2**indx:
-                    return -1, -1, 0
+#                    return -1, -1, 0
+                    return stra, strb, 0
+
                 newb += 2**indx
             else:
                 if not newb & 2**indx:
-                    return -1, -1, 0
+#                    return -1, -1, 0
+                    return stra, strb, 0
+
                 newb -= 2**indx
+
+            lowbit = (1<<(indx)) - 1
+            parity *= (-1)**(count_bits(lowbit & newb) + abits)
+
         else:
             indx = ops[0]//2
-            lowbit = (1<<(indx)) - 1
-            parity *= (-1)**count_bits(lowbit & newa)
             if ops[1] == 1:
                 if newa & 2**indx:
-                    return -1, -1, 0
+#                    return -1, -1, 0
+                    return stra, strb, 0
+
                 newa += 2**indx
             else:
                 if not newa & 2**indx:
-                    return -1, -1, 0
+#                    return -1, -1, 0
+                    return stra, strb, 0
+
                 newa -= 2**indx
+
+            lowbit = (1<<(indx)) - 1
+            parity *= (-1)**count_bits(lowbit & newa)
 
     return newa, newb, parity
 
@@ -485,43 +547,8 @@ def new_wfn_from_ops(ops: 'FermionOperator', configs: KeysView[Tuple[int, int]],
     return new_wavefunction_params, particlechange, spinchange
 
 
-def parse_one_particle_matrix_ops(term: 'FermionOperator') -> Tuple[int, int]:
-    """Validate that the operators passed in are valid for one particle
-    matrices.  If they are then return the matrix indexes otherwise return -1
-    for both values.
-
-    Args:
-        term (FermionOpertor.term) - a string of FermionOperators
-
-    Return:
-        (int, int) - indexes of the orbitals associated with operators
-    """
-    if len(term) != 2:
-        return -1, -1
-    if not term[0][1] or term[1][1]:
-        return -1, -1
-    return term[0][0], term[1][0]
-
-
-def parse_two_particle_matrix_ops(term):
-    """Validate that the operators passed in are valid for one particle
-    matrices.  If they are then return the matrix indexes otherwise return -1
-    for both values.
-
-    Args:
-        term (FermionOpertor.term) - a string of FermionOperators
-
-    Return:
-        (int, int, int, int) - indexes of the orbitals associated with operators
-    """
-    if len(term) != 4:
-        return -1, -1, -1, -1
-    if not term[0][1] or not term[1][1] or term[2][1] or term[3][1]:
-        return -1, -1, -1, -1
-    return term[0][0], term[1][0], term[2][0], term[3][0]
-
-
-def particle_change(ops: 'FermionOperator', norb: int) -> List[List[int]]:
+def sector_change(ops: 'FermionOperator', norb: int) -> List[List[int]]:
+#def particle_change(ops: 'FermionOperator', norb: int) -> List[List[int]]:
     """Given a FermionOperator, return the change in particle number and spin
     that will occur upon the application to a state.  Also check for operator
     motifs which will make the entire term zero or for operators outside the
@@ -536,33 +563,40 @@ def particle_change(ops: 'FermionOperator', norb: int) -> List[List[int]]:
     """
     allowed = [-1, 0, 1]
     changes = []
+
     for term in ops.terms:
         spin = 0
         particles = 0
         err: Dict[int, int] = {}
         operr = False
+
         for operator in reversed(term):
             if operator[0] >= 2*norb:
                 raise ValueError('{} is outside the orbital space'
                                  .format(operator[0]))
+
             if operator[0] not in err:
                 err[operator[0]] = -(-1)**operator[1]
             else:
                 err[operator[0]] -= (-1)**operator[1]
+
             if err[operator[0]] not in allowed:
                 operr = True
                 break
+
             particles -= (-1) ** operator[1]
             spin -= (-1) ** (operator[0] + operator[1])
+
         if not operr:
             changes.append([particles, spin])
+
     return changes
 
 
 def split_openfermion_tensor(ops: 'FermionOperator'
                             ) -> Dict[int, 'FermionOperator']:
     """Given a string of openfermion operators, split them according to their
-    degree.
+    rank.
 
     Args:
         ops (FermionOperator) - a string of Fermion Operators

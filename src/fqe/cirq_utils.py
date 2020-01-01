@@ -90,7 +90,7 @@ def qubit_projection(ops: 'QubitOperator',
         coeff (numpy.array(dtype=numpy.complex64)) - the coefficients modified
             in place.
     """
-    qpu = Simulator()
+    qpu = Simulator(dtype=numpy.complex128)
     for indx, cluster in enumerate(ops.terms):
         circuit = qubit_ops_to_circuit(cluster, qubits)
         work_state = state.copy()
@@ -115,11 +115,14 @@ def qubit_wavefunction_from_vacuum(ops: 'QubitOperator',
     """
     nqubits = len(qubits)
     vacuum = init_qubit_vacuum(nqubits)
-    final_state = numpy.zeros(2**nqubits, dtype=numpy.complex64)
-    qpu = Simulator()
+    final_state = numpy.zeros(2**nqubits, dtype=numpy.complex128)
+    qpu = Simulator(dtype=numpy.complex128)
     for term in ops.terms:
         circuit = qubit_ops_to_circuit(term, qubits)
         state = vacuum.copy()
         result = qpu.simulate(circuit, qubit_order=qubits, initial_state=state)
         final_state += result.final_state*ops.terms[term]
     return final_state
+
+if __name__ == '__main__':
+    unittest.main()

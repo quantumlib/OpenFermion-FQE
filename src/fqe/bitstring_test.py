@@ -83,8 +83,29 @@ class BitstringTest(unittest.TestCase):
 
 
     def test_lexicographic_bitstring_generator_order(self):
-        """Here is a possible use case of the lexicographic bitstring routine.
+        """Here is a use case of the lexicographic bitstring routine.
         """
         test_list = [3, 5, 6, 9, 10, 12, 17, 18, 20, 24, 33, 34, 36, 40, 48]
         _gbitl = bitstring.lexicographic_bitstring_generator(3, 6)
         self.assertListEqual(_gbitl, test_list)
+
+
+    def test_count_bits(self):
+        """Return the number of set bits in the bitstring
+        """
+        self.assertEqual(bitstring.count_bits(0), 0)
+        self.assertEqual(bitstring.count_bits(1 + 2 + 4 + 8 + 32), 5)
+
+
+    def test_basic_bit_function(self):
+        """Return the number of set bits in the bitstring
+        """
+        workbit = (1 << 8) - 1
+        self.assertEqual(bitstring.get_bit(workbit, 3), 8)
+        self.assertEqual(bitstring.set_bit(workbit, 11), workbit + 2**11)
+        self.assertEqual(bitstring.unset_bit(workbit, 2), workbit - 2**2)
+        self.assertEqual(bitstring.count_bits_above(workbit, 1), 6)
+        self.assertEqual(bitstring.count_bits_below(workbit - 2 , 8), 7)
+        self.assertEqual(bitstring.count_bits_between(workbit - 2, 1, 5), 3)
+        self.assertEqual(bitstring.show_bits(1 + 2, nbits=4), '0011')
+        self.assertEqual(bitstring.show_bits(1 + 2 + 16), '0000000000010011')
