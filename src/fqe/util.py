@@ -16,13 +16,16 @@
 """
 
 from operator import itemgetter
-from typing import Any, Generator, KeysView, List, Set, Tuple
+from typing import Any, Generator, KeysView, List, Set, Tuple, TYPE_CHECKING
 
-from scipy.special import binom
 import numpy
 
 from fqe.bitstring import lexicographic_bitstring_generator
 from fqe.bitstring import check_conserved_bits, count_bits
+
+if TYPE_CHECKING:
+    #Avoid circular imports and only import for type-checking
+    from fqe import wavefunction
 
 
 def alpha_beta_electrons(nele: int, m_s: int) -> Tuple[int, int]:
@@ -157,7 +160,7 @@ def init_qubit_vacuum(nqubits: int) -> numpy.ndarray:
     Returns:
         numpy.array(dtype=numpy.complex64)
     """
-    ground_state = numpy.zeros(2**nqubits, dtype=numpy.complex64)
+    ground_state = numpy.zeros(2**nqubits, dtype=numpy.complex128)
     ground_state[0] = 1.0 + 0.0j
     return ground_state
 
@@ -197,29 +200,7 @@ def invert_bitstring_with_mask(string: int, masklen: int) -> int:
     return ~string & mask
 
 
-def paritysort(arr: List[int]) -> int:
-    """Move all even numbers to the left and all odd numbers to the right
-
-    Args:
-        arr list[int] - a list of integers to be sorted
-
-    Returns:
-        arr [list] - mutated in place
-        swap_count (int) - number of exchanges needed to complete the sorting
-    """
-
-    nswaps = 0
-    new = []
-
-    if isinstance(arr[0], int):
-        nswaps, new = paritysort_int(arr)
-    if isinstance(arr[0], list):
-        nswaps, new = paritysort_list(arr)
-
-    return nswaps, new
-
-
-def paritysort_int(arr: List[int]) -> int:
+def paritysort_int(arr: List[int]) -> Tuple[int, List[int]]:
     """Move all even numbers to the left and all odd numbers to the right
 
     Args:
@@ -249,7 +230,7 @@ def paritysort_int(arr: List[int]) -> int:
     return swap_count, arr
 
 
-def paritysort_list(arr: List[List[int]]) -> int:
+def paritysort_list(arr):
     """Move all even numbers to the left and all odd numbers to the right
 
     Args:
@@ -311,7 +292,8 @@ def qubit_particle_number_sector(nqubits: int, pnum: int) -> List[numpy.ndarray]
     return vectors
 
 
-def qubit_config_sector(nqubits: int, pnum: int,
+def qubit_config_sector(nqubits: int,
+                        pnum: int,
                         m_s: int) -> List[numpy.ndarray]:
     """Generate the basis vectors into the qubit basis representing all states
     which have a definite particle number and spin.
@@ -447,6 +429,23 @@ def rand_wfn(adim: int, bdim: int) -> numpy.ndarray:
     return wfn
 
 
+def map_broken_symmetry(s_z, norb):
+    """Create a map between spin broken and number broken wavefunctions.
+    """
+    spin_to_number = {}
+    nele = norb + s_z
+
+    maxb = min(norb, nele)
+    minb = nele - maxb
+
+    for nbeta in range(minb, maxb+1):
+        nb_beta = norb - nbeta
+        nalpha = nele - nbeta
+        spin_to_number[(nalpha, nb_beta)] = (nele - nbeta, nbeta)
+
+    return spin_to_number
+
+
 def sort_configuration_keys(configs:
                             KeysView[Tuple[int, int]]) -> List[Tuple[int, int]]:
     """Return a standard sorting of configuration keys in a wavefunction for
@@ -486,6 +485,65 @@ def validate_config(nalpha: int, nbeta: int, norb: int) -> None:
         raise ValueError("Insufficient number of orbitals")
 
 
+def validate_tuple(matrices) -> None:
+    """Validate that the tuple passed in is valid for initializing a general
+    Hamiltonian
+    """
+    assert isinstance(matrices, tuple)
+    for rank, term in enumerate(matrices):
+        assert isinstance(term, numpy.ndarray)
+        assert 2*(rank + 1) == term.ndim
+
+
+def dot(wfn1: 'wavefunction.Wavefunction', wfn2: 'wavefunction.Wavefunction') -> complex:
+    """Calculate the dot product of two wavefunctions.  Note that this does
+    not use the conjugate.  See vdot for the similar conjugate functionality.
+
+    Args:
+        wfn1 (wavefunction.Wavefunction) - wavefunction corresponding to the
+            row vector
+        wfn2 (wavefunction.Wavefunction) - wavefunction corresponding to the
+            coumn vector
+
+    Returns:
+        (complex) - scalar as result of the dot product
+    """
+    brakeys = wfn1.sectors()
+    ketkeys = wfn2.sectors()
+    keylist = [config for config in brakeys if config in ketkeys]
+    ipval = .0 + .0j
+    if not keylist:
+        return ipval
+    for sector in keylist:
+        ipval += numpy.dot(wfn1.get_coeff(sector).flatten(),
+                           wfn2.get_coeff(sector).flatten())
+    return ipval
+
+
+def vdot(wfn1: 'wavefunction.Wavefunction', wfn2: 'wavefunction.Wavefunction') -> complex:
+    """Calculate the inner product of two wavefunctions using conjugation on
+    the elements of wfn1.
+
+    Args:
+        wfn1 (wavefunction.Wavefunction) - wavefunction corresponding to the
+            conjugate row vector
+        wfn2 (wavefunction.Wavefunction) - wavefunction corresponding to the
+            coumn vector
+
+    Returns:
+        (complex) - scalar as result of the dot product
+    """
+    brakeys = wfn1.sectors()
+    ketkeys = wfn2.sectors()
+    keylist = [config for config in brakeys if config in ketkeys]
+    ipval = .0 + .0j
+    if not keylist:
+        return ipval
+    for config in keylist:
+        ipval += numpy.vdot(wfn1.get_coeff(config).flatten(),
+                            wfn2.get_coeff(config).flatten())
+    return ipval
+
 
 def zero_transform(string0: int, unocc: int, occ: int, norb: int) -> bool:
     """Given a bitstring, determine if it satisfies the occupation and
@@ -508,3 +566,7 @@ def zero_transform(string0: int, unocc: int, occ: int, norb: int) -> bool:
             return False
 
     return True
+
+
+if __name__ == '__main__':
+    print(map_broken_symmetry(2, 4))

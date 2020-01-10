@@ -105,7 +105,7 @@ class BitstringTest(unittest.TestCase):
         self.assertEqual(bitstring.set_bit(workbit, 11), workbit + 2**11)
         self.assertEqual(bitstring.unset_bit(workbit, 2), workbit - 2**2)
         self.assertEqual(bitstring.count_bits_above(workbit, 1), 6)
-        self.assertEqual(bitstring.count_bits_below(workbit - 2 , 8), 7)
+        self.assertEqual(bitstring.count_bits_below(workbit - 2, 8), 7)
         self.assertEqual(bitstring.count_bits_between(workbit - 2, 1, 5), 3)
         self.assertEqual(bitstring.show_bits(1 + 2, nbits=4), '0011')
         self.assertEqual(bitstring.show_bits(1 + 2 + 16), '0000000000010011')

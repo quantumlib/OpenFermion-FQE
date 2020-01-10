@@ -14,14 +14,19 @@
 
 """ fci_graph unit tests
 """
+#pylint: disable=protected-access
 
 import unittest
 
 import numpy
+from numpy import linalg
 
 from openfermion import FermionOperator
 
-from fqe.util import rand_wfn
+from fqe import wavefunction
+from fqe.hamiltonians import general_hamiltonian, hamiltonian_utils
+from fqe.fqe_ops import s2_op, sz_op, tr_op, number_op
+
 import fqe
 
 class FqeControlTest(unittest.TestCase):
@@ -32,7 +37,7 @@ class FqeControlTest(unittest.TestCase):
     def test_fqe_control_dot_vdot(self):
         """Find the dot product of two wavefunctions.
         """
-        wfn1 = fqe.get_spin_nonconserving_wavefunction(4, 8)
+        wfn1 = fqe.get_number_conserving_wavefunction(4, 8)
         wfn1.set_wfn(strategy='ones')
         wfn1.normalize()
         self.assertAlmostEqual(fqe.vdot(wfn1, wfn1), 1. + .0j)
@@ -42,44 +47,68 @@ class FqeControlTest(unittest.TestCase):
         self.assertAlmostEqual(fqe.vdot(wfn1, wfn1), 1. + .0j)
 
 
-    @unittest.SkipTest
-    def test_fqecontrol_interop(self):
-        """Set wavefunction data from input rather than an internal method
+    def test_initialize_new_wavefunctions(self):
+        """APply the generated unitary transformation from the fqe namespace
         """
-        test = rand_wfn(4, 4).astype(numpy.complex128)
-        test = numpy.reshape(test, (16))
-        wfn = fqe.from_cirq(test, thresh=0.00000001)
-        ref = fqe.to_cirq(wfn)
-        self.assertTrue(numpy.allclose(ref, test))
+        nele = 3
+        m_s = -1
+        norb = 4
+        wfn = fqe.get_wavefunction(nele, m_s, norb)
+        self.assertIsInstance(wfn, wavefunction.Wavefunction)
+        multiple = [
+            [4, 0, 4],
+            [4, 2, 4],
+            [3, -3, 4],
+            [1, 1, 4]
+        ]
+        wfns = fqe.get_wavefunction_multiple(multiple)
+        for wfn in wfns:
+            with self.subTest():
+                self.assertIsInstance(wfn, wavefunction.Wavefunction)
 
 
-    @unittest.SkipTest
-    def test_hamiltonian_two_body(self):
-        """Make sure that the Hamiltonian can be initialized
+    def test_apply_generated_unitary(self):
+        """APply the generated unitary transformation from the fqe namespace
         """
-        symmh = [[[1, 2], 1.0, False]]
-        symmg = [[[1, 2, 3, 4], 1.0, False]]
-        ham = fqe.get_two_body_hamiltonian(0.0,
-                                           numpy.zeros((2, 2),
-                                                       dtype=numpy.complex128),
-                                           numpy.ones((2, 2, 2, 2),
-                                                      dtype=numpy.complex128),
-                                           0.0, symmh, symmg)
-        self.assertEqual(ham.identity(), 'General')
-        ham.mu_c = 1.0
-        self.assertEqual(ham.mu_c, 1.0)
-        self.assertTrue(numpy.allclose(ham.h1e,
-                                       numpy.zeros((2, 2),
-                                                   dtype=numpy.complex128)))
-        ham.mu_c = -1.0
-        self.assertEqual(ham.mu_c, -1.0)
-        self.assertTrue(numpy.allclose(ham.h_mu,
-                                       numpy.identity(2,
-                                                      dtype=numpy.complex128)))
-        self.assertTrue(numpy.allclose(ham.g2e,
-                                       numpy.ones((2, 2, 2, 2),
-                                                  dtype=numpy.complex128)))
+        norb = 4
+        nele = 3
+        time = 0.001
+        ops = FermionOperator('1^ 3^ 5 0', 2.0 - 2.j) + FermionOperator('0^ 5^ 3 1', 2.0 + 2.j)
+
+        wfn = fqe.get_number_conserving_wavefunction(nele, norb)
+        wfn.set_wfn(strategy='random')
+        wfn.normalize()
+
+        reference = fqe.apply_generated_unitary(wfn, time, 'taylor', ops)
+
+        h1e = numpy.zeros((2*norb, 2*norb), dtype=numpy.complex128)
+        h2e = hamiltonian_utils.nbody_matrix(ops, norb)
+        h2e = hamiltonian_utils.antisymm_two_body(h2e)
+        hamil = general_hamiltonian.General(tuple([h1e, h2e]))
+        compute = wfn.apply_generated_unitary(time, 'taylor', hamil)
+
+        for key in wfn.sectors():
+            with self.subTest(key=key):
+                diff = reference._civec[key].coeff - compute._civec[key].coeff
+                err = linalg.norm(diff)
+                self.assertTrue(err < 1.e-8)
 
 
-if __name__ == '__main__':
-    unittest.main()
+    def test_cirq_interop(self):
+        """Check the transition from a line quibit and back.
+        """
+        work = numpy.random.rand(16).astype(numpy.complex128)
+        norm = numpy.sqrt(numpy.vdot(work, work))
+        numpy.divide(work, norm, out=work)
+        wfn = fqe.from_cirq(work, thresh=1.0e-7)
+        test = fqe.to_cirq(wfn)
+        self.assertTrue(numpy.allclose(test, work))
+
+
+    def test_operator_constructors(self):
+        """Creation of FQE-operators
+        """
+        self.assertIsInstance(fqe.get_s2_operator(), s2_op.S2Operator)
+        self.assertIsInstance(fqe.get_sz_operator(), sz_op.SzOperator)
+        self.assertIsInstance(fqe.get_time_reversal_operator(), tr_op.TimeReversalOp)
+        self.assertIsInstance(fqe.get_number_operator(), number_op.NumberOperator)

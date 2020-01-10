@@ -14,21 +14,23 @@
 
 """Utilities which specifically require import from Cirq
 """
+#Type checking splits the imports
+#pylint: disable=ungrouped-imports
 
-from typing import TYPE_CHECKING, Union
+from typing import List, TYPE_CHECKING
 
 import numpy
 
-from cirq import X, Y, Z, Moment, Circuit, Simulator
+from cirq import X, Y, Z, Moment, Circuit, Simulator, LineQubit
+from openfermion import QubitOperator
 
 from fqe.util import init_qubit_vacuum
 
 if TYPE_CHECKING:
-    from cirq import LineQubit
-    from openfermion import QubitOperator
+    from cirq.ops.pauli_string import SingleQubitPauliStringGateOperation
 
 
-def qubit_ops_to_circuit(ops: 'QubitOperator', qpu: 'LineQubit') -> 'Circuit':
+def qubit_ops_to_circuit(ops: 'QubitOperator', qpu: List[LineQubit]) -> 'Circuit':
     """Generate a circuit that can be run on a Cirq simulator from the ops
     passed
 
@@ -50,7 +52,8 @@ def qubit_ops_to_circuit(ops: 'QubitOperator', qpu: 'LineQubit') -> 'Circuit':
     return Circuit(moment)
 
 
-def qubit_op_to_gate(operation: 'QubitOperator', qubit) -> Union['X', 'Y', 'Z']:
+def qubit_op_to_gate(operation: 'QubitOperator',
+                     qubit) -> 'SingleQubitPauliStringGateOperation':
     """Convert a qubit operation into a gate operations that can be digested
     by a Cirq simulator.
 
@@ -70,24 +73,27 @@ def qubit_op_to_gate(operation: 'QubitOperator', qubit) -> Union['X', 'Y', 'Z']:
     raise ValueError('No gate identified in qubit_op_to_gate')
 
 
-def qubit_projection(ops: 'QubitOperator',
-                     qubits: 'LineQubit',
+def qubit_projection(ops: QubitOperator,
+                     qubits: List[LineQubit],
                      state: numpy.ndarray,
                      coeff: numpy.ndarray) -> numpy.ndarray:
     """Find the projection of each set of qubit operators on a
     wavefunction.
 
     Args:
-        ops (qubit gates) - A sum of qubit operations which represent the
+        ops (qubit gates) - A sum of qubit operations which represent the \
             full ci wavefunction in the qubit basis.
+
         qubits (Qid) - The qubits of a quantum computer.
-        state (numpy.array(dtype=numpy.complex64)) - a cirq wavefunction that
+
+        state (numpy.array(dtype=numpy.complex64)) - a cirq wavefunction that \
             is being projected
-        coeff (numpy.array(dtype=numpy.complex64)) - a coeffcient array that
+
+        coeff (numpy.array(dtype=numpy.complex64)) - a coeffcient array that \
             will store the result of the projection.
 
     Returns:
-        coeff (numpy.array(dtype=numpy.complex64)) - the coefficients modified
+        coeff (numpy.array(dtype=numpy.complex64)) - the coefficients modified \
             in place.
     """
     qpu = Simulator(dtype=numpy.complex128)
@@ -100,17 +106,18 @@ def qubit_projection(ops: 'QubitOperator',
 
 
 def qubit_wavefunction_from_vacuum(ops: 'QubitOperator',
-                                   qubits: 'LineQubit') -> numpy.ndarray:
+                                   qubits: List['LineQubit']) -> numpy.ndarray:
     """Generate a cirq wavefunction from the vacuum given qubit operators and a
     set of qubits that this wavefunction will be represented on
 
     Args:
-        ops (QubitOperators) - a sum of qubit operations with coefficients
+        ops (QubitOperators) - a sum of qubit operations with coefficients \
             scheduling the creation of the qubit wavefunction
+
         qubits (Qid) - the qubits of the quantum computer
 
     Returns:
-        final_state (numpy.array(dtype=numpy.complex64)) - the fully projected
+        final_state (numpy.array(dtype=numpy.complex64)) - the fully projected \
             wavefunction in the cirq representation
     """
     nqubits = len(qubits)
@@ -123,6 +130,3 @@ def qubit_wavefunction_from_vacuum(ops: 'QubitOperator',
         result = qpu.simulate(circuit, qubit_order=qubits, initial_state=state)
         final_state += result.final_state*ops.terms[term]
     return final_state
-
-if __name__ == '__main__':
-    unittest.main()

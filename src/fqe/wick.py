@@ -11,66 +11,92 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
+"""Utilites for index reorganization using wick's theorm
+"""
+#
+# Regoranizing the indexes requires many loops and block leading to simple
+#   variables for the loops which do not need more verbose names
+#
+#pylint: disable=too-many-nested-blocks
+#pylint: disable=invalid-name
+#pylint: disable=too-many-nested-blocks
+
+from typing import List, Tuple, Optional
+import copy
 
 import numpy
-import fqe
-import copy
-from typing import List, Optional, Tuple
 
 
-def wick(target: str, data: List[numpy.ndarray], spinfree: bool = True):
+Mapping = Tuple[List[Tuple[str, str]], List[Tuple[str, bool, int]], float]
+
+
+def wick(target: str,
+         data: List[numpy.ndarray],
+         spinfree: Optional[bool] = True) -> numpy.ndarray:
     """
-    Original and target are written in a similar notation to OpenFermion operators.
+    Original and target are written in a similar notation to OpenFermion
+    operators.
+
     For example,
-        target = 'i^ l k j^' 
-    When spinfree is set to True, we assume that the indices are ordered 123.../123...
-    The data has to be a tuple of 1-, 2-, and n-particle RDMs when target
+
+    .. code-block::
+
+        target = 'i^ l k j^'
+
+    When spinfree is set to True, we assume that the indices are ordered \
+    123.../123...
+
+    The data has to be a tuple of 1-, 2-, and n-particle RDMs when target \
     correspond to n-body strings
+
+    Args:
+        target (string) - specifies the operator list
+
+        data (List[numpy.ndarray]) - a list of particle RDMs
+
+        spinfree (bool) - whether the RDMs are spinfree
+
+    Returns:
+        (numpy.ndarray) - RDM after performing Wick's theorem
     """
 
-    def process_string(inp: str) -> List[Tuple[str,bool,int]]:
-        """ input is the string. Returns a list of indices described by index label, dagger (or not), and spin numbers 
+    def process_string(inp: str) -> List[Tuple[str, bool, int]]:
+        """ input is the string. Returns a list of indices described by index
+        label, dagger (or not), and spin numbers
         """
         out = []
-        used = []
+        used: List[str] = []
         rawinp = inp.split()
-        if len(rawinp) % 2 == 1:
-            raise ValueError('unrecognized input in wick (odd number of operators found)')
+        assert len(rawinp) % 2 != 1
 
         nrank = len(rawinp) // 2
         for index in range(nrank*2):
             iop = rawinp[index]
             if not (len(iop) == 1 or (len(iop) == 2 and iop[1] == "^")):
                 raise ValueError('unrecognized input in wick')
-            if iop[0] in used:
-                raise ValueError('unrecognized input in wick (duplicated labels)')
+            assert iop[0] not in used
 
             dagger = len(iop) == 2 and iop[1] == "^"
-            ispin = 0 if not spinfree else index % nrank 
-            out.append((iop[0], dagger, ispin)) 
+            ispin = 0 if not spinfree else index % nrank
+            out.append((iop[0], dagger, ispin))
             used.append(iop[0])
         return out
 
     targ = process_string(target)
+
     assert len(targ) % 2 == 0
     rank = len(targ)//2
 
-    if len(data) < rank:
-        raise Exception("Problems in the input RDMs. Requested: " + str(len(targ)//2) \
-                         + " Provided: " + str(len(data))) 
+    assert len(data) >= rank
 
-    # deltas = List[Tuple[str,str]]
-    # operators = List[Tuple[str,bool,int]]
-    # we process and store in List[Tuple[List[Tuple[str,str]], List[Tuple[str,bool,int], float]
-
-    def process_one(current: List[Tuple[List[Tuple[int,int]], List[Tuple[str,bool,int]], float]]) -> List[Tuple[List[Tuple[int,int]], List[Tuple[str,bool,int]], float]]:
+    def process_one(current: List[Mapping]) -> Tuple[List[Mapping], bool]:
         out = []
-        processedany = False 
-        for (delta, ops, factor) in current:
+        processedany = False
+        for delta, ops, factor in current:
             processed = False
             alldaggered = True
             for i in range(len(ops)):
-                if ops[i][1] and not alldaggered: 
+                if ops[i][1] and not alldaggered:
                     # swap
                     newdelta = copy.deepcopy(delta)
                     newops = copy.deepcopy(ops)
@@ -86,14 +112,16 @@ def wick(target: str, data: List[numpy.ndarray], spinfree: bool = True):
                     newfactor = copy.deepcopy(factor)
                     if spinfree:
                         sourcespin = ops[i][2]
-                        targetspin = ops[i-1][2] 
+                        targetspin = ops[i-1][2]
                         if sourcespin == targetspin:
                             newfactor *= 2.0
                         else:
-                            for n in range(len(newops)):
-                                if newops[n][2] == sourcespin:
-                                    newops[n] = (newops[n][0], newops[n][1], targetspin)
-                    out.append((newdelta, newops, newfactor)) 
+                            for ind in range(len(newops)):
+                                if newops[ind][2] == sourcespin:
+                                    newops[ind] = (newops[ind][0],
+                                                   newops[ind][1],
+                                                   targetspin)
+                    out.append((newdelta, newops, newfactor))
                     processed = True
                     break
                 elif not ops[i][1]:
@@ -103,8 +131,8 @@ def wick(target: str, data: List[numpy.ndarray], spinfree: bool = True):
             else:
                 processedany = True
         return out, processedany
- 
-    current = [([], targ, 1.0)]
+
+    current: List[Mapping] = [([], targ, 1.0)]
     processed = True
     while processed:
         current, processed = process_one(current)
@@ -120,12 +148,14 @@ def wick(target: str, data: List[numpy.ndarray], spinfree: bool = True):
             while processed:
                 processed = False
                 for j in range(1, nterms):
-                    if cops[j-1][2] > cops[j][2]: 
+                    if cops[j-1][2] > cops[j][2]:
                         cops[j-1], cops[j] = cops[j], cops[j-1]
                         factor *= -1.0
                         processed = True
-                    if cops[j-1+nterms][2] > cops[j+nterms][2]: 
-                        cops[j-1+nterms], cops[j+nterms] = cops[j+nterms], cops[j-1+nterms]
+                    if cops[j-1+nterms][2] > cops[j+nterms][2]:
+                        cops[j-1+nterms], cops[j+nterms] = \
+                            cops[j+nterms], cops[j-1+nterms]
+
                         factor *= -1.0
                         processed = True
             current[i] = (current[i][0], cops, factor)
@@ -136,24 +166,47 @@ def wick(target: str, data: List[numpy.ndarray], spinfree: bool = True):
     indices = {}
     for i in range(len(targ)):
         indices[targ[i][0]] = i
+
     for term in current:
         assert len(term[1]) % 2 == 0
         irank = len(term[1])//2
         sources = []
-        for it in term[1]:
-            sources.append(indices[it[0]])
+        for i_t in term[1]:
+            sources.append(indices[i_t[0]])
         delta = []
-        for it in term[0]:
-            delta.append((indices[it[0]], indices[it[1]]))
-        wickfill(out, data[irank-1] if irank > 0 else None, sources, term[2], delta)
+
+        for j_t in term[0]:
+            delta.append((indices[j_t[0]], indices[j_t[1]]))
+
+        if irank > 0:
+            wickfill(out, data[irank-1], sources, term[2], delta)
+        else:
+            wickfill(out, None, sources, term[2], delta)
 
     return out
 
 
-def wickfill(target: numpy.ndarray, source: numpy.ndarray, indices: List[int], factor: float, delta: List[Tuple[int,int]]):
+def wickfill(target: numpy.ndarray,
+             source: numpy.ndarray,
+             indices: List[int],
+             factor: float,
+             delta: List[Tuple[int, int]]) -> None:
     """
-    This function is an internal utility that fills in custom RDMs using particle RDMs. The result of Wick's theorem is passed as
-    lists (indices and delta) and a factor associated with it. The results are stored in target.
+    This function is an internal utility that fills in custom RDMs using
+    particle RDMs. The result of Wick's theorem is passed as lists (indices
+    and delta) and a factor associated with it. The results are stored in
+    target.
+
+    Args:
+        target (numpy.ndarray) - output array that stores reordered RDMs
+
+        source (numpy.ndarray) - input array that stores one of the particle RDMs
+
+        indices (List[int]) - index mapping
+
+        factor (float) - factor associated with this contribution
+
+        delta (List[Tuple[int, int]]) - Kronecker delta's due to Wick's theorem
     """
     norb = target.shape[0]
     srank = len(source.shape)//2 if source is not None else 0
@@ -164,220 +217,267 @@ def wickfill(target: numpy.ndarray, source: numpy.ndarray, indices: List[int], f
         for i in range(norb):
             target[i, i] += factor
     elif srank == 1 and trank == 1:
-        assert len(delta) == 0
-        m = {}
+        assert not delta
+        mat = {}
         for i in range(norb):
-            m[0] = i
+            mat[0] = i
             for j in range(norb):
-                m[1] = j
-                target[i, j] += factor * source[m[indices[0]], m[indices[1]]]
+                mat[1] = j
+                target[i, j] += factor * source[mat[indices[0]], mat[indices[1]]]
     elif srank == 0 and trank == 2:
         assert len(delta) == 2
-        m = {}
+        mat = {}
         for i in range(norb):
-            m[0] = i
+            mat[0] = i
             for j in range(norb):
-                m[1] = j
+                mat[1] = j
                 for k in range(norb):
-                    m[2] = k
+                    mat[2] = k
                     for l in range(norb):
-                        m[3] = l
-                        if m[delta[0][0]] == m[delta[0][1]] and m[delta[1][0]] == m[delta[1][1]]:
+                        mat[3] = l
+                        if mat[delta[0][0]] == mat[delta[0][1]] and \
+                            mat[delta[1][0]] == mat[delta[1][1]]:
                             target[i, j, k, l] += factor
     elif srank == 1 and trank == 2:
         assert len(delta) == 1
-        m = {}
+        mat = {}
         for i in range(norb):
-            m[0] = i
+            mat[0] = i
             for j in range(norb):
-                m[1] = j
+                mat[1] = j
                 for k in range(norb):
-                    m[2] = k
+                    mat[2] = k
                     for l in range(norb):
-                        m[3] = l
-                        if m[delta[0][0]] == m[delta[0][1]]: 
-                            target[i, j, k, l] += factor * source[m[indices[0]], m[indices[1]]]
+                        mat[3] = l
+                        if mat[delta[0][0]] == mat[delta[0][1]]:
+                            target[i, j, k, l] += \
+                                factor * source[mat[indices[0]], mat[indices[1]]]
     elif srank == 2 and trank == 2:
-        assert len(delta) == 0
-        m = {}
+        assert not delta
+        mat = {}
         for i in range(norb):
-            m[0] = i
+            mat[0] = i
             for j in range(norb):
-                m[1] = j
+                mat[1] = j
                 for k in range(norb):
-                    m[2] = k
+                    mat[2] = k
                     for l in range(norb):
-                        m[3] = l
-                        target[i, j, k, l] += factor * source[m[indices[0]], m[indices[1]], m[indices[2]], m[indices[3]]]
+                        mat[3] = l
+                        target[i, j, k, l] += \
+                            factor * source[mat[indices[0]],
+                                            mat[indices[1]],
+                                            mat[indices[2]],
+                                            mat[indices[3]]]
     elif srank == 0 and trank == 3:
         assert len(delta) == 3
-        m = {}
+        mat = {}
         for i in range(norb):
-            m[0] = i
+            mat[0] = i
             for j in range(norb):
-                m[1] = j
+                mat[1] = j
                 for k in range(norb):
-                    m[2] = k
+                    mat[2] = k
                     for l in range(norb):
-                        m[3] = l
+                        mat[3] = l
                         for o in range(norb):
-                            m[4] = o
+                            mat[4] = o
                             for p in range(norb):
-                                m[5] = p
-                                if m[delta[0][0]] == m[delta[0][1]] and m[delta[1][0]] == m[delta[1][1]] and m[delta[2][0]] == m[delta[2][1]]:
+                                mat[5] = p
+                                if mat[delta[0][0]] == mat[delta[0][1]] and \
+                                    mat[delta[1][0]] == mat[delta[1][1]] and \
+                                    mat[delta[2][0]] == mat[delta[2][1]]:
                                     target[i, j, k, l, o, p] += factor
     elif srank == 1 and trank == 3:
         assert len(delta) == 2
-        m = {}
+        mat = {}
         for i in range(norb):
-            m[0] = i
+            mat[0] = i
             for j in range(norb):
-                m[1] = j
+                mat[1] = j
                 for k in range(norb):
-                    m[2] = k
+                    mat[2] = k
                     for l in range(norb):
-                        m[3] = l
+                        mat[3] = l
                         for o in range(norb):
-                            m[4] = o
+                            mat[4] = o
                             for p in range(norb):
-                                m[5] = p
-                                if m[delta[0][0]] == m[delta[0][1]] and m[delta[1][0]] == m[delta[1][1]]:
-                                    target[i, j, k, l, o, p] += factor * source[m[indices[0]], m[indices[1]]]
+                                mat[5] = p
+                                if mat[delta[0][0]] == mat[delta[0][1]] and \
+                                    mat[delta[1][0]] == mat[delta[1][1]]:
+                                    target[i, j, k, l, o, p] += \
+                                        factor * source[mat[indices[0]],
+                                                        mat[indices[1]]]
     elif srank == 2 and trank == 3:
         assert len(delta) == 1
-        m = {}
+        mat = {}
         for i in range(norb):
-            m[0] = i
+            mat[0] = i
             for j in range(norb):
-                m[1] = j
+                mat[1] = j
                 for k in range(norb):
-                    m[2] = k
+                    mat[2] = k
                     for l in range(norb):
-                        m[3] = l
+                        mat[3] = l
                         for o in range(norb):
-                            m[4] = o
+                            mat[4] = o
                             for p in range(norb):
-                                m[5] = p
-                                if m[delta[0][0]] == m[delta[0][1]]:
-                                    target[i, j, k, l, o, p] += factor * source[m[indices[0]], m[indices[1]], m[indices[2]], m[indices[3]]]
+                                mat[5] = p
+                                if mat[delta[0][0]] == mat[delta[0][1]]:
+                                    target[i, j, k, l, o, p] += \
+                                        factor * source[mat[indices[0]],
+                                                        mat[indices[1]],
+                                                        mat[indices[2]],
+                                                        mat[indices[3]]]
     elif srank == 3 and trank == 3:
-        assert len(delta) == 0
-        m = {}
+        assert not delta
+        mat = {}
         for i in range(norb):
-            m[0] = i
+            mat[0] = i
             for j in range(norb):
-                m[1] = j
+                mat[1] = j
                 for k in range(norb):
-                    m[2] = k
+                    mat[2] = k
                     for l in range(norb):
-                        m[3] = l
+                        mat[3] = l
                         for o in range(norb):
-                            m[4] = o
+                            mat[4] = o
                             for p in range(norb):
-                                m[5] = p
-                                target[i, j, k, l, o, p] += factor * source[m[indices[0]], m[indices[1]], m[indices[2]], m[indices[3]], m[indices[4]], m[indices[5]]]
+                                mat[5] = p
+                                target[i, j, k, l, o, p] += \
+                                    factor * source[mat[indices[0]],
+                                                    mat[indices[1]],
+                                                    mat[indices[2]],
+                                                    mat[indices[3]],
+                                                    mat[indices[4]],
+                                                    mat[indices[5]]]
     elif srank == 0 and trank == 4:
         assert len(delta) == 4
-        m = {}
+        mat = {}
         for i in range(norb):
-            m[0] = i
+            mat[0] = i
             for j in range(norb):
-                m[1] = j
+                mat[1] = j
                 for k in range(norb):
-                    m[2] = k
+                    mat[2] = k
                     for l in range(norb):
-                        m[3] = l
+                        mat[3] = l
                         for o in range(norb):
-                            m[4] = o
+                            mat[4] = o
                             for p in range(norb):
-                                m[5] = p
+                                mat[5] = p
                                 for q in range(norb):
-                                    m[6] = q
+                                    mat[6] = q
                                     for r in range(norb):
-                                        m[7] = r
-                                        if m[delta[0][0]] == m[delta[0][1]] and m[delta[1][0]] == m[delta[1][1]] and m[delta[2][0]] == m[delta[2][1]] and m[delta[3][0]] == m[delta[3][1]]:
-                                            target[i, j, k, l, o, p, q, r] += factor
+                                        mat[7] = r
+                                        if mat[delta[0][0]] == mat[delta[0][1]] \
+                                        and mat[delta[1][0]] == mat[delta[1][1]] \
+                                        and mat[delta[2][0]] == mat[delta[2][1]] \
+                                        and mat[delta[3][0]] == mat[delta[3][1]]:
+                                            target[i, j, k, l, o, p, q, r] += \
+                                                factor
     elif srank == 1 and trank == 4:
         assert len(delta) == 3
-        m = {}
+        mat = {}
         for i in range(norb):
-            m[0] = i
+            mat[0] = i
             for j in range(norb):
-                m[1] = j
+                mat[1] = j
                 for k in range(norb):
-                    m[2] = k
+                    mat[2] = k
                     for l in range(norb):
-                        m[3] = l
+                        mat[3] = l
                         for o in range(norb):
-                            m[4] = o
+                            mat[4] = o
                             for p in range(norb):
-                                m[5] = p
+                                mat[5] = p
                                 for q in range(norb):
-                                    m[6] = q
+                                    mat[6] = q
                                     for r in range(norb):
-                                        m[7] = r
-                                        if m[delta[0][0]] == m[delta[0][1]] and m[delta[1][0]] == m[delta[1][1]] and m[delta[2][0]] == m[delta[2][1]]:
-                                            target[i, j, k, l, o, p, q, r] += factor * source[m[indices[0]], m[indices[1]]]
+                                        mat[7] = r
+                                        if mat[delta[0][0]] == mat[delta[0][1]] \
+                                        and mat[delta[1][0]] == mat[delta[1][1]] \
+                                        and mat[delta[2][0]] == mat[delta[2][1]]:
+                                            target[i, j, k, l, o, p, q, r] += \
+                                                factor * source[mat[indices[0]],
+                                                                mat[indices[1]]]
     elif srank == 2 and trank == 4:
         assert len(delta) == 2
-        m = {}
+        mat = {}
         for i in range(norb):
-            m[0] = i
+            mat[0] = i
             for j in range(norb):
-                m[1] = j
+                mat[1] = j
                 for k in range(norb):
-                    m[2] = k
+                    mat[2] = k
                     for l in range(norb):
-                        m[3] = l
+                        mat[3] = l
                         for o in range(norb):
-                            m[4] = o
+                            mat[4] = o
                             for p in range(norb):
-                                m[5] = p
+                                mat[5] = p
                                 for q in range(norb):
-                                    m[6] = q
+                                    mat[6] = q
                                     for r in range(norb):
-                                        m[7] = r
-                                        if m[delta[0][0]] == m[delta[0][1]] and m[delta[1][0]] == m[delta[1][1]]:
-                                            target[i, j, k, l, o, p, q, r] += factor * source[m[indices[0]], m[indices[1]], m[indices[2]], m[indices[3]]]
+                                        mat[7] = r
+                                        if mat[delta[0][0]] == mat[delta[0][1]] \
+                                        and mat[delta[1][0]] == mat[delta[1][1]]:
+                                            target[i, j, k, l, o, p, q, r] += \
+                                                factor * source[mat[indices[0]],
+                                                                mat[indices[1]],
+                                                                mat[indices[2]],
+                                                                mat[indices[3]]]
     elif srank == 3 and trank == 4:
         assert len(delta) == 1
-        m = {}
+        mat = {}
         for i in range(norb):
-            m[0] = i
+            mat[0] = i
             for j in range(norb):
-                m[1] = j
+                mat[1] = j
                 for k in range(norb):
-                    m[2] = k
+                    mat[2] = k
                     for l in range(norb):
-                        m[3] = l
+                        mat[3] = l
                         for o in range(norb):
-                            m[4] = o
+                            mat[4] = o
                             for p in range(norb):
-                                m[5] = p
+                                mat[5] = p
                                 for q in range(norb):
-                                    m[6] = q
+                                    mat[6] = q
                                     for r in range(norb):
-                                        m[7] = r
-                                        if m[delta[0][0]] == m[delta[0][1]]:
-                                            target[i, j, k, l, o, p, q, r] += factor * source[m[indices[0]], m[indices[1]], m[indices[2]], m[indices[3]], m[indices[4]], m[indices[5]]]
+                                        mat[7] = r
+                                        if mat[delta[0][0]] == mat[delta[0][1]]:
+                                            target[i, j, k, l, o, p, q, r] += \
+                                                factor * source[mat[indices[0]],
+                                                                mat[indices[1]],
+                                                                mat[indices[2]],
+                                                                mat[indices[3]],
+                                                                mat[indices[4]],
+                                                                mat[indices[5]]]
     elif srank == 4 and trank == 4:
-        assert len(delta) == 0
-        m = {}
+        assert not delta
+        mat = {}
         for i in range(norb):
-            m[0] = i
+            mat[0] = i
             for j in range(norb):
-                m[1] = j
+                mat[1] = j
                 for k in range(norb):
-                    m[2] = k
+                    mat[2] = k
                     for l in range(norb):
-                        m[3] = l
+                        mat[3] = l
                         for o in range(norb):
-                            m[4] = o
+                            mat[4] = o
                             for p in range(norb):
-                                m[5] = p
+                                mat[5] = p
                                 for q in range(norb):
-                                    m[6] = q
+                                    mat[6] = q
                                     for r in range(norb):
-                                        m[7] = r
-                                        target[i, j, k, l, o, p, q, r] += factor * source[m[indices[0]], m[indices[1]], m[indices[2]], m[indices[3]],
-                                                                                          m[indices[4]], m[indices[5]], m[indices[6]], m[indices[7]]]
+                                        mat[7] = r
+                                        target[i, j, k, l, o, p, q, r] += \
+                                            factor * source[mat[indices[0]],
+                                                            mat[indices[1]],
+                                                            mat[indices[2]],
+                                                            mat[indices[3]],
+                                                            mat[indices[4]],
+                                                            mat[indices[5]],
+                                                            mat[indices[6]],
+                                                            mat[indices[7]]]

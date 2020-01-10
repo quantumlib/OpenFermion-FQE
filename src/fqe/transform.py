@@ -16,7 +16,7 @@
 that provide interoperability.
 """
 
-from typing import Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 from openfermion import FermionOperator
 
@@ -38,20 +38,26 @@ if TYPE_CHECKING:
 def cirq_to_fqe_single(cirq_wfn: numpy.ndarray,
                        nele: int,
                        m_s: int,
-                       qubin: Optional['LineQubit']) -> FermionOperator:
+                       qubin: int) -> FermionOperator:
     """Given a wavefunction from cirq, create a FermionOperator string which
     will create the same state in the basis of Fermionic modes such that
 
-    |Psi> = (qubit operators)|0 0 ...> = (Fermion Operators)|-> |phi> =
-    = sum_{i}C_{i}ops_{i}|->
+    .. math::
+
+        |\\Psi\\rangle &= \\mathrm{(qubit\\ operators)}|0 0\\cdots\\rangle
+        = \\mathrm{(Fermion\\ Operators)}|\\mathrm{vac}\\rangle \\\\
+        |\\Psi\\rangle &= \\sum_iC_i \\mathrm{ops}_{i}|\\mathrm{vac}>
 
     where the c_{i} are the projection of the wavefunction onto a FCI space.
 
     Args:
-        cirq-wfn (numpy.array(ndim=1, numpy.dtype=complex64)) - coeffcients in
+        cirq_wfn (numpy.array(ndim=1, numpy.dtype=complex64)) - coeffcients in \
             the qubit basis.
+
         nele (int) - the number of electrons
+
         m_s (int) - the s_z spin angular momentum
+
         qubiin (LineQUibit) - LineQubits to process the representation
 
     Returns:
@@ -59,6 +65,7 @@ def cirq_to_fqe_single(cirq_wfn: numpy.ndarray,
     """
     if nele == 0:
         return FermionOperator('', cirq_wfn[0]*1.)
+
     if qubin:
         nqubits = qubin
     else:
@@ -85,9 +92,10 @@ def from_cirq(wfn: 'Wavefunction', state: numpy.ndarray) -> None:
     wavefunction and set the coefficients to the proper value.
 
     Args:
-        wfn (wavefunction.Wavefunction) - an Fqe Wavefunction to fill from the
+        wfn (wavefunction.Wavefunction) - an Fqe Wavefunction to fill from the \
             cirq wavefunction
-        state (numpy.array(numpy.dtype=complex64)) - a cirq state to convert
+
+        state (numpy.array(numpy.dtype=complex64)) - a cirq state to convert \
             into an Fqe wavefunction
 
     Returns:
@@ -99,5 +107,4 @@ def from_cirq(wfn: 'Wavefunction', state: numpy.ndarray) -> None:
         fqe_wfn = cirq_to_fqe_single(usevec, key[0], key[1], nqubits)
         wfndata = fermion_opstring_to_bitstring(fqe_wfn)
         for val in wfndata:
-            print(val)
             wfn[(val[0], val[1])] = val[2]

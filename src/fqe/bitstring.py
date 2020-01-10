@@ -11,7 +11,6 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
-
 """Bitsrting manipulation routines are wrapped up here to give context to
 frequently used operations.
 """
@@ -26,9 +25,10 @@ def check_conserved_bits(str0: int, conserved: int) -> bool:
     set.
 
     Args:
-        str0 (bitstring) - a bitstring representing an occupation state of a
-            onfiguration
-        conserved (bitstring) - a bitstring with bits set that should also be
+        str0 (bitstring) - a bitstring representing an occupation state of a \
+            configuration
+
+        conserved (bitstring) - a bitstring with bits set that should also be \
             set in str0
 
     Returns:
@@ -46,6 +46,9 @@ def gbit_index(str0: int) -> Generator[int, None, None]:
 
     Returns:
         (int) - integer corresponding to the index of a set bit in str0
+
+        .. code-block:: text
+
             starting at 0
 
             bitstring ->  100101
@@ -72,20 +75,10 @@ def integer_index(str0: int) -> List[int]:
          str0 (bistring) - orbital occupation representation
 
     Returns:
-        list[int] - a list of integers indicating the index of each occupied
+        list[int] - a list of integers indicating the index of each occupied \
             orbital
     """
     return list(gbit_index(str0))
-
-
-def bitstring_generator(str0: int) -> int:
-    """Generate the bitstrings
-    """
-    w = str0
-    while True:
-        yield w
-        v = (w | (w-1)) + 1
-        w = v | ((((v & -v) // (w & -w)) >> 1)-1)
 
 
 def lexicographic_bitstring_generator(str0: int, norb: int) -> List[int]:
@@ -95,11 +88,12 @@ def lexicographic_bitstring_generator(str0: int, norb: int) -> List[int]:
 
     Args:
          str0 (bitstring) - integer representing bitstring ground state
-         norb (int) - number of spatial orbitals to distribute the
+
+         norb (int) - number of spatial orbitals to distribute the \
          particles into
 
     Returns:
-        list[bitstrings] - a list of bitstrings representing the occupation
+        list[bitstrings] - a list of bitstrings representing the occupation \
             states
     """
     out = []
@@ -116,6 +110,7 @@ def count_bits(string: int, bitval: str = '1') -> int:
 
     Args:
         string (bitstring) - a bitstring to count the bits of
+
         bitval (string) - include the option to count unset bits
 
     Returns:
@@ -126,36 +121,68 @@ def count_bits(string: int, bitval: str = '1') -> int:
 
 def get_bit(string: int, pos: int) -> int:
     """Return a bit located at the position
+
+    Args:
+        string (int) - bit string
+
+        pos (int) - position in the bit string
     """
-    return string & (2**pos) 
+    return string & (2**pos)
 
 
 def set_bit(string: int, pos: int) -> int:
     """Return bitstring with the bit at the position set
+
+    Args:
+        string (int) - bit string
+
+        pos (int) - position in the bit string
     """
-    return string | (2**pos) 
+    return string | (2**pos)
 
 
 def unset_bit(string: int, pos: int) -> int:
     """Return bitstring with the bit at the position unset
+
+    Args:
+        string (int) - bit string
+
+        pos (int) - position in the bit string
     """
     return string & ~(2**pos)
 
 
 def count_bits_above(string: int, pos: int) -> int:
     """Return the number of set bits higher than the position
+
+    Args:
+        string (int) - bit string
+
+        pos (int) - position in the bit string
     """
     return count_bits(string & ~(2**(pos+1)-1))
 
 
 def count_bits_below(string: int, pos: int) -> int:
     """Return the number of set bits lower than the position
+
+    Args:
+        string (int) - bit string
+
+        pos (int) - position in the bit string
     """
     return count_bits(string & (2**pos-1))
 
 
 def count_bits_between(string: int, pos1: int, pos2: int) -> int:
     """Count the number of bits between position1 and position2
+
+    Args:
+        string (int) - bit string
+
+        pos1 (int) - one of the positions in the bit string
+
+        pos2 (int) - the other position in the bit string
     """
     mask = (2**max(pos1, pos2)-1) ^ (2**(min(pos1, pos2)+1)-1)
     return count_bits(string & mask)
@@ -163,5 +190,10 @@ def count_bits_between(string: int, pos1: int, pos2: int) -> int:
 
 def show_bits(string: int, nbits: int = 16) -> str:
     """Return a string showing the occupations of the bitstring
+
+    Args:
+        string (int) - bit string
+
+        nbits (int) - the number of bits to show
     """
     return str(bin(string)[2:].zfill(nbits))

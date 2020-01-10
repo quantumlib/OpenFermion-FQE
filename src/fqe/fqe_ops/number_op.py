@@ -12,15 +12,34 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-from fqe import vdot
+"""Implements the number operator
+"""
+
+import copy
+
+from typing import TYPE_CHECKING
+from fqe.util import vdot
 from fqe.fqe_ops import fqe_operator
+
+if TYPE_CHECKING:
+    from fqe.wavefunction import Wavefunction
 
 
 class NumberOperator(fqe_operator.FqeOperator):
+    """This class is a specialization of the FqeOperator for the
+       number operator
+    """
 
+    def contract(self,
+                 brastate: 'Wavefunction',
+                 ketstate: 'Wavefunction') -> complex:
+        """Given two wavefunctions, generate the expectation value of the
+        operator according to its representation.
 
-    def contract(self, brastate, ketstate):
-        """
+        Args:
+            brastate (Wavefunction) - wave function on the bra side
+
+            ketstate (Wavefunction) - wave function on the ket side
         """
         out = copy.deepcopy(ketstate)
         for _, sector in out._civec.items():
@@ -29,12 +48,12 @@ class NumberOperator(fqe_operator.FqeOperator):
 
 
     def representation(self):
-        """
+        """Returns the representation of the number operator, which is 'N'
         """
         return 'N'
 
 
     def rank(self):
-        """
+        """Returns the rank of the number operator, which is 2
         """
         return 2

@@ -15,96 +15,178 @@
 """ FQE control is a wrapper to allow for convenient or more readable access
 to the emulator.
 """
+#ungrouped imports are for type hinting
+#pylint: disable=ungrouped-imports
 
-from typing import Any, Dict, List, Tuple, Type, TYPE_CHECKING, Union
+from typing import List, Optional, TYPE_CHECKING, Union, Tuple
 
-from openfermion import PolynomialTensor
-from openfermion.transforms import jordan_wigner
-
-import importlib.abc
 import cirq
 import numpy
+
+from openfermion.transforms import jordan_wigner
+from openfermion import FermionOperator
+
 from fqe.util import qubit_particle_number_index_spin
+from fqe import util
 from fqe.cirq_utils import qubit_wavefunction_from_vacuum
 from fqe import transform
-from fqe.wavefunction import Wavefunction
-from fqe.openfermion_utils import split_openfermion_tensor
-from fqe.openfermion_utils import generate_one_particle_matrix
-from fqe.openfermion_utils import generate_two_particle_matrix
+from fqe import wavefunction
 from fqe.openfermion_utils import fqe_to_fermion_operator
+from fqe.fqe_ops import s2_op, sz_op, tr_op, number_op
+from fqe.fqe_decorators import build_hamiltonian
+from fqe.hamiltonians import diagonal_coulomb
+from fqe.hamiltonians import diagonal_hamiltonian
 from fqe.hamiltonians import general_hamiltonian
+from fqe.hamiltonians import gso_hamiltonian
+from fqe.hamiltonians import restricted_hamiltonian
+from fqe.hamiltonians import sparse_hamiltonian
+from fqe.hamiltonians import sso_hamiltonian
 
 if TYPE_CHECKING:
-    from openfermion import FermionOperator
     from fqe.hamiltonians import hamiltonian
 
 
-def apply_generated_unitary(ops: 'FermionOperator',
-                            wfn: 'Wavefunction',
+def apply_generated_unitary(wfn: 'wavefunction.Wavefunction',
+                            time: float,
                             algo: str,
-                            accuracy: float = 1.e-7) -> 'Wavefunction':
+                            hamil: Union['hamiltonian.Hamiltonian', 'FermionOperator'],
+                            accuracy: float = 0.0,
+                            expansion: int = 30,
+                            spec_lim: Optional[List[float]] = None) -> 'wavefunction.Wavefunction':
     """APply the algebraic operators to the wavefunction with a specfiic
     algorithm and to the requested accuracy.
 
     Args:
-        ops (FermionOperator) - a hermetian operator to apply to the
+        ops (FermionOperator) - a hermetian operator to apply to the \
             wavefunction
+
         wfn (fqe.wavefunction) - the wavefunction to evolve
+
         algo (string) - a string dictating the method to use
+
         accuracy (double) - a desired accuracy to evolve the system to
 
     Retuns:
         wfn (fqe.wavefunction) - the evolved wavefunction
     """
-    return wfn.apply_generated_unitary(ops, algo, accuracy)
+    return wfn.apply_generated_unitary(time,
+                                       algo,
+                                       hamil,
+                                       accuracy=accuracy,
+                                       expansion=expansion,
+                                       spec_lim=spec_lim)
 
 
-def get_spin_nonconserving_wavefunction(nele: int, norb: int) -> 'Wavefunction':
-    """Build a wavefunction with definite particle number and spin.
+def get_spin_conserving_wavefunction(s_z: int,
+                                     norb: int) -> 'wavefunction.Wavefunction':
+    """Return a wavefunction which has s_z conserved
+
+    Args:
+        s_z (int) - the value of :math:`S_z`
+
+        norb (int) - the number of orbitals in the system
+
+    Returns:
+        (Wavefunction) - wave function initialized to zero
+    """
+    param = []
+    if s_z >= 0:
+        max_ele = norb + 1
+        min_ele = s_z
+    if s_z < 0:
+        max_ele = norb + s_z + 1
+        min_ele = 0
+
+    for nalpha in range(min_ele, max_ele):
+        param.append([2*nalpha - s_z, s_z, norb])
+
+    return wavefunction.Wavefunction(param, broken=['number'])
+
+
+def get_number_conserving_wavefunction(nele: int,
+                                       norb: int) -> 'wavefunction.Wavefunction':
+    """Build a wavefunction
 
     Args:
         nele (int) - the number of electrons in the system
+
         norb (int) - the number of orbitals
 
     Returns:
-        (wavefunction.Wavefunction) - a wavefunction object meeting the
+        (wavefunction.Wavefunction) - a wavefunction object meeting the \
             criteria laid out in the calling argument
     """
-    
     param = []
     maxb = min(norb, nele)
     minb = nele - maxb
     for nbeta in range(minb, maxb+1):
         m_s = nele - nbeta*2
         param.append([nele, m_s, norb])
-    return Wavefunction(param, broken=['spin'])
+    return wavefunction.Wavefunction(param, broken=['spin'])
 
 
-def get_wavefunction(nele: int, m_s: int, norb: int) -> 'Wavefunction':
+def Wavefunction(param: List[List[int]],
+                 broken: Optional[Union[List[str], str]] = None):
+    """Initialize a wavefunction through the fqe namespace
+
+    Args:
+        param (List[List[int]]) - parameters for the sectors
+
+        broken (Union[List[str], str]) - symmetry to be broken
+
+    Returns:
+        (wavefunction.Wavefunction) - a wavefunction object meeting the \
+            criteria laid out in the calling argument
+    """
+    return wavefunction.Wavefunction(param, broken=broken)
+
+
+def get_wavefunction(nele: int, m_s: int, norb: int) -> 'wavefunction.Wavefunction':
     """Build a wavefunction with definite particle number and spin.
 
     Args:
         nele (int) - the number of electrons in the system
+
         m_s (int) - the s_z spin projection of the system
+
         norb (int) - the number of spatial orbtials to used
 
     Returns:
-        (wavefunction.Wavefunction) - a wavefunction object meeting the
+        (wavefunction.Wavefunction) - a wavefunction object meeting the \
             criteria laid out in the calling argument
     """
     arg = [[nele, m_s, norb]]
-    return Wavefunction(param=arg)
+    return wavefunction.Wavefunction(param=arg)
 
 
-def get_wavefunction_multiple(param: List[List[int]]) -> List['Wavefunction']:
+def time_evolve(wfn: 'wavefunction.Wavefunction',
+                time: float,
+                hamil: Union['hamiltonian.Hamiltonian',
+                             'FermionOperator']) -> 'wavefunction.Wavefunction':
+    """Time-evolve a wavefunction with the specified Hamiltonian.
+
+    Args:
+        wfn (Wavefunction) - Wave function to be time-evolved
+
+        time (float) - time for propagation
+
+        hamil (Hamiltonian / FermionOperator) - Hamiltonian to be used for time evolution
+
+    Returns:
+        (wavefunction.Wavefunction) - a wavefunction object after time evolution
+    """
+    return wfn.time_evolve(time, hamil)
+
+
+def get_wavefunction_multiple(param: List[List[int]]) -> List['wavefunction.Wavefunction']:
     """Generate many different wavefunctions.
 
     Args:
-        param (list[list[nele, m_s, norb]]) - a list of parameters used to
+        param (list[list[nele, m_s, norb]]) - a list of parameters used to \
             initialize wavefunctions.  The arguments in the parameters are
 
-                nele (int) - the number of electrons in the system
-                m_s (int) - the s_z spin projection of the system
+                nele (int) - the number of electrons in the system;
+                m_s (int) - the s_z spin projection of the system;
                 norb (int) - the number of spatial orbtials to used
 
     Returns:
@@ -112,11 +194,11 @@ def get_wavefunction_multiple(param: List[List[int]]) -> List['Wavefunction']:
     """
     state = []
     for val in param:
-        state.append(Wavefunction(param=[val]))
+        state.append(wavefunction.Wavefunction(param=[val]))
     return state
 
 
-def to_cirq(wfn: 'Wavefunction') -> numpy.ndarray:
+def to_cirq(wfn: 'wavefunction.Wavefunction') -> numpy.ndarray:
     """Interoperability between cirq and the openfermion-fqe.  This takes an
     FQE wavefunction and returns a cirq compatible wavefunction based on the
     information stored within.
@@ -125,7 +207,7 @@ def to_cirq(wfn: 'Wavefunction') -> numpy.ndarray:
         wfn (wavefunction.Wavefunction) - a openfermion-fqe wavefunction object
 
     Returns:
-        numpy.array(dtype=numpy.complex128) - a cirq wavefunction that can be
+        numpy.array(dtype=numpy.complex128) - a cirq wavefunction that can be \
             used in a simulator object.
     """
     nqubit = wfn.norb()*2
@@ -134,14 +216,15 @@ def to_cirq(wfn: 'Wavefunction') -> numpy.ndarray:
     return qubit_wavefunction_from_vacuum(ops, qid)
 
 
-def from_cirq(state: numpy.ndarray, thresh: float) -> 'Wavefunction':
+def from_cirq(state: numpy.ndarray, thresh: float) -> 'wavefunction.Wavefunction':
     """Interoperability between cirq and the openfermion-fqe.  This takes a
     cirq wavefunction and creates an FQE wavefunction object initialized with
     the correct data.
 
     Args:
         state (numpy.array(dtype=numpy.complex128)) - a cirq wavefunction
-        thresh (double) - set the limit at which a cirq element should be
+
+        thresh (double) - set the limit at which a cirq element should be \
             considered zero and not make a contribution to the FQE wavefunction
 
     Returns:
@@ -149,214 +232,264 @@ def from_cirq(state: numpy.ndarray, thresh: float) -> 'Wavefunction':
     """
     param = []
     nqubits = int(numpy.log2(state.size))
-    norb = nqubits//2
+    norb = nqubits // 2
     for pnum in range(nqubits + 1):
         occ = qubit_particle_number_index_spin(nqubits, pnum)
         for orb in occ:
             if numpy.absolute(state[orb[0]]) > thresh:
                 param.append([pnum, orb[1], norb])
-    wfn = Wavefunction(param)
+    wfn = wavefunction.Wavefunction(param)
     transform.from_cirq(wfn, state)
     return wfn
 
 
-def apply(ops: 'FermionOperator', wfn: 'Wavefunction') -> 'Wavefunction':
+def apply(ops: Union['hamiltonian.Hamiltonian', 'FermionOperator'],
+          wfn: 'wavefunction.Wavefunction') -> 'wavefunction.Wavefunction':
     """Create a new wavefunction by applying the fermionic operators to the
     wavefunction.
 
     Args:
-        ops (FermionOperator) - a Fermion Operator string to apply to the
+        ops (FermionOperator) - a Fermion Operator string to apply to the \
             wavefunction
+
         wfn (wavefunction.Wavefunction) - an FQE wavefunction to mutate
 
     Returns:
-        openfermion-fqe.Wavefunction - a new wavefunction generated from the
+        openfermion-fqe.Wavefunction - a new wavefunction generated from the \
             application of the fermion operators to the wavefunction
     """
     return wfn.apply(ops)
 
 
-def dot(wfn1: 'Wavefunction', wfn2: 'Wavefunction') -> complex:
-    """Calculate the dot product of two wavefunctions.  Note that this does
-    not use the conjugate.  See vdot for the similar conjugate functionality.
+def expectationValue(wfn: 'wavefunction.Wavefunction',
+                     ops: Union['hamiltonian.Hamiltonian', 'FermionOperator'],
+                     brawfn: Optional['wavefunction.Wavefunction'] = None) -> complex:
+    """Return the expectation value for the passed operator and wavefunction
 
     Args:
-        wfn1 (wavefunction.Wavefunction) - wavefunction corresponding to the
-            row vector
-        wfn2 (wavefunction.Wavefunction) - wavefunction corresponding to the
-            coumn vector
+        wfn (wavefunction.Wavefunction) - an FQE wavefunction on the ket side
+
+        ops (FermionOperator) - a Fermion Operator string to apply to the \
+            wavefunction
+
+        brawfn (wavefunction.Wavefunction) - an FQE wavefunction on the bra side \
+            if not specified, it is assumed that the bra nad ket wave functions \
+            are the same
 
     Returns:
-        (complex) - scalar as result of the dot product
+        (complex) - expectation value
     """
-    brakeys = wfn1.sectors()
-    ketkeys = wfn2.sectors()
-    keylist = [config for config in brakeys if config in ketkeys]
-    ipval = .0 + .0j
-    if not keylist:
-        return ipval
-    for config in keylist:
-        ipval += numpy.dot(wfn1.get_coeff(config).flatten(),
-                           wfn2.get_coeff(config).flatten())
-    return ipval
+    return wfn.expectationValue(ops, brawfn)
 
 
-def vdot(wfn1: 'Wavefunction', wfn2: 'Wavefunction') -> complex:
+def get_s2_operator() -> 's2_op.S2Operator':
+    """Return an S^2 operator.
+    """
+    return s2_op.S2Operator()
+
+
+def get_sz_operator() -> 'sz_op.SzOperator':
+    """Return an S_zperator.
+    """
+    return sz_op.SzOperator()
+
+
+def get_time_reversal_operator() -> 'tr_op.TimeReversalOp':
+    """Return a Time Reversal Operator
+    """
+    return tr_op.TimeReversalOp()
+
+
+def get_number_operator() -> 'number_op.NumberOperator':
+    """Return the particle number operator
+    """
+    return number_op.NumberOperator()
+
+
+def dot(wfn1: 'wavefunction.Wavefunction',
+        wfn2: 'wavefunction.Wavefunction') -> complex:
     """Calculate the inner product of two wavefunctions using conjugation on
     the elements of wfn1.
 
     Args:
-        wfn1 (wavefunction.Wavefunction) - wavefunction corresponding to the
+        wfn1 (wavefunction.Wavefunction) - wavefunction corresponding to the \
             conjugate row vector
-        wfn2 (wavefunction.Wavefunction) - wavefunction corresponding to the
+
+        wfn2 (wavefunction.Wavefunction) - wavefunction corresponding to the \
             coumn vector
 
     Returns:
         (complex) - scalar as result of the dot product
     """
-    brakeys = wfn1.sectors()
-    ketkeys = wfn2.sectors()
-    keylist = [config for config in brakeys if config in ketkeys]
-    ipval = .0 + .0j
-    if not keylist:
-        return ipval
-    for config in keylist:
-        ipval += numpy.vdot(wfn1.get_coeff(config).flatten(),
-                            wfn2.get_coeff(config).flatten())
-    return ipval
+    return util.dot(wfn1, wfn2)
 
 
-def get_two_body_hamiltonian(pot: Union[complex, float],
-                             h1e: numpy.ndarray,
-                             g2e: numpy.ndarray,
-                             chem: float,
-                             symmh: List[Any],
-                             symmg: List[Any]) -> 'general_hamiltonian.General':
-    """Interface from the fqe to generate a two body hamiltonian.
-
-        Args:
-            pot (complex) - a complex scalar
-            h1e (numpy.array(dim=2, dtype=complex128)) - matrix elements for
-                single particle states
-            g2e (numpy.array(dim=4, dtype=complex128)) - matrix elements for
-                two particle states
-            chem (double) - a value for the chemical potential
-            symmh (list[list[int], double, bool]) - symmetry permutations for
-                the one body matrix elements
-            symmg (list[list[int], double, bool]) - symmetry permutations for
-                the two body matrix elements
-
-    Returns:
-        General - an fqe General Hamiltonian Object
-    """
-    return general_hamiltonian.General(pot, h1e, g2e, chem, symmh, symmg)
-
-
-def get_hamiltonian_from_ops(ops: 'FermionOperator') -> 'hamiltonian.Hamiltonian':
-#                             pot: Union[complex, float],
-#                             chem: float) -> 'general_hamiltonian.General':
-    """Given a string of OpenFermion operators, generate a Hamiltonian for the
-    FQE.
+def vdot(wfn1: 'wavefunction.Wavefunction',
+         wfn2: 'wavefunction.Wavefunction') -> complex:
+    """Calculate the inner product of two wavefunctions using conjugation on
+    the elements of wfn1.
 
     Args:
-        ops (FermionOpertor) - a string of OpenFermion operators
-        pot (complex) - a constant potential to add
-        chem (double) - a value for a chemical poential
+        wfn1 (wavefunction.Wavefunction) - wavefunction corresponding to the \
+            conjugate row vector
+
+        wfn2 (wavefunction.Wavefunction) - wavefunction corresponding to the \
+            coumn vector
 
     Returns:
-        (fqe.hamiltonian.general_hamiltonian) - no symmetry
+        (complex) - scalar as result of the dot product
     """
-    quadratic_hamiltonian = False
-    quartic_hamiltonian = False
+    return util.vdot(wfn1, wfn2)
 
-    a_spin_conserve = False
-    b_spin_conserve = False
-    diagonal_coulomb = False
 
-    a_particle_conserve = False
-    b_particle_conserve = False
+def get_hamiltonian_from_openfermion(ops: 'FermionOperator',
+                                     norb: int = 0,
+                                     conserve_number: bool = True,
+                                     e_0: complex = 0. + 0.j) -> 'hamiltonian.Hamiltonian':
+    """Given an OpenFermion Hamiltonian return the fqe hamiltonian.
 
-    split = split_openfermion_tensor(ops)
+    Args:
+        ops (openfermion.FermionOperator) - a string of FermionOperators \
+            representing the Hamiltonian.
 
-    
+        norb (int) - the number of spatial orbitals in the Hamiltonian
 
-    h1a, h1b, h1b_conj = generate_one_particle_matrix(split[2])
+        conserve_number (bool) - a flag to indicate if the Hamiltonian will be \
+            applied to a number_conserving wavefunction.
 
-    dimension = h1a.shape[0]
-    block_index = dimension // 2
-    g2e = generate_two_particle_matrix(split[4])
+        e_0 (complex) - the scalar potential of the hamiltonian
 
-    if (h1a.any() or h1b.any()) and g2e.any():
-        symmh = [[[1, 2], 1.0, False]]
-        symmg = [[[1, 2, 3, 4], 1.0, False]]
-        return general_hamiltonian.General(pot, h1a, h1b, g2e, chem, symmh, symmg)
 
-    if h1b.any() or h1b_conj.any():
-        quadratic_hamiltonian = True
-        if not numpy.allclose(h1b, h1b_conj.conj()):
-            diff = abs(h1b - h1b_conj.conj())
-            i, j = numpy.unravel_index(diff.argmax(), diff.shape)
-            print('Elements {} {} outside tolerance'.format(i, j))
-            print('{} != {} '.format(h1b[i, j], h1b_conj[i, j].conj()))
-            raise ValueError
+    Returns:
+        hamiltonian (fqe.hamiltonians.hamiltonian)
+    """
+    assert isinstance(ops, FermionOperator)
 
-        if h1b[:block_index, :block_index].any():
-            b_spin_conserve = False
-        elif h1b[block_index:, block_index:].any():
-            b_spin_conserve = False
-        else:
-            b_spin_conserve = True
+    return build_hamiltonian(ops,
+                             norb=norb,
+                             conserve_number=conserve_number,
+                             e_0=e_0)
 
-    else:
-        b_particle_conserve = True
 
-    if h1a.any():
-        quadratic_hamiltonian = True
-        if h1a[block_index:, :block_index].any():
-            a_spin_conserve = False
+def get_diagonalcoulomb_hamiltonian(h2e: 'numpy.ndarray',
+                                    conserve_number: bool = True,
+                                    e_0: complex = 0. + 0.j
+                                    ) -> 'diagonal_coulomb.DiagonalCoulomb':
+    """Initialize a diagonal coulomb hamiltonian
+    """
+    return diagonal_coulomb.DiagonalCoulomb(h2e,
+                                            conserve_number=conserve_number,
+                                            e_0=e_0)
 
-        elif h1a[:block_index, block_index:].any():
-            a_spin_conserve = False
 
-        else:
-            a_spin_conserve = True
+def get_diagonal_hamiltonian(hdiag: 'numpy.ndarray',
+                             conserve_number: bool = True,
+                             e_0: complex = 0. + 0.j
+                             ) -> 'diagonal_hamiltonian.Diagonal':
+    """Initialize a diagonal hamiltonian
 
-    if g2e.any():
-        quartic_hamiltonian = False
-        for index in range(dimension):
-            for jndex in range(dimension):
-                for kndex in range(dimension):
-                    for lndex in range(dimension):
-                        if index == kndex and jndex == lndex:
-                            continue
-                        if g[index, jndex, kndex, lndex]:
-                            diagonal_coulomb = False
-                            break
+    Args:
+        hdiag (numpy.ndarray) - diagonal elements
 
-        if g2e == numpy.tranpose(g2e, axes=[2, 3, 0, 1]):
-            diagonal_coulomb = True
+        conserve_number (bool) - whether the Hamiltonian conserves N
 
-    if quartic_hamiltonian and quadratic_hamiltonian:
-        symmh = [[[1, 2], 1.0, False]]
-        symmg = [[[1, 2, 3, 4], 1.0, False]]
-        return general_hamiltonian.General(pot, h1a, h1b, h1b_conj, g2e, chem, symmh, symmg)
+        e_0 (complex) - scalar part of the Hamiltonian
+    """
+    return diagonal_hamiltonian.Diagonal(hdiag,
+                                         conserve_number=conserve_number,
+                                         e_0=e_0)
 
-    if quartic_hamiltonian:
-        if diagonal_coulomb:
-            return diagonal_coulomb_hamiltonian.DiagonalCoulomb()
-        return two_body_hamiltonian.TwoBody()
 
-    if quadratic_hamiltonian:
+def get_general_hamiltonian(tensors: Tuple[numpy.ndarray, ...],
+                            conserve_number: bool = True,
+                            e_0: complex = 0. + 0.j) -> 'general_hamiltonian.General':
+    """Initialize the most general hamiltonian class.
 
-        spin_conserve = a_spin_conserve and b_spin_conserve
+    Args:
+        tensors (Tuple[numpy.ndarray, ...]) - tensors for the Hamiltonian elements
 
-        if spin_conserve and particle_conserve:
-            return restrcted_hamiltonian.Restricted()
-        if spin_conserve and particle_conserve:
-            return gso_hamiltonian.Gso()
-        if spin_conserve and particle_conserve:
-            return bcs_hamiltonian.Bcs()
+        conserve_number (bool) - whether the Hamiltonian conserves N
 
-    symmh = [[[1, 2], 1.0, False]]
-    symmg = [[[1, 2, 3, 4], 1.0, False]]
-    return general_hamiltonian.General(pot, h1a, h1b, h1b_conj, g2e, chem, symmh, symmg)
+        e_0 (complex) - scalar part of the Hamiltonian
+    """
+    return general_hamiltonian.General(tensors,
+                                       conserve_number=conserve_number,
+                                       e_0=e_0)
+
+
+def get_gso_hamiltonian(tensors: Tuple[numpy.ndarray, ...],
+                        conserve_number: bool = True,
+                        e_0: complex = 0. + 0.j) -> 'gso_hamiltonian.GSOHamiltonian':
+    """Initialize the generalized spin orbital hamiltonian
+
+    Args:
+        tensors (Tuple[numpy.ndarray, ...]) - tensors for the Hamiltonian elements
+
+        conserve_number (bool) - whether the Hamiltonian conserves N
+
+        e_0 (complex) - scalar part of the Hamiltonian
+    """
+    return gso_hamiltonian.GSOHamiltonian(tensors,
+                                          conserve_number=conserve_number,
+                                          e_0=e_0)
+
+
+def get_restricted_hamiltonian(tensors: Tuple[numpy.ndarray, ...],
+                               conserve_number: bool = True,
+                               e_0: complex = 0. + 0.j) -> 'restricted_hamiltonian.Restricted':
+    """Initialize spin conserving spin restricted hamiltonian
+
+    Args:
+        tensors (Tuple[numpy.ndarray, ...]) - tensors for the Hamiltonian elements
+
+        conserve_number (bool) - whether the Hamiltonian conserves N
+
+        e_0 (complex) - scalar part of the Hamiltonian
+    """
+    return restricted_hamiltonian.Restricted(tensors,
+                                             conserve_number=conserve_number,
+                                             e_0=e_0)
+
+
+def get_nbody_hamilonian(norb: int,
+                         operators: Union['FermionOperator', str],
+                         conserve_spin: bool = True,
+                         conserve_number: bool = True,
+                         e_0: complex = 0. + 0.j
+                         ) -> 'sparse_hamiltonian.SparseHamiltonian':
+    """Initialize the nbody hamiltonaian
+
+    Args:
+        norb (int) - the number of orbitals
+
+        operators (Union[FermionOperator, str]) - the FermionOperator to be used to \
+            initialize the sparse Hamiltonian
+
+        conserve_spin (bool) - whether the Hamiltonian conserves Sz
+
+        conserve_number (bool) - whether the Hamiltonian conserves N
+
+        e_0 (complex) - scalar part of the Hamiltonian
+    """
+    return sparse_hamiltonian.SparseHamiltonian(norb,
+                                                operators,
+                                                conserve_spin=conserve_spin,
+                                                conserve_number=conserve_number,
+                                                e_0=e_0)
+
+
+def get_sso_hamiltonian(tensors: Tuple[numpy.ndarray, ...],
+                        conserve_number: bool = True,
+                        e_0: complex = 0. + 0.j) -> 'sso_hamiltonian.SSOHamiltonian':
+    """Initialize the Spin-conserving Spin Orbital Hamiltonian
+
+    Args:
+        tensors (Tuple[numpy.ndarray, ...]) - tensors for the Hamiltonian elements
+
+        conserve_number (bool) - whether the Hamiltonian conserves N
+
+        e_0 (complex) - scalar part of the Hamiltonian
+    """
+    return sso_hamiltonian.SSOHamiltonian(tensors,
+                                          conserve_number=conserve_number,
+                                          e_0=e_0)

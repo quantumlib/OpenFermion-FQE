@@ -15,6 +15,10 @@
 """ Diagonal Hamiltonian
 """
 
+from typing import Tuple
+
+import copy
+
 import numpy
 
 from fqe.hamiltonians import hamiltonian
@@ -25,8 +29,26 @@ class Diagonal(hamiltonian.Hamiltonian):
     """
 
 
-    def __init__(self, hdiag, conserve_number=True) -> None:
-        super().__init__(conserve_number=conserve_number)
+    def __init__(self,
+                 hdiag: numpy.array,
+                 conserve_number: bool = True,
+                 e_0: complex = 0. + 0.j) -> None:
+        """
+        Args:
+            hdiag (numpy.array) - a variable length tuple containg between \
+                one and four numpy.arrays of increasing rank.  The tensors \
+                contain the n-body hamiltonian elements.  Tensors up to the \
+                highest order must be included even if the lower terms are full \
+                of zeros.
+
+            conserve_number (bool) - a flag to indicate if the Hamiltonian and \
+                the wavefunction will be number conserving.
+
+            e_0 (complex) - this is a scalar potential associated with the \
+                Hamiltonian.
+        """
+
+        super().__init__(conserve_number=conserve_number, e_0=e_0)
 
         if hdiag.ndim != 1:
             raise ValueError('Incorrect diemsion passed for Diagonal' +
@@ -36,58 +58,38 @@ class Diagonal(hamiltonian.Hamiltonian):
 
 
     def dim(self) -> int:
-        """
+        """Dim is the orbital dimension of the Hamiltonian arrays.
         """
         return self._dim
 
 
-    @property
-    def h1e(self) -> numpy.ndarray:
-        """
-        """
-        h1e = numpy.zeros((self._dim, self._dim)).astype(self._hdiag.dtype)
-
-        for i in range(self._dim):
-            h1e[i, i] = self._hdiag[i]
-
-        return h1e
-
-
     def rank(self) -> int:
-        """
+        """This returns the rank of the largest tensor.
         """
         return 2
 
 
     def diagonal(self) -> bool:
-        """
+        """Indicate the that the Hamiltonian is diagonal
         """
         return True
-
-
-    def tensor(self, rank):
-        """
-        """
-        if rank > 2:
-            raise ValueError('Diagonal Hamiltonian does not have greater' \
-                             ' than rank 2 elements')
-        return self.h1e
-
-
-    def tensors(self):
-        """
-        """
-        return tuple([self.h1e])
 
 
     def quadratic(self) -> bool:
+        """Flag to indicate this is a quadratic hamiltonian
+        """
         return True
 
 
-    def iht(self, time, full=False):
+    def diag_values(self) -> numpy.ndarray:
+        """Return the diagonal values packed into a single dimension
         """
-        """
-        if full:
-            return tuple([-1.j*time*self.h1e])
+        return self._hdiag
 
-        return tuple([-1.j*time*self._hdiag])
+
+    def iht(self, time: float) -> Tuple[numpy.ndarray, ...]:
+        """Return the matrices of the Hamiltonian prepared for time evolution.
+        """
+        out = copy.deepcopy(self)
+        out._hdiag *= -1.j*time
+        return out

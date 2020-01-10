@@ -118,25 +118,6 @@ class UnitTest(unittest.TestCase):
         self.assertEqual(ref, util.invert_bitstring_with_mask(7, 8))
 
 
-    def test_paritysort_order(self):
-        """It's convenient to sort by parity
-        """
-        test_list = [1, 1, 1, 2, 2, 2]
-        ordered_list = [2, 2, 2, 1, 1, 1]
-        util.paritysort(test_list)
-        self.assertListEqual(ordered_list, test_list)
-
-
-    @unittest.SkipTest
-    def test_paritysort_permutation_count(self):
-        """We need to know the number of permutations to sort by parity
-        """
-        test_list = [1, 2, 2]
-        self.assertEqual(2, util.paritysort(test_list))
-        test_list = [1, 1, 1, 2, 2, 2]
-        self.assertEqual(9, util.paritysort(test_list))
-
-
     def test_ltlt_index_min(self):
         """If we have a zero dimesnion tensor there should be no pointers to it
         """
@@ -259,5 +240,17 @@ class UnitTest(unittest.TestCase):
         self.assertTrue(util.zero_transform(2 + 4, 8, 1, 6))
         self.assertTrue(util.zero_transform(2 + 4, 4, 2, 6))
 
-if __name__ == '__main__':
-    unittest.main()
+
+    def test_parity_sort_list(self):
+        """Sort a list of lists according to the parity of the index in the
+        0th element.
+        """
+        unchanged = [
+            [6, ['these', 'values', {'dont' : 6724}, tuple(['mat', 'ter'])]],
+            [7, ['these', 'values', {'dont' : 6724}, tuple(['mat', 'ter'])]],
+            [3, ['these', 'values', {'dont' : 6724}, tuple(['mat', 'ter'])]],
+            [15, ['these', 'values', {'dont' : 6724}, tuple(['mat', 'ter'])]]
+        ]
+        nswap, test = util.paritysort_list(unchanged)
+        self.assertEqual(nswap, 0)
+        self.assertListEqual(unchanged, test)

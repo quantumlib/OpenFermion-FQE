@@ -25,7 +25,6 @@ class FciGraphTest(unittest.TestCase):
     """
 
 
-    @unittest.SkipTest
     def test_fci_graph(self):
         """Check the basic initializers and getter functions.
         """
@@ -52,9 +51,9 @@ class FciGraphTest(unittest.TestCase):
         lena = int(special.binom(norb, nalpha))
         max_bitstring = (1 << norb) - (1 << (norb - nalpha))
         testgraph = fci_graph.FciGraph(nalpha, nbeta, norb)
-        self.assertEqual(testgraph.build_string_address(nalpha, norb, [0, 1, 2, 3]), 0)
-        self.assertEqual(testgraph.build_string_address(nalpha, norb, [1, 2, 3, 7]), 38)
-        test_list, test_dict = testgraph.build_strings(nalpha, lena)
+        self.assertEqual(testgraph._build_string_address(nalpha, norb, [0, 1, 2, 3]), 0)
+        self.assertEqual(testgraph._build_string_address(nalpha, norb, [1, 2, 3, 7]), 38)
+        test_list, test_dict = testgraph._build_strings(nalpha, lena)
         self.assertListEqual(test_list, reflist)
         self.assertDictEqual(test_dict, refdict)
         self.assertEqual(testgraph.string_beta(0), 0)
@@ -81,7 +80,7 @@ class FciGraphTest(unittest.TestCase):
                          (0, 2): [(3, 0, -1), (5, 2, 1)],
                          (0, 3): [(4, 0, -1), (5, 1, -1)],
                          (1, 0): [(1, 3, 1), (2, 4, 1)],
-                         (1, 1): [(0, 0, 1), (3, 3, 1), (4, 4, 1)], 
+                         (1, 1): [(0, 0, 1), (3, 3, 1), (4, 4, 1)],
                          (1, 2): [(1, 0, 1), (5, 4, 1)],
                          (1, 3): [(2, 0, 1), (5, 3, -1)],
                          (2, 0): [(0, 3, -1), (2, 5, 1)],
@@ -116,9 +115,9 @@ class FciGraphTest(unittest.TestCase):
         nalpha = 2
         nbeta = 1
         testgraph = fci_graph.FciGraph(nalpha, nbeta, norb)
-        alpha_map = testgraph.build_mapping(alist, aind)
+        alpha_map = testgraph._build_mapping(alist, aind)
         self.assertDictEqual(alpha_map, ref_alpha_map)
-        beta_map = testgraph.build_mapping(blist, bind)
+        beta_map = testgraph._build_mapping(blist, bind)
         self.assertDictEqual(beta_map, ref_beta_map)
         dummy_map = ({(1, 1): (0, 1, 2)}, {(-1, -1), (0, 1, 2)})
         testgraph.insert_mapping(1, -1, dummy_map)

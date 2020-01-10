@@ -11,24 +11,25 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
-
 """Wavefunction class unit tests
 """
+#pylint: disable=protected-access
 
+import os
 import sys
 
 from io import StringIO
 
 import unittest
 
-from openfermion import FermionOperator
-
 import numpy
-from numpy import linalg
-from scipy.special import binom
 
 from fqe.wavefunction import Wavefunction
-from fqe.fqe_data import FqeData
+from fqe import get_spin_conserving_wavefunction
+from fqe import get_number_conserving_wavefunction
+
+
+from fqe.unittest_data import build_wfn, build_hamiltonian
 
 
 class WavefunctionTest(unittest.TestCase):
@@ -36,345 +37,178 @@ class WavefunctionTest(unittest.TestCase):
     """
 
 
-    def test_wavefunction(self):
+    def test_init_exceptions(self):
+        """Check that wavefunction throws the proper errors when an incorrect
+        initialization is passed.
         """
+        self.assertRaises(TypeError, Wavefunction, broken=['spin', 'number'])
+        self.assertRaises(ValueError, Wavefunction, param=[[0, 0, 2], [0, 0, 4]])
+
+
+    def test_general_exceptions(self):
+        """Test general method exceptions
         """
-
-#    def test_wavefunction_negative_orbital_error(self):
-#        """Negative orbital number is not meaningful
-#        """
-#        self.assertRaises(ValueError, wavefunction.Wavefunction, [[2, 0, -1]])
-#
-#
-#    def test_wavefunction_orbital_consistency(self):
-#        """The number of orbitals should be suffcient to accomodate all the
-#        particles
-#        """
-#        self.assertRaises(ValueError, wavefunction.Wavefunction, [[10, 2, 4]])
-#
-#
-#    def test_wavefunction_particle_conserving(self):
-#        """Particle number conserving wavefunctions will check the value of
-#        n as its contructed
-#        """
-#        self.assertRaises(ValueError, wavefunction.Wavefunction,
-#                          [[2, 0, 6], [4, 0, 6]], conserveparticlenumber=True)
-#
-#
-#    def test_wavefunction_spin_conserving(self):
-#        """Spin conserving wavefunctions will check the value of
-#        n as its constructed
-#        """
-#        self.assertRaises(ValueError, wavefunction.Wavefunction,
-#                          [[2, 0, 6], [4, 2, 6]], conservespin=True)
-#
-#
-#    def test_wavefunction_generator(self):
-#        """Ensure that we recover information on the wavefunction.
-#        """
-#        wfn = wavefunction.Wavefunction([[5, 1, 4], [5, 3, 4], [5, -3, 4]])
-#        for config in wfn.generator():
-#            self.assertEqual(5, config.n_electrons)
-#
-#
-#    def test_wavefunction_max_ele(self):
-#        """Ensure that we recover information on the wavefunction.
-#        """
-#        wfn = wavefunction.Wavefunction([[1, 1, 1]])
-#        wfn.set_wfn(strategy='lowest')
-#        self.assertAlmostEqual(1. + .0j, wfn.max_element())
-#
-#
-#    def test_wavefunction_data(self):
-#        """Ensure that we recover information on the wavefunction.
-#        """
-#        wfn = wavefunction.Wavefunction([[2, 0, 4], [1, 1, 4], [2, -2, 4]])
-#        test = wfn.lena
-#        self.assertListEqual([4, 4, 1],
-#                             [test[(2, 0)], test[(1, 1)], test[(2, -2)]])
-#        test = wfn.lenb
-#        self.assertListEqual([4, 1, 6],
-#                             [test[(2, 0)], test[(1, 1)], test[(2, -2)]])
-#        test = wfn.gs_a
-#        self.assertListEqual([1, 1, 0],
-#                             [test[(2, 0)], test[(1, 1)], test[(2, -2)]])
-#        test = wfn.gs_b
-#        self.assertListEqual([1, 0, 3],
-#                             [test[(2, 0)], test[(1, 1)], test[(2, -2)]])
-#        test = wfn.nalpha
-#        self.assertListEqual([1, 1, 0],
-#                             [test[(2, 0)], test[(1, 1)], test[(2, -2)]])
-#        test = wfn.nbeta
-#        self.assertListEqual([1, 0, 2],
-#                             [test[(2, 0)], test[(1, 1)], test[(2, -2)]])
-#        test = wfn.cidim
-#        self.assertListEqual([16, 4, 6],
-#                             [test[(2, 0)], test[(1, 1)], test[(2, -2)]])
-#        self.assertEqual(wfn.norb, 4)
-#
-#    def test_set_wfn_with_data(self):
-#        """Set wavefunction data from input rather than an internal method
-#        """
-#        wfn = wavefunction.Wavefunction([[2, 0, 4]])
-#        data = {}
-#        data[(2, 0)] = .5*numpy.ones((16, 10), dtype=numpy.complex64)
-#        wfn.set_wfn(strategy='from_data', raw_data=data)
-#        self.assertTrue(numpy.allclose(wfn.get_coeff((2, 0)), data[(2, 0)]))
-#
-#
-#    def test_add_sector_behavior(self):
-#        """If an unphysical config would be added then ignore it.  If a config
-#        that exists would be added let the user know and ignore it.  The
-#        exception is if data is passed the behavior is undefined.
-#        """
-#        wfn = wavefunction.Wavefunction([[2, 0, 4]])
-#        config = wfn.configs
-#        wfn.add_sector(-1, -1, 10)
-#        self.assertTrue(config == wfn.configs)
-#        wfn.add_sector(2, 0, 4)
-#        self.assertTrue(config == wfn.configs)
-#        self.assertRaises(ValueError, wfn.add_sector, 2, 0, 4, 0)
-#
-#
-#    def test__add__equal_config_wavefunctions(self):
-#        """Two wavefunctions with the same configuration should just add
-#        together their configurations
-#        """
-#        wfn1 = wavefunction.Wavefunction([[2, 2, 4]])
-#        wfn1.set_wfn(strategy='ones')
-#        wfn2 = wavefunction.Wavefunction([[2, 2, 4]])
-#        wfn2.set_wfn(strategy='ones')
-#        wfn3 = wfn1 + wfn2
-#        self.assertEqual(4, wfn3.norb)
-#        nalpha = wfn3.nalpha
-#        self.assertEqual(2, nalpha[(2, 2)])
-#        nbeta = wfn3.nbeta
-#        self.assertEqual(0, nbeta[(2, 2)])
-#        lena = wfn3.lena
-#        lenb = wfn3.lenb
-#        cidimlen = lena[(2, 2)]*lenb[(2, 2)]
-#        ref = (2. + .0j)*numpy.ones((cidimlen, 1), dtype=numpy.complex64)
-#        self.assertTrue(numpy.allclose(wfn3.get_coeff((2, 2)), ref))
-#
-#
-#    def test__add__different_config_wavefunctions(self):
-#        """Two wavefunctions with the same configuration should just add
-#        together their configurations
-#        """
-#        wfn1 = wavefunction.Wavefunction([[2, 2, 4]])
-#        wfn1.set_wfn(strategy='ones')
-#        wfn2 = wavefunction.Wavefunction([[2, 0, 4]])
-#        wfn2.set_wfn(strategy='ones')
-#        wfn3 = wfn1 + wfn2
-#        cidim = wfn3.cidim
-#        ref2_2 = numpy.ones((cidim[(2, 2)]), dtype=numpy.complex64)
-#        ref2_0 = numpy.ones((cidim[(2, 0)]), dtype=numpy.complex64)
-#        self.assertTrue(numpy.allclose(wfn3.get_coeff((2, 2)), ref2_2))
-#        self.assertTrue(numpy.allclose(wfn3.get_coeff((2, 0)), ref2_0))
-#
-#
-#    def test__sub__equal_config_wavefunctions(self):
-#        """Two wavefunctions with the same configuration should just add
-#        together their configurations
-#        """
-#        wfn1 = wavefunction.Wavefunction([[2, 2, 4]])
-#        wfn1.set_wfn(strategy='ones')
-#        wfn2 = wavefunction.Wavefunction([[2, 2, 4]])
-#        wfn2.set_wfn(strategy='ones')
-#        wfn3 = wfn1 - wfn2
-#        self.assertEqual(4, wfn3.norb)
-#        nalpha = wfn3.nalpha
-#        self.assertEqual(2, nalpha[(2, 2)])
-#        nbeta = wfn3.nbeta
-#        self.assertEqual(0, nbeta[(2, 2)])
-#        lena = wfn3.lena
-#        lenb = wfn3.lenb
-#        cidimlen = lena[(2, 2)]*lenb[(2, 2)]
-#        ref = numpy.zeros((cidimlen, 1), dtype=numpy.complex64)
-#        self.assertTrue(numpy.allclose(wfn3.get_coeff((2, 2)), ref))
-#
-#
-#    def test__sub__different_config_wavefunctions(self):
-#        """Two wavefunctions with the same configuration should just add
-#        together their configurations
-#        """
-#        wfn1 = wavefunction.Wavefunction([[2, 2, 4]])
-#        wfn1.set_wfn(strategy='ones')
-#        wfn2 = wavefunction.Wavefunction([[2, 0, 4]])
-#        wfn2.set_wfn(strategy='ones')
-#        wfn3 = wfn1 - wfn2
-#        cidim = wfn3.cidim
-#        ref2_2 = numpy.ones((cidim[(2, 2)]), dtype=numpy.complex64)
-#        ref2_0 = -numpy.ones((cidim[(2, 0)]), dtype=numpy.complex64)
-#        self.assertTrue(numpy.allclose(wfn3.get_coeff((2, 2)), ref2_2))
-#        self.assertTrue(numpy.allclose(wfn3.get_coeff((2, 0)), ref2_0))
-#
-#
-#    def test__mul__wavefunction(self):
-#        """Check that * is properly overloaded for scalars
-#        """
-#        wfn = wavefunction.Wavefunction([[2, 0, 4]])
-#        wfn.set_wfn(strategy='ones')
-#        wfn*2.0
-#        cidim = wfn.cidim
-#        ref = 2.0*numpy.ones((cidim[(2, 0)]), dtype=numpy.complex64)
-#        self.assertTrue(numpy.allclose(wfn.get_coeff((2, 0)), ref))
-#
-#    def test_wavefunction_config_access_error(self):
-#        """Check that access of the wavefunction values catches errors.
-#        """
-#        test = wavefunction.Wavefunction([[2, 0, 2]])
-#        test.set_wfn(strategy='random')
-#        self.assertIsNone(test.set_ele(567, 346, 0. + .0j))
-#        self.assertAlmostEqual(test.get_ele(567, 346), 0. + .0j)
-#        self.assertIsNone(test.add_ele(567, 346, 0. + .0j))
-#
-#
-#    def test_wavefunction_config_access(self):
-#        """Direct access to the underlying configurations can be useful.
-#        """
-#        test = wavefunction.Wavefunction([[4, 2, 4]])
-#        test.set_wfn(strategy='ones')
-#        test.set_ele(7, 4, .333 + .54j)
-#        lena = test.lena
-#        lenb = test.lenb
-#        cilen = lena[(4, 2)]*lenb[(4, 2)]
-#        ref = numpy.ones((cilen, 1), dtype=numpy.complex64)
-#        ref[2, 0] = .333 + .54j
-#        self.assertTrue(numpy.allclose(test.get_coeff((4, 2)), ref))
-#        test.add_ele(7, 4, .333 + .54j)
-#        ref[2, 0] *= 2. + 0.j
-#        self.assertTrue(numpy.allclose(test.get_coeff((4, 2)), ref))
-#        self.assertAlmostEqual(test.get_ele(7, 4,), 2.*(.333 + .54j))
-#
-#
-#    def test_wavefunction_apply_orbital_limit(self):
-#        """The apply method will fail if you add into an orbital that does not
-#        exist
-#        """
-#        ops = FermionOperator('8^ ', 1.0)
-#        test = wavefunction.Wavefunction([[2, 2, 3]])
-#        self.assertRaises(ValueError, test.apply, ops)
-#
-#
-#    def test_wavefunction_apply_create(self):
-#        """Generate the fully occupied state
-#        """
-#        ops = FermionOperator('1^ 0^', 1.0)
-#        test = wavefunction.Wavefunction([[2, 0, 2]])
-#        newwfn = test.apply(ops)
-#        newwfn.set_wfn(strategy='ones')
-#        lena = newwfn.lena
-#        lenb = newwfn.lenb
-#        val = numpy.ones((1), dtype=numpy.complex64)
-#        self.assertEqual(1, lena[(4, 0)])
-#        self.assertEqual(1, lenb[(4, 0)])
-#        self.assertEqual(val, newwfn.get_coeff((4, 0)))
-#
-#
-#    def test_wavefunction_apply_annihilate(self):
-#        """Remove a beta electron
-#        """
-#        ops = FermionOperator('1', 1.0)
-#        test = wavefunction.Wavefunction([[2, 0, 2]])
-#        newwfn = test.apply(ops)
-#        newwfn.set_wfn(strategy='ones')
-#        ref = numpy.ones(2, dtype=numpy.complex64)
-#        self.assertTrue(numpy.allclose(newwfn.get_coeff((1, 1)), ref))
-#        ops = FermionOperator('0', 1.0) + FermionOperator('2', 1.0)
-#        vacuum = newwfn.apply(ops)
-#        self.assertEqual(vacuum.get_coeff((0, 0)), 2. + .0j)
-#
-#
-#    def test_wavefunction_apply_conserve(self):
-#        """Make sure that apply doesn't break requested conservation
-#        """
-#        ops = FermionOperator('4^', 1.0)
-#        test = wavefunction.Wavefunction([[2, 0, 4]], conserveparticlenumber=True)
-#        self.assertRaises(ValueError, test.apply, ops)
-#        test = wavefunction.Wavefunction([[2, -1, 4]], conservespin=True)
-#        self.assertRaises(ValueError, test.apply, ops)
-#
-#
-#    def test_wavefunction_apply_unitary_error(self):
-#        """Ensure that an error is raised if the input is incorrect.
-#        """
-#        test = wavefunction.Wavefunction([[2, 0, 4]])
-#        ops = FermionOperator('2^ 0', .2 - .3j) + \
-#              FermionOperator('0^ 2', .2 - .3j)
-#        self.assertRaises(ValueError, test.apply_generated_unitary, ops,
-#                          'taylor')
-#        ops = FermionOperator('2^ 0', .2 + .3j) + \
-#              FermionOperator('0^ 2', .2 - .3j)
-#        self.assertRaises(ValueError, test.apply_generated_unitary, ops,
-#                          'bestest')
-#
-#
-#    def test_wavefunction_apply_unitary(self):
-#        """The Taylor series expansion of an exponential and cheybshev
-#        expansion
-#        """
-#        tay_wfn = wavefunction.Wavefunction([[2, 0, 2]])
-#        tay_wfn.set_wfn(strategy='ones')
-#        tay_wfn.normalize()
-#        ops = FermionOperator('2^ 0', .2 + .3j) + \
-#              FermionOperator('0^ 2', .2 - .3j)
-#        test_tay = tay_wfn.apply_generated_unitary(ops, 'taylor')
-#        che_wfn = wavefunction.Wavefunction([[2, 0, 2]])
-#        che_wfn.set_wfn(strategy='ones')
-#        che_wfn.normalize()
-#        ops = FermionOperator('2^ 0', .2 + .3j) + \
-#              FermionOperator('0^ 2', .2 - .3j)
-#        test_che = che_wfn.apply_generated_unitary(ops, 'chebyshev')
-#        self.assertTrue(numpy.allclose(test_tay.get_coeff((2, 0)),
-#                                       test_che.get_coeff((2, 0))))
+        test1 = Wavefunction(param=[[2, 0, 4]])
+        test2 = Wavefunction(param=[[4, -4, 8]])
+        test1.set_wfn(strategy='ones')
+        test2.set_wfn(strategy='ones')
+        self.assertRaises(ValueError, test1.ax_plus_y, 1.0, test2)
+        self.assertRaises(ValueError, test1.__add__, test2)
+        self.assertRaises(ValueError, test1.__sub__, test2)
 
 
-#    def test_wavefunction_print(self):
-#        """Check printing routine for the wavefunction.
-#        """
-#        refstr = "Configurationnelectrons:2m_s:0Vector:0a'01'b'01':(1+0j)a'01'b'10':(1+0j)a'10'b'01':(1+0j)a'10'b'10':(1+0j)"
-#        refstr1 = "Vector:1a'01'b'01':(1+0j)a'01'b'10':(1+0j)a'10'b'01':(1+0j)a'10'b'10':(1+0j)"
-#        refocc = "Configurationnelectrons:2m_s:0Vector:0.2:(1+0j)ba:(1+0j)ab:(1+0j)2.:(1+0j)"
-#        wfn = wavefunction.Wavefunction([[2, 0, 2]])
-#        wfn.set_wfn(strategy='ones')
-#        old_stdout = sys.stdout
-#        sys.stdout = chkprint = StringIO()
-#        wfn.print_wfn()
-#        sys.stdout = old_stdout
-#        outstring = chkprint.getvalue()
-#        test = ''.join(outstring.split(None))
-#
-#        old_stdout = sys.stdout
-#        sys.stdout = chkprint = StringIO()
-#        wfn.print_wfn()
-#        sys.stdout = old_stdout
-#        outstring = chkprint.getvalue()
-#        test = ''.join(outstring.split(None))
-#
-#        old_stdout = sys.stdout
-#        sys.stdout = chkprint = StringIO()
-#        wfn.print_wfn()
-#        sys.stdout = old_stdout
-#        outstring = chkprint.getvalue()
-#        test = ''.join(outstring.split(None))
-#        self.assertEqual(test, refstr)
-#
-#        old_stdout = sys.stdout
-#        sys.stdout = chkprint = StringIO()
-#        wfn.print_wfn()
-#        sys.stdout = old_stdout
-#        outstring = chkprint.getvalue()
-#        test = ''.join(outstring.split(None))
-#        self.assertEqual(test, refstr + refstr1)
-#
-#        old_stdout = sys.stdout
-#        sys.stdout = chkprint = StringIO()
-#        wfn.print_wfn(fmt='occ')
-#        sys.stdout = old_stdout
-#        outstring = chkprint.getvalue()
-#        test = ''.join(outstring.split(None))
-#        self.assertEqual(test, refocc)
+    def test_general_functions(self):
+        """Test general wavefunction members
+        """
+        test = Wavefunction(param=[[2, 0, 4]])
+        test.set_wfn(strategy='ones')
+        self.assertEqual(1. + 0.j, test[(4, 8)])
+        test[(4, 8)] = 3.14 + 0.00159j
+        self.assertEqual(3.14 + 0.00159j, test[(4, 8)])
+        self.assertEqual(3.14 + 0.00159j, test.max_element())
+        self.assertTrue(test.conserve_spin())
+        test1 = Wavefunction(param=[[2, 0, 4]])
+        test2 = Wavefunction(param=[[2, 0, 4]])
+        test1.set_wfn(strategy='ones')
+        test2.set_wfn(strategy='ones')
+        work = test1 + test2
+        ref = 2.0*numpy.ones((4, 4), dtype=numpy.complex128)
+        self.assertTrue(numpy.allclose(ref, work._civec[(2, 0)].coeff))
+        work = test1 - test2
+        ref = numpy.zeros((4, 4), dtype=numpy.complex128)
+        self.assertTrue(numpy.allclose(ref, work._civec[(2, 0)].coeff))
 
-if __name__ == '__main__':
-    unittest.main()
+
+    def test_rdm(self):
+        """Check that the rdms will properly return the energy
+        """
+        wfn = Wavefunction(param=[[4, 0, 3]])
+        work, energy = build_wfn.restricted_wfn_energy()
+        wfn.set_wfn(strategy='from_data', raw_data={(4, 0): work})
+        rdm1 = wfn.rdm('i^ j')
+        rdm2 = wfn.rdm('i^ j^ k l')
+        rdm3 = wfn.rdm('i^ j^ k^ l m n')
+        rdm4 = wfn.rdm('i^ j^ k^ l^ m n o p')
+        h1e, h2e, h3e, h4e = build_hamiltonian.build_restricted(3, full=False)
+        expval = 0. + 0.j
+        axes = [0, 1]
+        expval += numpy.tensordot(h1e, rdm1, axes=(axes, axes))
+        axes = [0, 1, 2, 3]
+        expval += numpy.tensordot(h2e, rdm2, axes=(axes, axes))
+        axes = [0, 1, 2, 3, 4, 5]
+        expval += numpy.tensordot(h3e, rdm3, axes=(axes, axes))
+        axes = [0, 1, 2, 3, 4, 5, 6, 7]
+        expval += numpy.tensordot(h4e, rdm4, axes=(axes, axes))
+        self.assertAlmostEqual(expval, energy)
+
+
+    def test_save_read(self):
+        """Check that the wavefunction can be properly archived and
+        retieved
+        """
+        numpy.random.seed(seed=409)
+        wfn = get_number_conserving_wavefunction(3, 3)
+        wfn.set_wfn(strategy='random')
+        wfn.save('test_save_read')
+        read_wfn = Wavefunction()
+        read_wfn.read('test_save_read')
+        for key in read_wfn.sectors():
+            self.assertTrue(numpy.allclose(read_wfn._civec[key].coeff, wfn._civec[key].coeff))
+        self.assertEqual(read_wfn._symmetry_map, wfn._symmetry_map)
+        self.assertEqual(read_wfn._conserved, wfn._conserved)
+        self.assertEqual(read_wfn._conserve_spin, wfn._conserve_spin)
+        self.assertEqual(read_wfn._conserve_number, wfn._conserve_number)
+        self.assertEqual(read_wfn._norb, wfn._norb)
+
+        try:
+            os.remove('test_save_read')
+        except:
+            print('Could not remove temporary wavefunction file')
+
+        wfn = get_spin_conserving_wavefunction(2, 6)
+        wfn.set_wfn(strategy='random')
+        wfn.save('test_save_read')
+        read_wfn = Wavefunction()
+        read_wfn.read('test_save_read')
+        for key in read_wfn.sectors():
+            self.assertTrue(numpy.allclose(read_wfn._civec[key].coeff, wfn._civec[key].coeff))
+        self.assertEqual(read_wfn._symmetry_map, wfn._symmetry_map)
+        self.assertEqual(read_wfn._conserved, wfn._conserved)
+        self.assertEqual(read_wfn._conserve_spin, wfn._conserve_spin)
+        self.assertEqual(read_wfn._conserve_number, wfn._conserve_number)
+        self.assertEqual(read_wfn._norb, wfn._norb)
+
+        try:
+            os.remove('test_save_read')
+        except:
+            print('Could not remove temporary wavefunction file')
+
+
+    def test_wavefunction_print(self):
+        """Check printing routine for the wavefunction.
+        """
+        numpy.random.seed(seed=409)
+        wfn = get_number_conserving_wavefunction(3, 3)
+        wfn.set_wfn(strategy='random')
+        ref_string = 'Sector N = 3 : S_z = -3\n' + \
+        'a\'000\'b\'111\' (-0.965716165103582-0.2596002474144259j)\n' + \
+        'Sector N = 3 : S_z = -1\n' + \
+        'a\'001\'b\'011\' (-0.36353371799047474-0.20659882336491125j)\n' + \
+        'a\'001\'b\'101\' (-0.2595794430985754-0.21559318752883358j)\n' + \
+        'a\'001\'b\'110\' (0.2245720691863791+0.04852785090765824j)\n' + \
+        'a\'010\'b\'011\' (-0.3343371194649537-0.18162164502182865j)\n' + \
+        'a\'010\'b\'101\' (-0.12276329653757072+0.2598595053848905j)\n' + \
+        'a\'010\'b\'110\' (-0.07129059307188947-0.09903086482985644j)\n' + \
+        'a\'100\'b\'011\' (-0.21689451722319453-0.37961322467516906j)\n' + \
+        'a\'100\'b\'101\' (-0.08335325115398513-0.3320831963824638j)\n' + \
+        'a\'100\'b\'110\' (0.3223504737186291-0.06300341495552426j)\n' + \
+        'Sector N = 3 : S_z = 1\n' + \
+        'a\'011\'b\'001\' (-0.21405181650984867+0.291191428014912j)\n' + \
+        'a\'011\'b\'010\' (-0.27528122914339537+0.17928779581227006j)\n' + \
+        'a\'011\'b\'100\' (-0.03830344247705324-0.1018560909069887j)\n' + \
+        'a\'101\'b\'001\' (-0.45862002455262096+0.15967403671706776j)\n' + \
+        'a\'101\'b\'010\' (-0.38283591522104243+0.11908329862006684j)\n' + \
+        'a\'101\'b\'100\' (0.4116282600794628+0.010105890130903789j)\n' + \
+        'a\'110\'b\'001\' (0.1076905656249564-0.00752210752071855j)\n' + \
+        'a\'110\'b\'010\' (0.11663872769596699-0.22956164504983004j)\n' + \
+        'a\'110\'b\'100\' (-0.16087960736695867+0.2822626579924094j)\n' + \
+        'Sector N = 3 : S_z = 3\n' + \
+        'a\'111\'b\'000\' (0.803446320104347-0.5953772003619078j)\n'
+        save_stdout = sys.stdout
+        sys.stdout = chkprint = StringIO()
+        wfn.print_wfn()
+        sys.stdout = save_stdout
+        outstring = chkprint.getvalue()
+        self.assertEqual(outstring, ref_string)
+
+        wfn.set_wfn(strategy='random')
+        ref_string = 'Sector N = 3 : S_z = -3\n' + \
+        'bbb (-0.8113698523271319-0.5845331151736812j)\n' + \
+        'Sector N = 3 : S_z = -1\n' + \
+        '.b2 (0.27928557602787163-0.1474291874811043j)\n' + \
+        'b.2 (-0.1665913776204976-0.3617026012726579j)\n' + \
+        'bba (-0.34237638530199677-0.3478680323908946j)\n' + \
+        '.2b (-0.06261445720131753+0.06768497529405092j)\n' + \
+        'bab (-0.38139927374414034+0.1861924936737463j)\n' + \
+        'b2. (0.12088212990158276+0.017989309605196964j)\n' + \
+        'abb (0.21003022341703897+0.1796342715165676j)\n' + \
+        '2.b (0.025719719969361773-0.26643597861625606j)\n' + \
+        '2b. (-0.3300411848918476+0.2071714738026307j)\n' + \
+        'Sector N = 3 : S_z = 1\n' + \
+        '.a2 (0.04353310004001345-0.28962822210805944j)\n' + \
+        '.2a (-0.24253795700144656+0.4082951994423171j)\n' + \
+        'baa (0.0416027021668677+0.14568595964440914j)\n' + \
+        'a.2 (-0.4200764867734443-0.3368997907424329j)\n' + \
+        'aba (0.011316109760530853+0.14538028430182576j)\n' + \
+        '2.a (0.10466970722751164-0.3036806837765713j)\n' + \
+        'aab (-0.4332181974443824-0.06627315601193698j)\n' + \
+        'a2. (-0.10718975397926216+0.2170023330304916j)\n' + \
+        '2a. (0.0013687148060600703+0.026018656390685173j)\n' + \
+        'Sector N = 3 : S_z = 3\n' + \
+        'aaa (-0.6533937058927956-0.757018272632622j)\n'
+        save_stdout = sys.stdout
+        sys.stdout = chkprint = StringIO()
+        wfn.print_wfn(fmt='occ')
+        sys.stdout = save_stdout
+        outstring = chkprint.getvalue()
+        self.assertEqual(outstring, ref_string)

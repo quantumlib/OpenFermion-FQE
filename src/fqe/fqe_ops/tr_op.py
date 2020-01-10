@@ -11,23 +11,45 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
+"""Implements the time-reversal operator
+"""
 
-from _fqe_control import vdot
+import copy
+from typing import TYPE_CHECKING
+
+import numpy
+
+from fqe.util import vdot
 from fqe.fqe_ops import fqe_operator
+from fqe.util import alpha_beta_electrons
+
+if TYPE_CHECKING:
+    from fqe.wavefunction import Wavefunction
 
 
 class TimeReversalOp(fqe_operator.FqeOperator):
+    """time-reversal operator as a specialization of FqeOperator.
+    The program assumes the Kramers-paired storage for the wave function.
+    """
 
 
-    def contract(self, brastate, ketstate):
-        """
+    def contract(self,
+                 brastate: 'Wavefunction',
+                 ketstate: 'Wavefunction') -> complex:
+        """Given two wavefunctions, generate the expectation value of the
+        operator according to its representation.
+
+        Args:
+            brastate (Wavefunction) - wave function on the bra side
+
+            ketstate (Wavefunction) - wave function on the ket side
         """
         out = copy.deepcopy(ketstate)
         for (nele, nab), sector in out._civec.items():
             nalpha, nbeta = alpha_beta_electrons(nele, nab)
             if nalpha < nbeta:
                 if not (nele, nbeta-nalpha) in out._civec.keys():
-                    raise Exception('The wave function space is not closed under time reversal') 
+                    raise Exception('The wave function space is not closed under time reversal')
                 sector2 = out._civec[(nele, nbeta-nalpha)]
                 tmp = numpy.copy(sector.coeff)
                 phase = (-1)**(nbeta*(nalpha+1))
@@ -40,12 +62,12 @@ class TimeReversalOp(fqe_operator.FqeOperator):
 
 
     def representation(self):
+        """Return the representation of the operator
         """
-        """
-        return 's_z'
+        return 'T'
 
 
     def rank(self):
-        """
+        """The rank of the operator
         """
         return 2

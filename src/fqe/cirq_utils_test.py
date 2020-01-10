@@ -100,37 +100,35 @@ class CirqUtilsTest(unittest.TestCase):
         """Qubit operations which are products of operators should be compiled
         into a single circuit.
         """
-        qpu = cirq.Simulator()
+        qpu = cirq.Simulator(dtype=numpy.complex128)
         qubits = cirq.LineQubit.range(4)
         ops = QubitOperator('', 1.0)
         for i in range(4):
             ops *= QubitOperator('X' + str(i), 1.0)
         for j in ops.terms:
             circuit = cirq_utils.qubit_ops_to_circuit(j, qubits)
-        init_state = numpy.zeros(2**4, dtype=numpy.complex64)
+        init_state = numpy.zeros(2**4, dtype=numpy.complex128)
         init_state[0] = 1.0 + 0.0j
         result = qpu.simulate(circuit, qubit_order=qubits,
                               initial_state=init_state)
-        final_state = numpy.zeros(2**4, dtype=numpy.complex64)
+        final_state = numpy.zeros(2**4, dtype=numpy.complex128)
         final_state[-1] = 1.0 + 0.0j
         self.assertListEqual(list(result.final_state), list(final_state))
 
 
-    @unittest.SkipTest
     def test_single_mode_projection(self):
         """Find the coeffcient of a wavefunction generated from a single qubit.
         """
         n_qubits = 1
         qubits = cirq.LineQubit.range(n_qubits)
         ops = QubitOperator('X0', 1.0)
-        init_state = numpy.zeros(2**n_qubits, dtype=numpy.complex64)
+        init_state = numpy.zeros(2**n_qubits, dtype=numpy.complex128)
         init_state[1] = 1.0 + 0.0j
-        _cof = numpy.zeros(n_qubits, dtype=numpy.complex64)
-        cirq_utils.qubit_projection(ops, qubits, init_state, _cof)
-        self.assertEqual(_cof[0], 1.0+0.0j)
+        cof = numpy.zeros(n_qubits, dtype=numpy.complex128)
+        cirq_utils.qubit_projection(ops, qubits, init_state, cof)
+        self.assertEqual(cof[0], 1.0+0.0j)
 
 
-    @unittest.SkipTest
     def test_x_y_z_mode_projection(self):
         """Find the projection of a wavefunction generated from a linear
         combination of qubits.
@@ -142,12 +140,12 @@ class CirqUtilsTest(unittest.TestCase):
         n_qubits = 2
         qubits = cirq.LineQubit.range(n_qubits)
         test_wfn = numpy.array([0.92377985 + 0.j, 0. - 0.20947377j,
-                                0.32054904 + 0.j, 0. + 0.j], dtype=numpy.complex64)
+                                0.32054904 + 0.j, 0. + 0.j], dtype=numpy.complex128)
         self.assertAlmostEqual(numpy.vdot(test_wfn, test_wfn), 1.0 + 0.0j, places=6)
         ops = QubitOperator('X0', 1.0) + QubitOperator('Y1', 1.0) \
             + QubitOperator('Z0', 1.0)
 
-        test_cof = numpy.zeros((3, 1), dtype=numpy.complex64)
+        test_cof = numpy.zeros((3, 1), dtype=numpy.complex128)
         for indx, cluster in enumerate(ops.terms):
             if cluster[0][1] == 'X':
                 test_cof[indx] = 0.32054904
@@ -156,12 +154,11 @@ class CirqUtilsTest(unittest.TestCase):
             if cluster[0][1] == 'Z':
                 test_cof[indx] = 0.92377985
 
-        cof = numpy.zeros((3, 1), dtype=numpy.complex64)
+        cof = numpy.zeros((3, 1), dtype=numpy.complex128)
         cirq_utils.qubit_projection(ops, qubits, test_wfn, cof)
         self.assertTrue(numpy.allclose(cof, test_cof))
 
 
-    @unittest.SkipTest
     def test_qubit_wavefunction_from_vacuum(self):
         """Build a wavefunction given a group of qubit operations.
         """
@@ -174,6 +171,3 @@ class CirqUtilsTest(unittest.TestCase):
             + QubitOperator('X0', 13.0)
         state = cirq_utils.qubit_wavefunction_from_vacuum(ops, qubits)
         self.assertEqual(state[1], test_val)
-
-if __name__ == '__main__':
-    unittest.main()

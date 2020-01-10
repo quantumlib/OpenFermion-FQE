@@ -11,6 +11,12 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
+"""Hamiltonian class for the Spin-conserving Spin Orbital Hamiltonian.
+"""
+#Pylint does not like zeros_like initializer from numpy
+#pylint: disable=unsupported-assignment-operation
+
+from typing import Dict, Tuple
 
 import numpy
 from numpy import linalg
@@ -19,25 +25,41 @@ from fqe.hamiltonians import hamiltonian
 
 
 class SSOHamiltonian(hamiltonian.Hamiltonian):
-    """Spin-conserving Spin Orbital Hamiltonian
+    """The SSO Hamiltonian is characterized by having distinct alpha and beta
+    terms and no alpha/beta mixing blocks. An example is a part of \
+    non-relativistic molecular Hamiltonians in the trotterized algorithms.
     """
 
 
-    def __init__(self, tensor, conserve_number=True) -> None:
+    def __init__(self,
+                 tensors: Tuple[numpy.ndarray, ...],
+                 conserve_number: bool = True,
+                 e_0: complex = 0. + 0.j) -> None:
         """
+        Arguments:
+            tensors (numpy.array) - a variable length tuple containg between \
+                one and four numpy.arrays of increasing rank.  The tensors \
+                contain the n-body hamiltonian elements.  Tensors up to the \
+                highest order must be included even if the lower terms are full \
+                of zeros.
+
+            conserve_number (bool) - a flag to indicate if the Hamiltonian and \
+                the wavefunction will be number conserving.
+
+            e_0 (complex) - this is a scalar potential associated with the \
+                Hamiltonian.
         """
-        super().__init__(conserve_number)
-        self._tensor = {}
 
-        for rank in range(len(tensor)):
-            if tensor[rank].ndim % 2:
-                raise ValueError('Odd rank tensor not supported in Hamiltonians')
+        super().__init__(conserve_number, e_0=e_0)
+        self._tensor: Dict[int, numpy.ndarray] = {}
 
-            self._tensor[2*(rank + 1)] = tensor[rank]
+        for rank, matrix in enumerate(tensors):
+            assert (matrix.ndim % 2) == 0
 
-        if not self._tensor:
-            raise ValueError('No matrix elements passed into' \
-                             ' the general hamiltonian')
+            self._tensor[2*(rank + 1)] = matrix
+
+        assert self._tensor, 'No matrix elements passed into the' \
+                             + ' SSOHamiltonian'
 
         self._quadratic = False
         if len(self._tensor) == 1:
@@ -47,12 +69,14 @@ class SSOHamiltonian(hamiltonian.Hamiltonian):
         self._dim = list(self._tensor.values())[0].shape[0]
 
 
-    def dim(self):
-        return self._dim
-
-
-    def iht(self, time, full=True):
+    def h1e(self) -> numpy.ndarray:
+        """Return the one body matrix of the Hamiltonian
         """
+        return self._tensor[2]
+
+
+    def iht(self, time: float) -> Tuple[numpy.ndarray, ...]:
+        """Return the matrices of the Hamiltonian prepared for time evolution.
         """
         iht_mat = []
         for rank in range(len(self._tensor)):
@@ -62,23 +86,25 @@ class SSOHamiltonian(hamiltonian.Hamiltonian):
 
 
     def dim(self) -> int:
+        """Dim is the orbital dimension of the Hamiltonian arrays.
+        """
         return self._dim
 
 
-    def rank(self):
-        """
+    def rank(self) -> int:
+        """This returns the rank of the largest tensor.
         """
         return 2*len(self._tensor)
 
 
-    def tensor(self, rank):
-        """
+    def tensor(self, rank: int) -> numpy.ndarray:
+        """Access a single nbody tensor based on its rank.
         """
         return self._tensor[rank]
 
 
-    def tensors(self):
-        """
+    def tensors(self) -> Tuple[numpy.ndarray, ...]:
+        """All tensors are returned in order of their rank.
         """
         out = []
         for rank in range(len(self._tensor)):
@@ -87,18 +113,14 @@ class SSOHamiltonian(hamiltonian.Hamiltonian):
 
 
     def quadratic(self) -> bool:
+        """Indicates if the Hamiltonian is quadratic
+        """
         return self._quadratic
 
 
-    @property
-    def h1e(self) -> numpy.ndarray:
-        """
-        """
-        return self._h1e
-
-
-    def calc_diag_transform(self):
-        """Diagonalize the Hamiltonian and store the transformation locally.
+    def calc_diag_transform(self) -> numpy.ndarray:
+        """Perform a unitary digaonlizing transformation of the one body term
+        and return that transformation.
         """
         assert self._tensor[2].shape[0] % 2 == 0
         norb = self._tensor[2].shape[0] // 2
@@ -110,8 +132,13 @@ class SSOHamiltonian(hamiltonian.Hamiltonian):
         return trans
 
 
-    def transform(self, trans):
-        """Using the transformation stored, mutate the hamiltonian to
-        diagonal
+    def transform(self, trans: numpy.ndarray) -> numpy.ndarray:
+        """Tranform the one body term using the passed in matrix.
+
+        Args:
+            trans (numpy.ndarray) - unitary transformation
+
+        Returns:
+            (numpy.ndarray) - transformed one-body Hamiltonian
         """
         return trans.conj().T @ self._tensor[2] @ trans

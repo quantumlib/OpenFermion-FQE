@@ -11,34 +11,51 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
-"""Restricted class for the OpenFermion-FQE.
+"""Hamiltonian class for the Restricted Hamiltonain.
 """
+
+from typing import Dict, Tuple
 
 import numpy
 from numpy import linalg
 
-from fqe.hamiltonians import hamiltonian, hamiltonian_utils
+from fqe.hamiltonians import hamiltonian
 
 
 class Restricted(hamiltonian.Hamiltonian):
+    """The Restricted Hamiltonian is characterized by having identical alpha
+    and beta terms and no alpha/beta mixing blocks. An example is
+    non-relativistic molecular Hamiltonians in the RHF basis
     """
-    """
 
-    def __init__(self, tensor, conserve_number=True) -> None:
+    def __init__(self,
+                 tensors: Tuple[numpy.ndarray, ...],
+                 conserve_number: bool = True,
+                 e_0: complex = 0. + 0.j) -> None:
         """
+        Arguments:
+            tensors (numpy.array) - a variable length tuple containg between \
+                one and four numpy.arrays of increasing rank.  The tensors \
+                contain the n-body hamiltonian elements.  Tensors up to the \
+                highest order must be included even if the lower terms are full \
+                of zeros.
+
+            conserve_number (bool) - a flag to indicate if the Hamiltonian and \
+                the wavefunction will be number conserving.
+
+            e_0 (complex) - this is a scalar potential associated with the \
+                Hamiltonian.
         """
-        super().__init__(conserve_number)
-        self._tensor = {}
+        super().__init__(conserve_number, e_0=e_0)
+        self._tensor: Dict[int, numpy.ndarray] = {}
 
-        for rank in range(len(tensor)):
-            if tensor[rank].ndim % 2:
-                raise ValueError('Odd rank tensor not supported in Hamiltonians')
+        for rank, matrix in enumerate(tensors):
+            assert (matrix.ndim % 2) == 0
 
-            self._tensor[2*(rank + 1)] = tensor[rank]
+            self._tensor[2*(rank + 1)] = matrix
 
-        if not self._tensor:
-            raise ValueError('No matrix elements passed into' \
-                             ' the general hamiltonian')
+        assert self._tensor, 'No matrix elements passed into the' \
+                             + ' SSOHamiltonian'
 
         self._quadratic = False
         if len(self._tensor) == 1:
@@ -49,25 +66,25 @@ class Restricted(hamiltonian.Hamiltonian):
 
 
     def dim(self) -> int:
-        """Return the dimension of the hamiltonian
+        """Dim is the orbital dimension of the Hamiltonian arrays.
         """
         return self._dim
 
 
     def rank(self):
-        """
+        """This returns the rank of the largest tensor.
         """
         return 2*len(self._tensor)
 
 
-    def tensor(self, rank):
-        """
+    def tensor(self, rank: int) -> numpy.ndarray:
+        """Access a single nbody tensor based on its rank.
         """
         return self._tensor[rank]
 
 
-    def tensors(self):
-        """
+    def tensors(self) -> Tuple[numpy.ndarray, ...]:
+        """All tensors are returned in order of their rank.
         """
         out = []
         for rank in range(len(self._tensor)):
@@ -76,11 +93,13 @@ class Restricted(hamiltonian.Hamiltonian):
 
 
     def quadratic(self) -> bool:
+        """Indicates if the Hamiltonian is quadratic
+        """
         return self._quadratic
 
 
-    def iht(self, time, full=True):
-        """
+    def iht(self, time: float) -> Tuple[numpy.ndarray, ...]:
+        """Return the matrices of the Hamiltonian prepared for time evolution.
         """
         iht_mat = []
         for rank in range(len(self._tensor)):
@@ -89,28 +108,21 @@ class Restricted(hamiltonian.Hamiltonian):
         return tuple(iht_mat)
 
 
-    def calc_diag_transform(self):
-        """Diagonalize the Hamiltonian and store the transformation locally.
+    def calc_diag_transform(self) -> numpy.ndarray:
+        """Perform a unitary digaonlizing transformation of the one body term
+        and return that transformation.
         """
-        norb = self._tensor[2].shape[0]
-        h1e = numpy.zeros((2*norb, 2*norb), dtype=self._tensor[2].dtype)
-
-        h1e[:norb, :norb] = self._tensor[2]
-        h1e[norb:, norb:] = self._tensor[2]
-
-        _, trans = linalg.eigh(h1e)
-
+        _, trans = linalg.eigh(self._tensor[2])
         return trans
 
 
-    def transform(self, trans):
-        """Using the transformation stored, mutate the hamiltonian to
-        diagonal
+    def transform(self, trans: numpy.ndarray) -> numpy.ndarray:
+        """Tranform the one body term using the passed in matrix.
+
+        Args:
+            trans (numpy.ndarray) - unitary transformation
+
+        Returns:
+            (numpy.ndarray) - transformed one-body Hamiltonian
         """
-        norb = self._tensor[2].shape[0]
-        h1e = numpy.zeros((2*norb, 2*norb), dtype=self._tensor[2].dtype)
-
-        h1e[:norb, :norb] = self._tensor[2]
-        h1e[norb:, norb:] = self._tensor[2]
-
-        return trans.conj().T @ h1e @ trans
+        return trans.conj().T @ self._tensor[2] @ trans

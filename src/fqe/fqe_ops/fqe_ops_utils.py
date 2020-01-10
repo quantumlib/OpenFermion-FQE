@@ -12,24 +12,30 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+"""Utility functions for FQE operators
+"""
+
 import re
 
 
-def validate_rdm_string(ops, target):
+def validate_rdm_string(ops: str) -> str:
     """Check that a string for rdms are valid
+
+    Args:
+        ops (str) - string expression to be computed
+        target (str) - string expression to be computed
+
+    Returns
+        (str) - either 'element' or 'tensor'
     """
 
     qftops = ops.split()
     nops = len(qftops)
 
-    if nops // 2 != target:
-        return 'Incorrect number of operators parsed from {}'.format(ops)
-
-    if nops % 2:
-        return 'Odd number of operators not supported'
+    assert (nops % 2) == 0
 
     if any(char.isdigit() for char in ops):
-        
+
         creation = re.compile(r'^[0-9]+\^$')
         annihilation = re.compile(r'^[0-9]+$')
 
@@ -44,8 +50,7 @@ def validate_rdm_string(ops, target):
             else:
                 raise TypeError('Unsupported behvior for {}'.format(ops))
 
-        if nani != ncre:
-            raise ValueError('Unequal creation and annihilation operators')
+        assert nani == ncre
 
         return 'element'
 
@@ -67,3 +72,37 @@ def validate_rdm_string(ops, target):
         raise ValueError('Unequal creation and annihilation operators')
 
     return 'tensor'
+
+
+def switch_broken_symmetry(string: str) -> str:
+    """Convert the string passed in to the desired symmetry.
+
+    Args:
+        string (str) - input string in the original expression
+
+    Returns:
+        string (str) - output string in the converted format
+    """
+    new = ''
+    if any(char.isdigit() for char in string):
+
+        work = string.split()
+        creation = re.compile(r'^[0-9]+\^$')
+        annihilation = re.compile(r'^[0-9]+$')
+
+        for opr in work:
+            if creation.match(opr):
+                if int(opr[:-1]) % 2:
+                    val = opr[:-1]
+                else:
+                    val = opr
+            elif annihilation.match(opr):
+                if int(opr) % 2:
+                    val = opr + '^'
+                else:
+                    val = opr
+            new += val + ' '
+    else:
+        new = string
+
+    return new.rstrip()

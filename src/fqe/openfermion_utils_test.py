@@ -100,7 +100,6 @@ class OpenFermionUtilsTest(unittest.TestCase):
                          FermionOperator('0^ 1^ 2^ 3^ 4^ 6^', 1.0))
 
 
-    @unittest.SkipTest
     def test_fqe_to_fermion_operator(self):
         """Convert the fqe representation to openfermion operators.
 
@@ -125,79 +124,20 @@ class OpenFermionUtilsTest(unittest.TestCase):
             [coeff[1]],
             [coeff[2]],
             [coeff[3]]
-            ], dtype=numpy.complex64)
+            ], dtype=numpy.complex128)
 
         test = FermionOperator('0^ 1^', coeff[0])
         test += FermionOperator('0^ 3^', coeff[1])
         test += FermionOperator('2^ 1^', coeff[2])
         test += FermionOperator('2^ 3^', coeff[3])
         wfn = wavefunction.Wavefunction([[2, 0, 2]])
+        data = numpy.reshape(data, (2, 2))
         passed_data = {(2, 0) : data}
-        wfn.set_wfn(vrange=[0], strategy='from_data', raw_data=passed_data)
+        wfn.set_wfn(strategy='from_data', raw_data=passed_data)
         ops = openfermion_utils.fqe_to_fermion_operator(wfn)
         self.assertListEqual(list(ops.terms.keys()), list(test.terms.keys()))
         for term in ops.terms:
             self.assertAlmostEqual(ops.terms[term], test.terms[term])
-
-
-    @unittest.SkipTest
-    def test_generate_one_particle_matrix(self):
-        """Check one particle matrix parsing for particle number conserving
-        systems
-        """
-        ops = FermionOperator('0^ 0', 2.) + \
-              FermionOperator('1^ 0', 0. + .75j) + \
-              FermionOperator('0^ 1', 0. - .75j) + \
-              FermionOperator('1^ 1', 2.)
-        ref = numpy.array([[2., -.75j], [.75j, 2.]], dtype=numpy.complex64)
-        test = openfermion_utils.generate_one_particle_matrix(ops)
-        self.assertTrue(numpy.allclose(ref, test))
-
-
-    @unittest.SkipTest
-    def test_generate_one_particle_matrix_error(self):
-        """Check for errors in particle number conserving matrix parsing
-        """
-        ops = FermionOperator('0^ 0', 2.) + \
-              FermionOperator('1 0', 0. + .75j) + \
-              FermionOperator('0^ 1', 0. - .75j) + \
-              FermionOperator('1^ 1', 2.)
-        self.assertRaises(ValueError,
-                          openfermion_utils.generate_one_particle_matrix, ops)
-
-
-    def test_generate_two_particle_matrix(self):
-        """Check one particle matrix parsing for particle number conserving
-        systems
-        """
-        ops = FermionOperator('0^ 0^ 0 0', 2.) + \
-              FermionOperator('1^ 1^ 0 0', 1.) + \
-              FermionOperator('1^ 0^ 1 0', -.5) + \
-              FermionOperator('0^ 0^ 1 1', 1.) + \
-              FermionOperator('0^ 1^ 0 1', -.5) + \
-              FermionOperator('1^ 1^ 1 1', 2.)
-        ref = numpy.zeros((2, 2, 2, 2), dtype=numpy.complex64)
-        ref[0, 0, 0, 0] = 2.
-        ref[1, 1, 1, 1] = 2.
-        ref[1, 1, 0, 0] = 1.
-        ref[0, 0, 1, 1] = 1.
-        ref[0, 1, 0, 1] = -.5
-        ref[1, 0, 1, 0] = -.5
-        test = openfermion_utils.generate_two_particle_matrix(ops)
-        self.assertTrue(numpy.allclose(ref, test))
-
-
-    def test_generate_two_particle_matrix_error(self):
-        """Check for errors in particle number conserving matrix parsing
-        """
-        ops = FermionOperator('0^ 0^ 0 0', 2.) + \
-              FermionOperator('1 1 0 0', 1.) + \
-              FermionOperator('1^ 0^ 1 0', -.5) + \
-              FermionOperator('0^ 0^ 1 1', 1.) + \
-              FermionOperator('0^ 1^ 0 1', -.5) + \
-              FermionOperator('1^ 1^ 1 1', 2.)
-        self.assertRaises(ValueError,
-                          openfermion_utils.generate_two_particle_matrix, ops)
 
 
     def test_convert_qubit_wfn_to_fqe_syntax(self):
@@ -407,85 +347,6 @@ class OpenFermionUtilsTest(unittest.TestCase):
             self.assertListEqual(ref1,
                                  list(openfermion_utils.mutate_config(15, 0,
                                                                       term)))
-
-
-    @unittest.SkipTest
-    def test_new_wfn_from_ops_particle_change(self):
-        """Ensure that particle and spin changes are captured correctly
-        """
-        configs = [[1, 1, 8]]
-        ref = [[3, 1, 8]]
-        ops = FermionOperator('2^ 1^', 1.0)
-        newconfigs, parchg, spnchg = openfermion_utils.new_wfn_from_ops(ops,
-                                                                        configs,
-                                                                        8)
-        self.assertTrue(parchg)
-        self.assertFalse(spnchg)
-        self.assertListEqual(newconfigs, ref)
-
-
-    @unittest.SkipTest
-    def test_new_wfn_from_ops_spin_change(self):
-        """Ensure that particle and spin changes are captured correctly
-        """
-        configs = [[1, 1, 8]]
-        ref = [[1, -1, 8]]
-        ops = FermionOperator('0 1^', 1.0)
-        newconfigs, parchg, spnchg = openfermion_utils.new_wfn_from_ops(ops,
-                                                                        configs,
-                                                                        8)
-        self.assertTrue(spnchg)
-        self.assertFalse(parchg)
-        self.assertListEqual(newconfigs, ref)
-
-
-    @unittest.SkipTest
-    def test_new_wfn_from_ops_mult(self):
-        """Applications of operators are not always going to be a single
-        string of operators
-        """
-        configs = [[2, 0, 8], [3, -1, 8]]
-        ref = [[2, -2, 8], [3, -3, 8], [4, 2, 8], [5, 1, 8]]
-        ops = FermionOperator('0 1^', 1.0) + FermionOperator('8^ 6^', 1.0)
-        newconfigs, parchg, spnchg = openfermion_utils.new_wfn_from_ops(ops,
-                                                                        configs,
-                                                                        8)
-        self.assertTrue(spnchg)
-        self.assertTrue(parchg)
-        for config in newconfigs:
-            self.assertTrue(config in ref)
-
-
-    @unittest.SkipTest
-    def test_particle_change(self):
-        """Check that the changes in particle number and spin are accurate.
-        """
-        ops = FermionOperator('8^ 6^ 4^ 2^ 0^', 1.0)
-        self.assertListEqual([[5, 5]], openfermion_utils.particle_change(ops,
-                                                                         20))
-        ops = FermionOperator('11 10 9 8 7 6 5^ 4^ 3^ 2^ 1^ 0^', 1.0)
-        self.assertListEqual([[0, 0]], openfermion_utils.particle_change(ops,
-                                                                         20))
-        ops = FermionOperator('6 2^ 1^ 0^', 1.0) + \
-            FermionOperator('11^ 5 4^', 1.0)
-        test_change = openfermion_utils.particle_change(ops, 20)
-        for change in [[1, 1], [2, 0]]:
-            self.assertTrue(change in test_change)
-
-
-    @unittest.SkipTest
-    def test_particle_change_redundant(self):
-        """Don't include strings that have repeated application of operators
-        that would make the term zero
-        """
-        ops = FermionOperator('8^ 8^ 4^ 2^ 0^', 1.0)
-        self.assertListEqual([], openfermion_utils.particle_change(ops, 20))
-        ops = FermionOperator('11 10 9 8 7 6 5^ 4^ 3^ 2^ 1 1', 1.0)
-        self.assertListEqual([], openfermion_utils.particle_change(ops, 20))
-        ops = FermionOperator('6 2^ 2^ 0^', 1.0) + \
-            FermionOperator('11^ 5 4^', 1.0)
-        self.assertListEqual([[1, 1]],
-                             openfermion_utils.particle_change(ops, 20))
 
 
     def test_update_operator_coeff(self):

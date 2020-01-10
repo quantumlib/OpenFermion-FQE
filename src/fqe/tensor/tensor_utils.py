@@ -26,11 +26,11 @@ def build_symmetry_operations(symmetry: List[Any]) -> None:
     allowed for the operation.
 
     Args:
-        symmetry (list[list[int], float, bool]) - a list containing all the
+        symmetry (list[list[int], float, bool]) - a list containing all the \
             allowed permuations
 
     Returns:
-        symmetry (list[numpy.array(dtype=int), float, bool]) - modifes the
+        symmetry (list[numpy.array(dtype=int), float, bool]) - modifes the \
         symmetry in place
     """
     dim = len(symmetry[0][0])
@@ -44,12 +44,12 @@ def confirm_symmetry(mat: numpy.ndarray, symmetry: List[Any]) -> None:
     """Digest the allowed permutations to validate the underlying structure
 
     Args:
-        symmetry (list[list[ints], float, bool]) - a list containing all the
-            information regarding symmetry of the matrix.  The first element
-            can be an identity element with the indexes in order, a partiy of
-            1.0 and no complex conjugation.  Each entry should specify the
-            action of the symmetry on the indexes, a parity associated with
-            the permutation and whether the term should be conjugated.  The
+        symmetry (list[list[ints], float, bool]) - a list containing all the \
+            information regarding symmetry of the matrix.  The first element \
+            can be an identity element with the indexes in order, a partiy of \
+            1.0 and no complex conjugation.  Each entry should specify the \
+            action of the symmetry on the indexes, a parity associated with \
+            the permutation and whether the term should be conjugated.  The \
             first term should be the unity operation.
 
     Returns:
@@ -67,11 +67,12 @@ def index_queue(dim: int, highest_index: int) -> Deque[Tuple[int, ...]]:
 
     Args:
         dim (int) - the size of the matrix of interest
+
         highest_index (int) - the maximum value allowable in the matrix
 
     Returns:
-        queue (list) - a queue containing all possbile pointers into the
-            matrix:w
+        queue (list) - a queue containing all possbile pointers into the \
+            matrix
     """
     i_queue: List[Tuple[int, ...]] = []
     if dim == 1:
@@ -100,8 +101,10 @@ def validate_matrix_symmetry(matrix: numpy.ndarray, symmetry: List[Any],
 
     Args:
         matrix (numpy.array) - a matrix of interest
-        symmetry (list[numpy.array(dtype=int), float, bool]) - symmetry that
+
+        symmetry (list[numpy.array(dtype=int), float, bool]) - symmetry that \
             should be validated
+
         threshold (float) - the limit at which a symmetry operation is valid
 
     Returns:

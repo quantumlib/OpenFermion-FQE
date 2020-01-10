@@ -20,10 +20,11 @@ from typing import Dict, List, Tuple
 
 from scipy.special import binom
 
-from fqe.bitstring import integer_index, lexicographic_bitstring_generator, count_bits
+from fqe.bitstring import integer_index, lexicographic_bitstring_generator
 from fqe.bitstring import count_bits_between, get_bit, set_bit, unset_bit
 from fqe.util import init_bitstring_groundstate
 
+Spinmap = Dict[Tuple[int, ...], List[Tuple[int, int, int]]]
 
 class FciGraph:
     """ FciGraph contains the addressing system for the wavefunction.  Each
@@ -38,7 +39,9 @@ class FciGraph:
         """
         Args:
             nalpha (int) - The number of alpha electrons
+
             nbeta (int) - The number of beta electrons
+
             norb (int) - The number of spatial orbitals such that the total number
                 of orbitals is ntot = 2*norb.
 
@@ -49,38 +52,65 @@ class FciGraph:
         self._nbeta = nbeta
         self._lena = int(binom(norb, nalpha))
         self._lenb = int(binom(norb, nbeta))
-        self._astr, self._aind = self.build_strings(self._nalpha, self._lena)
-        self._bstr, self._bind = self.build_strings(self._nbeta, self._lenb)
-        self._alpha_map = self.build_mapping(self._astr, self._aind)
-        self._beta_map = self.build_mapping(self._bstr, self._bind)
+        self._astr: List[int] = []
+        self._bstr: List[int] = []
+        self._aind: Dict[int, int] = {}
+        self._bind: Dict[int, int] = {}
+        self._astr, self._aind = self._build_strings(self._nalpha, self._lena)
+        self._bstr, self._bind = self._build_strings(self._nbeta, self._lenb)
+        self._alpha_map: Spinmap = self._build_mapping(self._astr, self._aind)
+        self._beta_map: Spinmap = self._build_mapping(self._bstr, self._bind)
 
-        self._fci_map = {}
+        self._fci_map: Dict[Tuple[int, ...], Tuple[Spinmap, Spinmap]] = {}
 
 
-    def insert_mapping(self, dna: int, dnb: int, mapping_pair: Tuple[Dict[Tuple[int,int], List[Tuple[int,int,int]]], Dict[Tuple[int,int], List[Tuple[int,int,int]]]]) -> None:
+    def insert_mapping(self,
+                       dna: int,
+                       dnb: int,
+                       mapping_pair: Tuple[Spinmap, Spinmap]) -> None:
         """
-        Insert a new pair of alpha and beta mappings with a key that are the differences for the number of alpha and beta electrons.
+        Insert a new pair of alpha and beta mappings with a key that are the
+        differences for the number of alpha and beta electrons.
+
+        Args:
+            dna (int) - the difference in the number of alpha electrons
+
+            dnb (int) - the difference in the number of beta electrons
+
+            mapping_pair (Tuple[Spinmap, Spinmap]) - mapping for alpha and \
+                beta electrons
         """
         self._fci_map[(dna, dnb)] = mapping_pair
 
 
-    def find_mapping(self, dna: int, dnb: int) -> Tuple[Dict[Tuple[int,int], List[Tuple[int,int,int]]], Dict[Tuple[int,int], List[Tuple[int,int,int]]]]:
+    def find_mapping(self, dna: int, dnb: int) -> Tuple[Spinmap, Spinmap]:
         """
-        Returns the pair of mappings that corresponds to dna and dnb (difference in the number of electrons for alpha and beta)
+        Returns the pair of mappings that corresponds to dna and dnb
+        (difference in the number of electrons for alpha and beta)
+
+        Args:
+            dna (int) - the difference in the number of alpha electrons
+
+            dnb (int) - the difference in the number of beta electrons
+
+        Returns:
+            (Tuple[Spinmap, Spinmap]) - mapping for alpha and beta electrons
         """
-        assert (dna, dnb) in self._fci_map 
+        assert (dna, dnb) in self._fci_map
         return self._fci_map[(dna, dnb)]
 
 
-    def build_mapping(self,
-                      strings: List[int],
-                      index: List[int]) -> Dict[Tuple[int,int], List[Tuple[int,int,int]]]:
+    def _build_mapping(self,
+                       strings: List[int],
+                       index: Dict[int, int]) -> Spinmap:
         """Construct the mapping of alpha string and beta string excitations
-        for a^_i a_j from the bitstrings contained in the fci_graph.
+        for :math:`a^\\dagger_i a_j` from the bitstrings contained in the fci_graph.
 
         Args:
-            strings (list(int)) - list of the the determinant bitstrings
-            index (list(int)) - list of the the determinant bitstrings
+            strings (List[int]) - list of the determinant bitstrings
+
+            index (Dict[int,int])) - list of the indices corresponding to the \
+                determinant bitstrings
         """
         out = {}
         norb = self._norb
@@ -90,7 +120,9 @@ class FciGraph:
                 for string in strings:
                     if get_bit(string, jorb) and not get_bit(string, iorb):
                         parity = count_bits_between(string, iorb, jorb)
-                        value.append((index[string], index[unset_bit(set_bit(string, iorb), jorb)], (-1)**parity))
+                        value.append((index[string],
+                                      index[unset_bit(set_bit(string, iorb), jorb)],
+                                      int((-1)**parity)))
                     elif iorb == jorb and get_bit(string, iorb):
                         value.append((index[string], index[string], 1))
                 out[(iorb, jorb)] = value
@@ -100,7 +132,16 @@ class FciGraph:
 
     def alpha_map(self, iorb: int, jorb: int) -> List[Tuple[int, int, int]]:
         """
-        Returns the Knowles-Handy mapping (within this FciGraph) for alpha electrons for i^+ j
+        Returns the Knowles-Handy mapping (within this FciGraph) for alpha electrons for
+        :math:`a^\\dagger_i a_j`
+
+        Args:
+            iorb (int) - orbital index for the creation operator
+
+            jorb (int) - orbital index for the annhilation operator
+
+        Returns:
+            (List[Tuple[int, int, int]]) - array of string mapping with phases
         """
         assert (iorb, jorb) in self._alpha_map.keys()
         return self._alpha_map[(iorb, jorb)]
@@ -108,7 +149,16 @@ class FciGraph:
 
     def beta_map(self, iorb: int, jorb: int) -> List[Tuple[int, int, int]]:
         """
-        Returns the Knowles-Handy mapping (within this FciGraph) for beta electrons for i^+ j
+        Returns the Knowles-Handy mapping (within this FciGraph) for beta electrons for
+        :math:`a^\\dagger_i a_j`
+
+        Args:
+            iorb (int) - orbital index for the creation operator
+
+            jorb (int) - orbital index for the annhilation operator
+
+        Returns:
+            (List[Tuple[int, int, int]]) - array of string mapping with phases
         """
         assert (iorb, jorb) in self._beta_map.keys()
         return self._beta_map[(iorb, jorb)]
@@ -144,15 +194,14 @@ class FciGraph:
         return self._norb
 
 
-    def build_strings(self, nele: int, length: int) -> Tuple[List[int]]:
+    def _build_strings(self, nele: int, length: int) -> Tuple[List[int], Dict[int, int]]:
         """Build all bitstrings for index the FCI and their lexicographic index
            for a single spin case.
 
         Args:
             nele (int) - number of electrons in this graph
+
             length (int) - the largest dimension of the graph
-            string_list list[bitstring] - an array holding the bitstrings
-                that we want to access
 
         Returns:
             An initialized string array for accessing configurations in the FCI
@@ -164,7 +213,7 @@ class FciGraph:
         for i in range(length):
             wbit = blist[i]
             occ = integer_index(wbit)
-            address = self.build_string_address(nele, self._norb, occ)
+            address = self._build_string_address(nele, self._norb, occ)
             string_list[address] = wbit
             index_list[wbit] = address
 
@@ -178,17 +227,9 @@ class FciGraph:
             address (int) - an integer pointing into the fcigraph
 
         Returns:
-            (bistring) - an occupation representation of the configuration
+            (bitstring) - an occupation representation of the configuration
         """
         return self._astr[address]
-
-
-    def string_alpha_all(self):
-        return self._astr
-
-
-    def string_beta_all(self):
-        return self._bstr
 
 
     def string_beta(self, address: int) -> int:
@@ -198,19 +239,31 @@ class FciGraph:
             address (int) - an integer pointing into the fcigraph
 
         Returns:
-            (bistring) - an occupation representation of the configuration
+            (bitstring) - an occupation representation of the configuration
         """
         return self._bstr[address]
+
+
+    def string_alpha_all(self) -> List[int]:
+        """Return all bitstrings for alpha occupied orbitals
+        """
+        return self._astr
+
+
+    def string_beta_all(self) -> List[int]:
+        """Return all bitstrings for beta occupied orbitals
+        """
+        return self._bstr
 
 
     def index_alpha(self, bit_string: int) -> int:
         """Retrieve the alpha index stored by it's bitstring
 
         Args:
-            address (int) - a bitstring in the fci space
+            bit_string (bitstring) - an occupation representation of the configuration
 
         Returns:
-            The fqeindex into the sector for that bitsring
+            address (int) - an integer pointing into the fcigraph
         """
         return self._aind[bit_string]
 
@@ -219,48 +272,59 @@ class FciGraph:
         """Retrieve the beta bitstring reprsentation stored at the address
 
         Args:
-            address (int) - an integer pointing into the fcigraph
+            bit_string (bitstring) - an occupation representation of the configuration
 
         Returns:
-            (bistring) - an occupation representation of the configuration
+            address (int) - an integer pointing into the fcigraph
         """
         return self._bind[bit_string]
 
 
-    def index_alpha_all(self):
+    def index_alpha_all(self) -> Dict[int, int]:
+        """Return the index and the corresponding occupation string for all
+        alpha strings
+        """
         return self._aind
 
 
-    def index_beta_all(self):
+    def index_beta_all(self) -> Dict[int, int]:
+        """Return the index and the corresponding occupation string for all
+        beta strings
+        """
         return self._bind
 
 
-    def build_string_address(self, nele: int, norb: int, occupation: List[int]) -> int:
+    def _build_string_address(self, nele: int, norb: int, occupation: List[int]) -> int:
         """Given a list of occupied orbitals in ascending order generate the
         index into the CI matrix.
-    
+
         Args:
             nele (int) - the number of electrons for a single spin case
+
             norb (int) - the number of spatial orbitals
+
             occupation (list[int]) - a list with integers indicating the index
                 of the occupied orbitals starting from 0
-    
+
         Returns:
             address (int) - A pointer into a spin a block of the CI addressing
                 system
         """
         det_addr = 0
-    
+
         def _addressing_array_element(norb: int, nele: int, el_i: int,
                                       or_i: int) -> int:
             """Calculate an addressing array element zar( el_i, or_i)
-    
+
             Args:
                 norb : Number of orbitals
+
                 nele : number of electrons in the state
+
                 el_i : index of the current electron
+
                 or_i : index of the current orbital
-    
+
             Returns:
                 int: weight associated with step on string graph
             """
@@ -268,19 +332,19 @@ class FciGraph:
                 zar = or_i - nele
             else:
                 zar = 0
-    
+
                 def _addressing_array_summand(oc_i: int, nmk: int) -> int:
                     """Calculate a summand in the addressing array
                     """
                     assert nmk > 0, '-1 meaningless in binomial address'
                     return binom(oc_i, nmk) - binom(oc_i-1, nmk-1)
-    
+
                 for i in range(norb-or_i+1, norb-el_i+1):
                     zar += _addressing_array_summand(i, nele-el_i)
-    
+
             return int(zar)
-    
+
         for i in range(1, nele+1):
             det_addr += _addressing_array_element(norb, nele, i, occupation[i-1]+1)
-    
+
         return int(det_addr)
