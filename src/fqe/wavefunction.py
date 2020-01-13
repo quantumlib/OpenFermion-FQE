@@ -522,16 +522,23 @@ class Wavefunction:
                                 hamil: 'hamiltonian.Hamiltonian',
                                 accuracy: float = 0.0,
                                 expansion: int = 30,
-                                spec_lim: List[int] = None) -> 'Wavefunction':
+                                spec_lim: Optional[List[float]] = None) -> 'Wavefunction':
         """Perform the exponentiation of fermionic algebras to the
         wavefunction according the method and accuracy.
 
         Args:
-            time_final (float) - the final time value to evolve to
+            time (float) - the final time value to evolve to
 
-            algo (string) - which algorithm should we use
+            algo (string) - polynomial expansion algorithm to be used
+
+            hamil (Hamiltonian) - the Hamiltonian used to generate the unitary
 
             accuracy (double) - the accuracy to which the system should be evolved
+
+            expansion (int) - the maximum number of terms in the polynomial expansion
+
+            spec_lim (List[float]) - spectral range of the Hamiltonian, the length of \
+                the list should be 2. Optional.
 
         Returns:
             newwfn (Wavefunction) - a new intialized wavefunction object

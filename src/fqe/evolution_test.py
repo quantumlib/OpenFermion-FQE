@@ -442,8 +442,8 @@ class EvolutionTest(unittest.TestCase):
 
 
         with self.subTest(nbody='four body'):
-            ops = FermionOperator('0^ 1^ 3^ 4^ 0 1 3 4', 1.0 + 0.j)
-            ops += FermionOperator('4^ 3^ 1^ 0^ 4 3 1 0', 1.0 + 0.j)
+            ops = FermionOperator('0^ 1^ 3^ 4^ 2 1 3 4', 1.0 + 0.j)
+            ops += FermionOperator('4^ 3^ 1^ 2^ 4 3 1 0', 1.0 + 0.j)
             sham = sparse_hamiltonian.SparseHamiltonian(norb, ops)
 
             h4e = hamiltonian_utils.nbody_matrix(ops, norb)

@@ -15,7 +15,7 @@
 intrinsics
 """
 
-from typing import Dict, Tuple, Union
+from typing import Dict, Tuple, Union, Optional, List
 from functools import wraps
 
 import copy
@@ -39,10 +39,24 @@ from fqe.fqe_ops import fqe_ops_utils
 
 
 def build_hamiltonian(ops: Union[FermionOperator, hamiltonian.Hamiltonian],
-                      norb=0,
-                      conserve_number=True,
-                      e_0=0. + 0.j):
+                      norb: int = 0,
+                      conserve_number: bool = True,
+                      e_0: complex = 0. + 0.j) -> 'hamiltonian.Hamiltonian':
     """Build a Hamiltonian object for the fqe
+
+    Args:
+        ops (FermionOperator, hamiltonian.Hamiltonian) - input operator as \
+            FermionOperator.  If a Hamiltonian is passed as an argument, \
+            this function returns as is.
+
+        norb (int) - the number of orbitals in the system
+
+        conserve_number (bool) - whether the operator conserves the number
+
+        e_0 (complex) - the scalar part of the operator
+
+    Returns:
+        (hamiltonian.Hamiltonian) - General Hamiltonian that is created from ops
     """
     if isinstance(ops, hamiltonian.Hamiltonian):
         return ops
@@ -105,9 +119,15 @@ def build_hamiltonian(ops: Union[FermionOperator, hamiltonian.Hamiltonian],
                                        e_0=e_0)
 
 
-def transform_to_spin_broken(ops):
+def transform_to_spin_broken(ops: 'FermionOperator') -> 'FermionOperator':
     """Convert a Fermion Operator string from number broken to spin broken
     operators.
+
+    Args:
+        ops (FermionOperator) - input FermionOperator
+
+    Returns:
+        (FermionOperator) - transformed FermionOperator to spin broken indexing
     """
     newstr = FermionOperator()
     for term in ops.terms:
@@ -161,8 +181,16 @@ def split_openfermion_tensor(ops: 'FermionOperator'
     return split, e_0
 
 
-def fermionops_tomatrix(ops, norb):
+def fermionops_tomatrix(ops: 'FermionOperator', norb: int) -> numpy.ndarray:
     """Convert FermionOperators to matrix
+
+    Args:
+        ops (FermionOperator) - input FermionOperator from OpenFermion
+
+        norb (int) - the number of orbitals in the system
+
+    Returns:
+        (numpy.ndarray) - resulting matrix
     """
     ablk, bblk = largest_operator_index(ops)
 
@@ -281,22 +309,27 @@ def fermion_op_to_rank2(ops: 'FermionOperator', norb: int = 0) -> Tuple[numpy.nd
     return h1e
 
 
-def process_rank2_matrix(mat,
-                         norb: int = 0,
+def process_rank2_matrix(mat: numpy.ndarray,
+                         norb: int,
                          conserve_number: bool = True,
                          e_0: complex = 0. + 0.j) -> 'hamiltonian.Hamiltonian':
     """Look at the structure of the (1, 0) component of the one body matrix and
     determine the symmetries.
+
+    Args:
+        mat (numpy.ndarray) - input matrix to be processed
+
+        norb (int) - the number of orbitals in the system
+
+        conserve_number (bool) - whether the Hamiltonian conserves the number
+
+        e_0 (copmlex) - scalar part of the Hamiltonian
+
+    Returns:
+        (Hamiltonian) - resulting Hamiltonian
     """
     if not numpy.allclose(mat, mat.conj().T):
-        diff = numpy.abs(mat - mat.conj().T)
-        index = numpy.unravel_index(diff.argmax(), diff.shape)
-        print('Element {} outside tolerance'.format(index))
-        print('{} != {} '.format(mat[index], mat[index[1], index[0]].conj()))
-        raise ValueError
-
-    if not norb:
-        norb = mat.shape[0]
+        raise ValueError('Input matrix is not Hermitian')
 
     diagonal = True
 
@@ -329,11 +362,18 @@ def process_rank2_matrix(mat,
                                           e_0=e_0)
 
 
-def check_diagonal_coulomb(mat) -> bool:
+def check_diagonal_coulomb(mat: numpy.ndarray) -> bool:
     """Look at the structure of the two body matrix and determine
     if it is diagonal coulomb
+
+    Args:
+        mat (numpy.ndarray) - input two-body Hamiltonian elements
+
+    Returns:
+        (bool) - whether mat is diagonal Coulomb
     """
     dim = mat.shape[0]
+    assert mat.shape == (dim, dim, dim, dim)
 
     for i in range(dim):
         for j in range(dim):
@@ -368,7 +408,12 @@ def wrap_apply(apply):
     """Decorator to convert arguments to the fqe internal classes
     """
     @wraps(apply)
-    def convert(self, ops):
+    def convert(self, ops: Union['FermionOperator', 'hamiltonian.Hamiltonian']):
+        """ Converts an FermionOperator to hamiltonian.Hamiltonian
+
+        Args:
+            ops (FermionOperator or Hamiltonian) - input operator
+        """
         hamil = build_hamiltonian(ops, conserve_number=self.conserve_number())
         return apply(self, hamil)
     return convert
@@ -378,7 +423,16 @@ def wrap_time_evolve(time_evolve):
     """Decorator to convert arguments to the fqe internal classes
     """
     @wraps(time_evolve)
-    def convert(self, time, ops):
+    def convert(self,
+                time: float,
+                ops: Union['FermionOperator', 'hamiltonian.Hamiltonian']):
+        """ Converts an FermionOperator to hamiltonian.Hamiltonian
+
+        Args:
+            time (float) - time to be propagated
+
+            ops (FermionOperator or Hamiltonian) - input operator
+        """
         hamil = build_hamiltonian(ops, conserve_number=self.conserve_number())
         return time_evolve(self, time, hamil)
     return convert
@@ -388,7 +442,33 @@ def wrap_apply_generated_unitary(apply_generated_unitary):
     """Decorator to convert arguments to the fqe internal classes
     """
     @wraps(apply_generated_unitary)
-    def convert(self, time, algo, ops, accuracy=0.0, expansion=30, spec_lim=None):
+    def convert(self,
+                time: float,
+                algo: str,
+                ops: Union['FermionOperator', 'hamiltonian.Hamiltonian'],
+                accuracy: float = 0.0,
+                expansion: int = 30,
+                spec_lim: Optional[List[float]] = None):
+        """Perform the exponentiation of fermionic algebras to the
+        wavefunction according the method and accuracy.
+
+        Args:
+            time (float) - the final time value to evolve to
+
+            algo (string) - polynomial expansion algorithm to be used
+
+            hamil (Hamiltonian) - the Hamiltonian used to generate the unitary
+
+            accuracy (double) - the accuracy to which the system should be evolved
+
+            expansion (int) - the maximum number of terms in the polynomial expansion
+
+            spec_lim (List[float]) - spectral range of the Hamiltonian, the length of \
+                the list should be 2. Optional.
+
+        Returns:
+            newwfn (Wavefunction) - a new intialized wavefunction object
+        """
         hamil = build_hamiltonian(ops, conserve_number=self.conserve_number())
         return apply_generated_unitary(self,
                                        time,
