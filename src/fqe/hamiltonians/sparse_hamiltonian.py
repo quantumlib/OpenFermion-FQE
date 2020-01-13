@@ -62,7 +62,9 @@ class SparseHamiltonian(hamiltonian.Hamiltonian):
         super().__init__(conserve_number=conserve_number, e_0=e_0)
 
         self._norb = norb
-        self._operators: List[Tuple[complex, List[int], List[int]]] = []
+        self._operators: List[Tuple[complex,
+                                    List[Tuple[int, int]],
+                                    List[Tuple[int, int]]]] = []
         self._conserve_spin = conserve_spin
         self._matrix_data: List[List[Any]] = []
 
@@ -83,11 +85,13 @@ class SparseHamiltonian(hamiltonian.Hamiltonian):
             coeff, phase, alpha_block, beta_block = \
                 hamiltonian_utils.gather_nbody_spin_sectors(oper)
 
+            alpha_out: List[Tuple[int, int]] = []
+            beta_out: List[Tuple[int, int]] = []
             for alpha in alpha_block:
-                alpha[0] = alpha[0]//2
+                alpha_out.append((alpha[0]//2, alpha[1]))
             for beta in beta_block:
-                beta[0] = beta[0]//2
-            self._operators.append((coeff*phase, alpha_block, beta_block))
+                beta_out.append((beta[0]//2, beta[1]))
+            self._operators.append((coeff*phase, alpha_out, beta_out))
 
 
     def dim(self) -> int:

@@ -388,7 +388,7 @@ class EvolutionTest(unittest.TestCase):
             result = wfn._evolve_individual_nbody(time, sham)
 
             hamil = general_hamiltonian.General(tuple([h1e]))
-            nbody_evol = wfn.apply_generated_unitary(time, 'taylor', hamil)
+            nbody_evol = wfn.apply_generated_unitary(time, 'taylor', hamil, accuracy=1.0e-8)
 
             result.ax_plus_y(-1.0, nbody_evol)
             self.assertTrue(result.norm() < 1.e-8)
@@ -412,7 +412,7 @@ class EvolutionTest(unittest.TestCase):
 
             h1e = numpy.zeros((2*norb, 2*norb), dtype=numpy.complex128)
             hamil = general_hamiltonian.General(tuple([h1e, h2e]))
-            nbody_evol = wfn.apply_generated_unitary(time, 'taylor', hamil)
+            nbody_evol = wfn.apply_generated_unitary(time, 'taylor', hamil, accuracy=1.0e-8)
 
             result.ax_plus_y(-1.0, nbody_evol)
             self.assertTrue(result.norm() < 1.e-8)
@@ -467,7 +467,6 @@ class EvolutionTest(unittest.TestCase):
             result.print_wfn()
             nbody_evol.print_wfn()
             result.ax_plus_y(-1.0, nbody_evol)
-            print(result.norm())
             self.assertTrue(result.norm() < 1.e-8)
 
 
@@ -604,6 +603,8 @@ class EvolutionTest(unittest.TestCase):
 
         rdms = wfn._compute_rdm(4)
         rdms1 = wfn._compute_rdm(1)
+        rdms1exp = wfn.expectationValue('i^ j')
+        rdms1val = wfn.expectationValue('0^ 0')
         rdms2 = wfn._compute_rdm(2)
         rdms3 = wfn._compute_rdm(3)
         energy2 = numpy.inner(rdms[0].flatten(), h1e.flatten()) \
@@ -613,6 +614,8 @@ class EvolutionTest(unittest.TestCase):
 
         self.assertAlmostEqual(energy, energy2)
         self.assertTrue(numpy.allclose(rdms[0], rdms1[0]))
+        self.assertTrue(numpy.allclose(rdms[0], rdms1exp))
+        self.assertTrue(numpy.abs(rdms1val - rdms[0].flat[0]) < 1.0e-8)
         self.assertTrue(numpy.allclose(rdms[0], rdms2[0]))
         self.assertTrue(numpy.allclose(rdms[1], rdms2[1]))
         self.assertTrue(numpy.allclose(rdms[2], rdms3[2]))
@@ -634,6 +637,20 @@ class EvolutionTest(unittest.TestCase):
         err = (evol_wfn - ref_wfn).norm()
         self.assertTrue(err < 1.e-8)
 
+        rdms = wfn._compute_rdm(4, evol_wfn)
+        rdms1 = wfn._compute_rdm(1, evol_wfn)
+        rdms1exp = wfn.expectationValue('i^ j', evol_wfn)
+        rdms1val = wfn.expectationValue('0^ 0', evol_wfn)
+        rdms1val2 = wfn.rdm('0^ 0', evol_wfn)
+        rdms2 = wfn._compute_rdm(2, evol_wfn)
+        rdms3 = wfn._compute_rdm(3, evol_wfn)
+        self.assertTrue(numpy.allclose(rdms[0], rdms1[0]))
+        self.assertTrue(numpy.allclose(rdms[0], rdms1exp))
+        self.assertTrue(numpy.abs(rdms1val - rdms[0].flat[0]) < 1.0e-8)
+        self.assertTrue(numpy.abs(rdms1val2 - rdms[0].flat[0]) < 1.0e-8)
+        self.assertTrue(numpy.allclose(rdms[0], rdms2[0]))
+        self.assertTrue(numpy.allclose(rdms[1], rdms2[1]))
+        self.assertTrue(numpy.allclose(rdms[2], rdms3[2]))
 
     def test_sso_four_body(self):
         """Evolution of four body hamiltonian with different alpha and beta

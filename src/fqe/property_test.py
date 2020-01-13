@@ -95,6 +95,7 @@ class TestFQE(unittest.TestCase):
         self.assertAlmostEqual(wfn.expectationValue(operator), 1. + 0.j)
         operator = number_op.NumberOperator()
         self.assertAlmostEqual(wfn.expectationValue(operator), 4. + 0.j)
+        self.assertAlmostEqual(wfn.expectationValue(operator, wfn), 4. + 0.j)
 
 
 if __name__ == '__main__':

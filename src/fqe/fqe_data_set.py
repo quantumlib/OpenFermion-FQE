@@ -271,8 +271,8 @@ class FqeDataSet:
             if (nalpha+nda, nbeta-nda) in self._data.keys():
                 target = self._data[(nalpha+nda, nbeta-nda)]
 
-                alphamap = []
-                betamap = []
+                alphamap: List[Tuple[int, int, int]] = []
+                betamap: List[Tuple[int, int, int]] = []
                 def make_mapping_each(alpha: bool) -> None:
                     (dag, undag) = (daga, undaga) if alpha else (dagb, undagb)
                     for index in range(source.lena() if alpha else source.lenb()):

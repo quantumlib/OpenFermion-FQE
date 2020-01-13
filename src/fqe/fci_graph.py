@@ -112,7 +112,7 @@ class FciGraph:
             index (Dict[int,int])) - list of the indices corresponding to the \
                 determinant bitstrings
         """
-        out = {}
+        out: Dict[Tuple[int, ...], List[Tuple[int, int, int]]] = {}
         norb = self._norb
         for iorb in range(norb): #excitation
             for jorb in range(norb): #deexcitation

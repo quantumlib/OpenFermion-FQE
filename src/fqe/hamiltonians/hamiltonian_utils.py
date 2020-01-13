@@ -24,7 +24,7 @@ import numpy
 
 from fqe.util import paritysort_list, reverse_bubble_list
 
-Newop = Tuple[complex, int, List[int], List[int]]
+Newop = Tuple[complex, int, List[Tuple[int, int]], List[Tuple[int, int]]]
 
 if TYPE_CHECKING:
     from openfermion import FermionOperator

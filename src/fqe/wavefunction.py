@@ -15,6 +15,9 @@
 """
 #zeros_like is incorrectly flagged by pylint
 #pylint: disable=unsupported-assignment-operation
+#there are many instances where access to protected members/methods simplify the
+#code structure. They are not exposed to the users, and therefore, harmless
+#pylint: disable=protected-access
 
 import copy
 import os
@@ -78,7 +81,7 @@ class Wavefunction:
                 electrons and the spin projection of the system.
         """
 
-        self._symmetry_map: Dict[Tuple[int, int], Dict[int, int]] = {}
+        self._symmetry_map: Dict[Tuple[int, int], Tuple[int, int]] = {}
         self._conserved: Dict[str, int] = {}
 
         self._conserve_spin: bool = False
@@ -194,9 +197,20 @@ class Wavefunction:
         self._civec[sector][key] = value
 
 
-    def copy_beta_restore(self, s_z, norb, map_symm):
+    def _copy_beta_restore(self, s_z: int,
+                           norb: int,
+                           map_symm: Dict[Tuple[int, int], Tuple[int, int]]
+                           ) -> 'Wavefunction':
         """Return a copy of the wavefunction with beta restored back to number
         breaking/spin conserving.
+
+        Args:
+            s_z (int) - the value of Sz
+
+            norb (int) - the number of orbitals in the system
+
+            map_symm (Dict[Tuple[int,int], Tuple[int,int]]) - dictionary that maps \
+                between number-conserved and spin-conserved wave function sectors
         """
         param = []
         if s_z >= 0:
@@ -252,7 +266,13 @@ class Wavefunction:
 
 
     def ax_plus_y(self, sval: complex, wfn: 'Wavefunction') -> None:
-        """Perform scale and add of the wavefunction
+        """Perform scale and add of the wavefunction. The result will be stored
+        in self.
+
+        Args:
+            sval (complex) - a factor to be multiplied to wfn
+
+            wfn (Wavefunction) - a wavefunction to be added to self
         """
         if self._civec.keys() != wfn._civec.keys():
             raise ValueError('inconsistent sectors in Wavefunction.ax_plus_y')
@@ -343,6 +363,12 @@ class Wavefunction:
     def apply(self, hamil: 'hamiltonian.Hamiltonian') -> 'Wavefunction':
         """ Returns a wavefunction subject to application of the Hamiltonian
         (or more generally, the operator).
+
+        Args:
+            hamil (Hamiltonian) - Hamiltonian to be applied
+
+        Returns:
+            (Wavefunction) - resulting wave function
         """
         if not self._conserve_number or not hamil.conserve_number():
             if self._conserve_number:
@@ -368,9 +394,9 @@ class Wavefunction:
                 transformed = out._apply_array(hamil.tensors(), hamil.e_0())
 
             if self._conserve_spin and not self._conserve_number:
-                transformed = transformed.copy_beta_restore(self._conserved['s_z'],
-                                                            self._norb,
-                                                            self._symmetry_map)
+                transformed = transformed._copy_beta_restore(self._conserved['s_z'],
+                                                             self._norb,
+                                                             self._symmetry_map)
 
         return transformed
 
@@ -409,7 +435,13 @@ class Wavefunction:
 
 
     def _apply_diagonal(self, hamil: 'diagonal_hamiltonian.Diagonal') -> 'Wavefunction':
-        """
+        """Applies the diagonal operator to the wavefunction
+
+        Args:
+            hamil (Diagonal) - diagonal Hamiltonian to be applied
+
+        Returns:
+            (Wavefunction) - resulting wave function
         """
         out = copy.deepcopy(self)
 
@@ -425,7 +457,12 @@ class Wavefunction:
     def _compute_rdm(self,
                      rank: int,
                      brawfn: 'Wavefunction' = None) -> Tuple[numpy.ndarray, ...]:
-        """compute RDM up to rank = rank
+        """Internal function that computes RDM up to rank = rank
+
+        Args:
+            rank (int) - the rank up to which RDMs are computed
+
+            brawfn (Wavefunction) - bra wavefunction for transition RDMs (optional)
         """
         assert rank > 0
         assert rank < 5
@@ -482,7 +519,7 @@ class Wavefunction:
     def apply_generated_unitary(self,
                                 time: float,
                                 algo: str,
-                                hamil: 'hamiltonian',
+                                hamil: 'hamiltonian.Hamiltonian',
                                 accuracy: float = 0.0,
                                 expansion: int = 30,
                                 spec_lim: List[int] = None) -> 'Wavefunction':
@@ -566,9 +603,9 @@ class Wavefunction:
             time_evol.scale(numpy.exp(-1.j*time*hamil.e_0()))
 
         if self._conserve_spin and not self._conserve_number:
-            time_evol = time_evol.copy_beta_restore(self._conserved['s_z'],
-                                                    self._norb,
-                                                    self._symmetry_map)
+            time_evol = time_evol._copy_beta_restore(self._conserved['s_z'],
+                                                     self._norb,
+                                                     self._symmetry_map)
         return time_evol
 
 
@@ -759,6 +796,17 @@ class Wavefunction:
         """Transform the wavefunction using the orbtial rotation matrix and
         return the new wavefunction and the permutation matrix for the unitary
         transformation. This is an internal code, so performs minimal checking
+
+        Args:
+            rotation (numpy.ndarray) - MO rotation matrix, which is unitary
+
+            low (numpy.ndarray) - L in the LU decomposition (optional)
+
+            upp (numpy.ndarray) - U in the LU decomposition (optional)
+
+        Returns:
+            (numpy.ndarray, numpy.ndarray, numpy.ndarray, 'Wavefunction') - \
+                permutation, L, U, and transformed wavefunction
         """
         norb = self._norb
         external = low is not None
@@ -770,7 +818,14 @@ class Wavefunction:
                                                      numpy.ndarray,
                                                      numpy.ndarray]:
             """Returns permutation, lower triangular, and upper triangular
-            matrices from the LU decomposition.
+            matrices from the LU decomposition. Note that the rotation matrix
+            is Hermitian conjugated.
+
+            Args:
+                rotmat (numpy.ndarray) - MO rotation matrix, which is unitary
+
+                (numpy.ndarray, numpy.ndarray, numpy.ndarray) - permutation, \
+                    L, and U from the LU decomposition.
             """
             tmat = rotmat.transpose().conjugate()
             return linalg.lu(tmat)
@@ -779,7 +834,18 @@ class Wavefunction:
         def transpose_matrix(low: numpy.ndarray,
                              upp: numpy.ndarray) -> Tuple[numpy.ndarray,
                                                           numpy.ndarray]:
-            """Returns Hermitian conjugate of the L and U factors
+            """Returns Hermitian conjugate of the L and U factors. The diagonal
+            elements are in the upper triagular matrix. This transposition seeks to
+            compensate the transposition in ludecomp above.
+
+            Args:
+                low (numpy.ndarray) - L in the LU decomposition
+
+                upp (numpy.ndarray) - U in the LU decomposition
+
+            Returns:
+                (numpy.ndarray, numpy.ndarray) - L and U after transposition \
+                    where L and U are lower- and upper-triangular, respectively
             """
             ndim = low.shape[0]
             assert low.shape[1] == ndim and upp.shape == (ndim, ndim)
@@ -794,6 +860,16 @@ class Wavefunction:
             return uppt.T.conj(), lowt.T.conj()
 
         def process_matrix(low: numpy.ndarray, upp: numpy.ndarray) -> numpy.ndarray:
+            """Returns an operator using which the wavefuction will be transformed.
+
+            Args:
+                low (numpy.ndarray) - L in the LU decomposition
+
+                upp (numpy.ndarray) - U in the LU decomposition
+
+            Returns:
+                (numpy.ndarray) - matrix elements of the transformation operator T
+            """
             ndim = low.shape[0]
             assert low.shape[1] == ndim and upp.shape == (ndim, ndim)
             unitmat = numpy.identity(ndim)
@@ -941,9 +1017,9 @@ class Wavefunction:
                 final_wfn = work_wfn.apply_generated_unitary(time, 'taylor', hamil)
 
             if self._conserve_spin and not self._conserve_number:
-                final_wfn = final_wfn.copy_beta_restore(self._conserved['s_z'],
-                                                        self._norb,
-                                                        self._symmetry_map)
+                final_wfn = final_wfn._copy_beta_restore(self._conserved['s_z'],
+                                                         self._norb,
+                                                         self._symmetry_map)
 
         if numpy.abs(hamil.e_0()) > 1.0e-15:
             final_wfn.scale(numpy.exp(-1.j*time*hamil.e_0()))
@@ -973,8 +1049,19 @@ class Wavefunction:
         return wfn
 
 
-    def expectationValue(self, ops, brawfn: 'Wavefunction' = None) -> Union[complex, numpy.ndarray]:
+    def expectationValue(self,
+                         ops: Union['fqe_operator.FqeOperator', 'hamiltonian.Hamiltonian'],
+                         brawfn: 'Wavefunction' = None) -> Union[complex, numpy.ndarray]:
         """Calculates expectation values given operators
+
+        Args:
+            ops (FqeOperator or Hamiltonian) - operator for which the expectation value is \
+                computed
+
+            brawfn (Wavefunction) - bra-side wave function for transition quantity (optional)
+
+        Returns:
+            (complex or numpy.ndarray) - resulting expectation value or RDM
         """
         if isinstance(ops, fqe_operator.FqeOperator):
             if brawfn:
@@ -1003,6 +1090,12 @@ class Wavefunction:
                                 hamil: 'sparse_hamiltonian.SparseHamiltonian') -> 'Wavefunction':
         """
         Applies an individual n-body operator to the wave function self.
+
+        Args:
+            hamil (SparseHamiltonian) - Sparse Hamiltonian to be applied to the wavefunction
+
+        Returns:
+            (Wavefunction) - resulting wavefunciton
         """
         assert isinstance(hamil, sparse_hamiltonian.SparseHamiltonian)
 
@@ -1046,6 +1139,12 @@ class Wavefunction:
         """Apply up to 4-body individual operator.
 
         This routine assumes the Hamiltonian is normal ordered.
+
+        Args:
+            hamil (SparseHamiltonian) - Sparse Hamiltonian using which the wavefunction is evolved
+
+        Returns:
+            (Wavefunction) - resulting wavefunciton
         """
 
         if not isinstance(hamil, sparse_hamiltonian.SparseHamiltonian):
@@ -1060,9 +1159,9 @@ class Wavefunction:
             [(coeff0, alpha0, beta0), (coeff1, alpha1, beta1)] = hamil.terms()
             check = True
             for aop in alpha0:
-                check &= [aop[0], aop[1] ^ 1] in alpha1
+                check &= (aop[0], aop[1] ^ 1) in alpha1
             for bop in beta0:
-                check &= [bop[0], bop[1] ^ 1] in beta1
+                check &= (bop[0], bop[1] ^ 1) in beta1
 
             if self._conserve_number:
                 if not check:
@@ -1071,9 +1170,9 @@ class Wavefunction:
             [(coeff0, alpha0, beta0), ] = hamil.terms()
             check = True
             for aop in alpha0:
-                check &= [aop[0], aop[1] ^ 1] in alpha0
+                check &= (aop[0], aop[1] ^ 1) in alpha0
             for bop in beta0:
-                check &= [bop[0], bop[1] ^ 1] in beta0
+                check &= (bop[0], bop[1] ^ 1) in beta0
 
             if self._conserve_number:
                 if not check:
@@ -1132,6 +1231,12 @@ class Wavefunction:
     def _apply_few_nbody(self, hamil: 'sparse_hamiltonian.SparseHamiltonian') -> 'Wavefunction':
         """ Applies SparseHamiltonian by looping over all of the operators.
         Useful when the operator is extremely sparse
+
+        Args:
+            hamil (SparseHamiltonian) - Sparse Hamiltonian to be applied to the wavefunction
+
+        Returns:
+            (Wavefunction) - resulting wavefunciton
         """
         out = copy.deepcopy(self)
         out.set_wfn(strategy="zero")
@@ -1145,15 +1250,27 @@ class Wavefunction:
 
 
     @wrap_rdm
-    def rdm(self, string: str, brawfn: Optional['Wavefunction'] = None) -> numpy.ndarray:
+    def rdm(self,
+            string: str,
+            brawfn: Optional['Wavefunction'] = None) -> Union[complex, numpy.ndarray]:
         """ Returns rank-1 RDM. The operator order is specified by string.
         Note that, if the entire RDM is requested for N-broken wave function,
         this returns a packed format.
+
+        Args:
+            string (str) - character strings that specify the quantity to be computed
+
+            brawfn (Wavefunction) - bra-side wave function for transition RDM (optional)
+
+        Returns:
+            Resulting RDM in numpy.ndarray or element in complex
         """
         rank = len(string.split()) // 2
         if any(char.isdigit() for char in string):
             result = self.apply(sparse_hamiltonian.SparseHamiltonian(self._norb, string))
-            return vdot(self, result)
+            if brawfn is None:
+                return vdot(self, result)
+            return vdot(brawfn, result)
 
         fqe_ops_utils.validate_rdm_string(string)
         rdm = list(self._compute_rdm(rank, brawfn))
