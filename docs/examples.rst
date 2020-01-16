@@ -67,7 +67,17 @@ An example when the spin and number symmetries are both conserved:
 
 .. code-block::
 
-    there has to be an example
+    norb = 4 
+    h1e = numpy.zeros((norb, norb), dtype=numpy.complex128) 
+    for i in range(norb): 
+        for j in range(norb): 
+            h1e[i, j] += (i+j) * 0.02 
+        h1e[i, i] += i * 2.0 
+
+    hamil = fqe.get_restricted_hamiltonian((h1e,)) 
+    wfn = fqe.Wavefunction([[4, 0, norb]]) 
+    wfn.set_wfn(strategy='random') 
+    evolved = wfn.time_evolve(time, hamil) 
 
 An example when the spin symmetry is broken (but the number symmetry is conserved):
 
@@ -91,10 +101,19 @@ Note that the Hamiltonian in this example is initialized from the FermionOperato
 .. code-block::
 
     norb = 4
-    wfn = fqe.get_spin_conserving_wavefunction(2, norb)
-    hamil = build_hamiltonian.number_nonconserving_fop(2, norb)
-    wfn.set_wfn(strategy='random')
-    evolved = wfn.time_evolve(time, hamil)
+    time = 0.001
+    wfn_spin = fqe.get_spin_conserving_wavefunction(2, norb)
+    hamil = FermionOperator('', 6.0)
+    for i in range(0, 2*norb, 2):
+        for j in range(0, 2*norb, 2):
+            opstring = str(i) + ' ' + str(j + 1)
+            hamil += FermionOperator(opstring, (i+1 + j*2)*0.1 - (i+1 + 2*(j + 1))*0.1j)
+            opstring = str(i) + '^ ' + str(j + 1) + '^ '
+            hamil += FermionOperator(opstring, (i+1 + j)*0.1 + (i+1 + j)*0.1j)
+    h_noncon = (hamil + hermitian_conjugated(hamil))/2.0
+
+    wfn_spin.set_wfn(strategy='random')
+    spin_evolved = wfn_spin.time_evolve(time, h_noncon)
 
 
 Diagonal Coulomb Operators

@@ -372,18 +372,14 @@ def get_hamiltonian_from_openfermion(ops: 'FermionOperator',
 
 
 def get_diagonalcoulomb_hamiltonian(h2e: 'numpy.ndarray',
-                                    conserve_number: bool = True,
                                     e_0: complex = 0. + 0.j
                                     ) -> 'diagonal_coulomb.DiagonalCoulomb':
     """Initialize a diagonal coulomb hamiltonian
     """
-    return diagonal_coulomb.DiagonalCoulomb(h2e,
-                                            conserve_number=conserve_number,
-                                            e_0=e_0)
+    return diagonal_coulomb.DiagonalCoulomb(h2e, e_0=e_0)
 
 
 def get_diagonal_hamiltonian(hdiag: 'numpy.ndarray',
-                             conserve_number: bool = True,
                              e_0: complex = 0. + 0.j
                              ) -> 'diagonal_hamiltonian.Diagonal':
     """Initialize a diagonal hamiltonian
@@ -391,73 +387,53 @@ def get_diagonal_hamiltonian(hdiag: 'numpy.ndarray',
     Args:
         hdiag (numpy.ndarray) - diagonal elements
 
-        conserve_number (bool) - whether the Hamiltonian conserves N
-
         e_0 (complex) - scalar part of the Hamiltonian
     """
-    return diagonal_hamiltonian.Diagonal(hdiag,
-                                         conserve_number=conserve_number,
-                                         e_0=e_0)
+    return diagonal_hamiltonian.Diagonal(hdiag, e_0=e_0)
 
 
 def get_general_hamiltonian(tensors: Tuple[numpy.ndarray, ...],
-                            conserve_number: bool = True,
                             e_0: complex = 0. + 0.j) -> 'general_hamiltonian.General':
     """Initialize the most general hamiltonian class.
 
     Args:
         tensors (Tuple[numpy.ndarray, ...]) - tensors for the Hamiltonian elements
 
-        conserve_number (bool) - whether the Hamiltonian conserves N
-
         e_0 (complex) - scalar part of the Hamiltonian
     """
-    return general_hamiltonian.General(tensors,
-                                       conserve_number=conserve_number,
-                                       e_0=e_0)
+    return general_hamiltonian.General(tensors, e_0=e_0)
 
 
 def get_gso_hamiltonian(tensors: Tuple[numpy.ndarray, ...],
-                        conserve_number: bool = True,
                         e_0: complex = 0. + 0.j) -> 'gso_hamiltonian.GSOHamiltonian':
     """Initialize the generalized spin orbital hamiltonian
 
     Args:
         tensors (Tuple[numpy.ndarray, ...]) - tensors for the Hamiltonian elements
 
-        conserve_number (bool) - whether the Hamiltonian conserves N
-
         e_0 (complex) - scalar part of the Hamiltonian
     """
-    return gso_hamiltonian.GSOHamiltonian(tensors,
-                                          conserve_number=conserve_number,
-                                          e_0=e_0)
+    return gso_hamiltonian.GSOHamiltonian(tensors, e_0=e_0)
 
 
 def get_restricted_hamiltonian(tensors: Tuple[numpy.ndarray, ...],
-                               conserve_number: bool = True,
                                e_0: complex = 0. + 0.j) -> 'restricted_hamiltonian.Restricted':
     """Initialize spin conserving spin restricted hamiltonian
 
     Args:
         tensors (Tuple[numpy.ndarray, ...]) - tensors for the Hamiltonian elements
 
-        conserve_number (bool) - whether the Hamiltonian conserves N
-
         e_0 (complex) - scalar part of the Hamiltonian
     """
-    return restricted_hamiltonian.Restricted(tensors,
-                                             conserve_number=conserve_number,
-                                             e_0=e_0)
+    return restricted_hamiltonian.Restricted(tensors, e_0=e_0)
 
 
-def get_nbody_hamilonian(norb: int,
-                         operators: Union['FermionOperator', str],
-                         conserve_spin: bool = True,
-                         conserve_number: bool = True,
-                         e_0: complex = 0. + 0.j
-                         ) -> 'sparse_hamiltonian.SparseHamiltonian':
-    """Initialize the nbody hamiltonaian
+def get_sparse_hamiltonian(norb: int,
+                           operators: Union['FermionOperator', str],
+                           conserve_spin: bool = True,
+                           e_0: complex = 0. + 0.j
+                           ) -> 'sparse_hamiltonian.SparseHamiltonian':
+    """Initialize the sparse hamiltonaian
 
     Args:
         norb (int) - the number of orbitals
@@ -467,29 +443,22 @@ def get_nbody_hamilonian(norb: int,
 
         conserve_spin (bool) - whether the Hamiltonian conserves Sz
 
-        conserve_number (bool) - whether the Hamiltonian conserves N
-
         e_0 (complex) - scalar part of the Hamiltonian
     """
     return sparse_hamiltonian.SparseHamiltonian(norb,
                                                 operators,
                                                 conserve_spin=conserve_spin,
-                                                conserve_number=conserve_number,
                                                 e_0=e_0)
 
 
 def get_sso_hamiltonian(tensors: Tuple[numpy.ndarray, ...],
-                        conserve_number: bool = True,
                         e_0: complex = 0. + 0.j) -> 'sso_hamiltonian.SSOHamiltonian':
     """Initialize the Spin-conserving Spin Orbital Hamiltonian
 
     Args:
         tensors (Tuple[numpy.ndarray, ...]) - tensors for the Hamiltonian elements
 
-        conserve_number (bool) - whether the Hamiltonian conserves N
-
         e_0 (complex) - scalar part of the Hamiltonian
     """
     return sso_hamiltonian.SSOHamiltonian(tensors,
-                                          conserve_number=conserve_number,
                                           e_0=e_0)

@@ -280,15 +280,35 @@ class OpenFermionUtilsTest(unittest.TestCase):
         and the set bit.
         """
         ref0 = [1, 0, 1]
+        ref0a = [1, 0, 0]
         ops0 = FermionOperator('0^', 1.0)
         ref1 = [0, 8, 1]
+        ref1a = [0, 8, 0]
         ops1 = FermionOperator('7^', 1.0)
+
+        ops2 = FermionOperator('0', 1.0)
+        ops3 = FermionOperator('7', 1.0)
+        ref23 = [0, 0, 0]
         for term in ops0.terms:
             self.assertListEqual(ref0,
                                  list(openfermion_utils.mutate_config(0, 0,
                                                                       term)))
+            self.assertListEqual(ref0a,
+                                 list(openfermion_utils.mutate_config(1, 0,
+                                                                      term)))
         for term in ops1.terms:
             self.assertListEqual(ref1,
+                                 list(openfermion_utils.mutate_config(0, 0,
+                                                                      term)))
+            self.assertListEqual(ref1a,
+                                 list(openfermion_utils.mutate_config(0, 8,
+                                                                      term)))
+        for term in ops2.terms:
+            self.assertListEqual(ref23,
+                                 list(openfermion_utils.mutate_config(0, 0,
+                                                                      term)))
+        for term in ops3.terms:
+            self.assertListEqual(ref23,
                                  list(openfermion_utils.mutate_config(0, 0,
                                                                       term)))
 
@@ -379,6 +399,3 @@ class OpenFermionUtilsTest(unittest.TestCase):
         self.assertEqual(ops1, split[1])
         self.assertEqual(ops2, split[2])
         self.assertEqual(ops3, split[3])
-
-if __name__ == '__main__':
-    unittest.main()

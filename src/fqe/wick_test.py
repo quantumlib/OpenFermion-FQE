@@ -42,14 +42,23 @@ class TestWick(unittest.TestCase):
         wfn = Wavefunction([[nele, s_z, norb]])
         numpy.random.seed(seed=1)
         wfn.set_wfn(strategy='random')
+        wfn.normalize()
         rdms = wfn._compute_rdm(4)
         out1 = wick.wick('k j^', list(rdms), True)
+        two = numpy.eye(norb, dtype=out1.dtype) * 2.0
+        self.assertRaises(ValueError, wick.wick, 'k0 j', list(rdms))
+        self.assertTrue(numpy.allclose(two - out1.T, rdms[0]))
+
+        self.assertRaises(ValueError, wick.wick, 'k^ l i^ j', list(rdms), True)
         out2 = wick.wick('k l i^ j^', list(rdms), True)
 
         h_1 = numpy.zeros_like(out1)
         for i in range(norb):
             h_1[:, :] += out2[:, i, :, i] / (norb*2 - nele - 1)
         self.assertAlmostEqual(numpy.std(out1 + h_1), 0.)
+
+        out2a = wick.wick('k l^ i^ j', list(rdms), True)
+        self.assertAlmostEqual(out2a[2, 3, 0, 1], - rdms[1][0, 3, 2, 1])
 
         out3 = wick.wick('k l m i^ j^ n^', list(rdms), True)
         h_2 = numpy.zeros_like(out2)

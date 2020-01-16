@@ -16,6 +16,7 @@
 """
 
 import sys
+import copy
 
 import unittest
 
@@ -137,6 +138,7 @@ class FqeDataTest(unittest.TestCase):
         self.assertRaises(ValueError, test.set_wfn, strategy='from_data')
         self.assertRaises(AttributeError, test.set_wfn, strategy='ones', raw_data=1)
         self.assertRaises(ValueError, test.set_wfn, strategy='onse')
+        self.assertRaises(ValueError, test.set_wfn, strategy='ones', raw_data=good1)
         self.assertRaises(ValueError, test.set_wfn, strategy='from_data',
                           raw_data=bad0)
         self.assertRaises(ValueError, test.set_wfn, strategy='from_data',
@@ -173,6 +175,23 @@ class FqeDataTest(unittest.TestCase):
         h1e = numpy.random.rand(4, 4)
         test.set_wfn(strategy='random')
         self.assertRaises(ValueError, test.evolve_diagonal, h1e)
+
+
+
+
+    def test_apply_diagonal_inplace(self):
+        """Check apply_diagonal_inplace for special cases
+        """
+        test = fqe_data.FqeData(1, 2, 4)
+        test.set_wfn(strategy='random')
+        bad_h1e = numpy.random.rand(6, 6)
+        self.assertRaises(ValueError, test.apply_diagonal_inplace, bad_h1e)
+        h1e = numpy.ones(8, dtype=numpy.complex128)
+        ref = copy.deepcopy(test)
+        print(ref.coeff)
+        test.apply_diagonal_inplace(h1e)
+        print(test.coeff)
+        self.assertTrue(numpy.allclose(ref.coeff * 3.0, test.coeff))
 
 
 
@@ -1266,7 +1285,3 @@ class FqeDataTest(unittest.TestCase):
         sys.stdout = save_stdout
         outstring = chkprint.getvalue()
         self.assertEqual(outstring, ref_string)
-
-
-if __name__ == '__main__':
-    unittest.main()

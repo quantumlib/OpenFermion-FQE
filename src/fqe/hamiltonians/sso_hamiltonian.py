@@ -33,7 +33,6 @@ class SSOHamiltonian(hamiltonian.Hamiltonian):
 
     def __init__(self,
                  tensors: Tuple[numpy.ndarray, ...],
-                 conserve_number: bool = True,
                  e_0: complex = 0. + 0.j) -> None:
         """
         Arguments:
@@ -43,14 +42,11 @@ class SSOHamiltonian(hamiltonian.Hamiltonian):
                 highest order must be included even if the lower terms are full \
                 of zeros.
 
-            conserve_number (bool) - a flag to indicate if the Hamiltonian and \
-                the wavefunction will be number conserving.
-
             e_0 (complex) - this is a scalar potential associated with the \
                 Hamiltonian.
         """
 
-        super().__init__(conserve_number, e_0=e_0)
+        super().__init__(e_0=e_0)
         self._tensor: Dict[int, numpy.ndarray] = {}
 
         for rank, matrix in enumerate(tensors):
@@ -67,12 +63,6 @@ class SSOHamiltonian(hamiltonian.Hamiltonian):
                 self._quadratic = True
 
         self._dim = list(self._tensor.values())[0].shape[0]
-
-
-    def h1e(self) -> numpy.ndarray:
-        """Return the one body matrix of the Hamiltonian
-        """
-        return self._tensor[2]
 
 
     def iht(self, time: float) -> Tuple[numpy.ndarray, ...]:

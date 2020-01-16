@@ -17,13 +17,15 @@
 import unittest
 
 import numpy
+from numpy import linalg
+from scipy.special import binom
 
 import fqe
 from fqe.wavefunction import Wavefunction
 from fqe.hamiltonians import general_hamiltonian
 from fqe.fqe_ops import s2_op, sz_op, tr_op, number_op
 
-from fqe.unittest_data import build_lih_data
+from fqe.unittest_data import build_lih_data, build_nh_data
 
 class TestFQE(unittest.TestCase):
     """Test class for properties
@@ -31,22 +33,21 @@ class TestFQE(unittest.TestCase):
 
 
     def test_lih_energy(self):
-        """Checking Total energy with LiH
+        """Checking total energy with LiH
         """
-        lih_ref = -8.87771987
+        eref = -8.877719570384043
         norb = 6
         nalpha = 2
         nbeta = 2
         nele = nalpha + nbeta
         h1e, h2e, lih_ground = build_lih_data.build_lih_data('energy')
 
-        elec_hamil = general_hamiltonian.General(tuple([h1e, h2e]))
+        elec_hamil = general_hamiltonian.General((h1e, h2e))
         wfn = Wavefunction([[nele, nalpha - nbeta, norb]])
         wfn.set_wfn(strategy='from_data', raw_data={(nele, nalpha - nbeta): lih_ground})
 
-        err = abs(wfn.expectationValue(elec_hamil) - lih_ref)
-        self.assertTrue(err < 1.e-6)
-
+        ecalc = wfn.expectationValue(elec_hamil)
+        self.assertAlmostEqual(eref, ecalc, places=8)
 
     def test_lih_dipole(self):
         """Calculate the LiH dipole
@@ -98,5 +99,3 @@ class TestFQE(unittest.TestCase):
         self.assertAlmostEqual(wfn.expectationValue(operator, wfn), 4. + 0.j)
 
 
-if __name__ == '__main__':
-    unittest.main()

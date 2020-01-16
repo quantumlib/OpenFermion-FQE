@@ -428,8 +428,8 @@ class Wavefunction:
             for _, nsector in nsectors.items():
                 nsector.apply_inplace(array)
 
-        if numpy.abs(e_0) > 1.e-16:
-            out.ax_plus_y(e_0, out)
+        if numpy.abs(e_0) > 1.e-15:
+            out.ax_plus_y(e_0, self)
 
         return out
 
@@ -449,7 +449,7 @@ class Wavefunction:
             sector.apply_diagonal_inplace(hamil.diag_values())
 
         if numpy.abs(hamil.e_0()) > 1.e-15:
-            out.ax_plus_y(hamil.e_0(), out)
+            out.ax_plus_y(hamil.e_0(), self)
 
         return out
 
@@ -1107,7 +1107,7 @@ class Wavefunction:
         assert isinstance(hamil, sparse_hamiltonian.SparseHamiltonian)
 
         if hamil.nterms() > 1:
-            raise Exception('Indivisual n-body code is called with multiple terms')
+            raise ValueError('Indivisual n-body code is called with multiple terms')
 
         [(coeff, alpha, beta)] = hamil.terms()
         daga = []
@@ -1128,7 +1128,7 @@ class Wavefunction:
                 undagb.append(oper[0])
 
         if len(daga)+len(dagb) != len(undaga)+len(undagb):
-            raise Exception('Number non-conserving operators specified')
+            raise ValueError('Number non-conserving operators specified')
 
         out = copy.deepcopy(self)
         if len(daga) == len(undaga) and len(dagb) == len(undagb):
@@ -1159,7 +1159,7 @@ class Wavefunction:
                             ' {}'.format(hamil))
 
         if hamil.nterms() > 2:
-            raise Exception('Indivisual n-body code is called with multiple terms')
+            raise ValueError('Indivisual n-body code is called with multiple terms')
 
         # check if everything is paired
         if hamil.nterms() == 2:
@@ -1172,7 +1172,7 @@ class Wavefunction:
 
             if self._conserve_number:
                 if not check:
-                    raise Exception('Operators in _evolve_individual_nbody is not Hermitian')
+                    raise ValueError('Operators in _evolve_individual_nbody is not Hermitian')
         else:
             [(coeff0, alpha0, beta0), ] = hamil.terms()
             check = True
@@ -1183,7 +1183,7 @@ class Wavefunction:
 
             if self._conserve_number:
                 if not check:
-                    raise Exception('Operators in _evolve_individual_nbody is not Hermitian')
+                    raise ValueError('Operators in _evolve_individual_nbody is not Hermitian')
             coeff0 *= 0.5
 
         daga = []
@@ -1211,7 +1211,7 @@ class Wavefunction:
                             + len(undaga) * (len(undaga) - 1) // 2 \
                             + len(undagb) * (len(undagb) - 1) // 2)
             if not numpy.abs(coeff0 - numpy.conj(coeff1)*parity) < 1.0e-8:
-                raise Exception('Coefficients in _evolve_individual_nbody is not Hermitian')
+                raise ValueError('Coefficients in _evolve_individual_nbody is not Hermitian')
 
         out = copy.deepcopy(self)
 
@@ -1251,7 +1251,7 @@ class Wavefunction:
             out += self._apply_individual_nbody(oper)
 
         if numpy.abs(hamil.e_0()) > 1.e-15:
-            out.ax_plus_y(hamil.e_0(), out)
+            out.ax_plus_y(hamil.e_0(), self)
 
         return out
 

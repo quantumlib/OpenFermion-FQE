@@ -32,16 +32,17 @@ class Hamiltonian(metaclass=ABCMeta):
     efficient.
     """
 
-    def __init__(self, conserve_number: bool = True, e_0: complex = 0. + 0.j):
+    def __init__(self, e_0: complex = 0. + 0.j):
         """All hamiltonians share two basic types of information.
 
         Args:
-            conserve_number (bool) - whether the Hamiltonian conserves the \
-                number symmetry
-
             e_0 (complex) - the scalar part of the Hamiltonian
+
+        Members:
+            self._conserve_number (bool) - whether the Hamiltonian conserves \
+                the number symmetry
         """
-        self._conserve_number = conserve_number
+        self._conserve_number = True 
         self._e_0 = e_0
 
 

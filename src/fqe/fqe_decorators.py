@@ -14,6 +14,8 @@
 """Utilities and decorators for converting external types into the fqe
 intrinsics
 """
+#there are two places where access to protected members improves code quality
+#pylint: disable=protected-access
 
 from typing import Dict, Tuple, Union, Optional, List
 from functools import wraps
@@ -64,7 +66,7 @@ def build_hamiltonian(ops: Union[FermionOperator, hamiltonian.Hamiltonian],
     if isinstance(ops, tuple):
         validate_tuple(ops)
 
-        return general_hamiltonian.General(ops, conserve_number=conserve_number, e_0=e_0)
+        return general_hamiltonian.General(ops, e_0=e_0)
 
     if not isinstance(ops, FermionOperator):
         raise TypeError('Expected FermionOperator' \
@@ -73,50 +75,54 @@ def build_hamiltonian(ops: Union[FermionOperator, hamiltonian.Hamiltonian],
     assert is_hermitian(ops)
 
     if len(ops.terms) <= 2:
-        return sparse_hamiltonian.SparseHamiltonian(norb,
-                                                    ops,
-                                                    conserve_number=conserve_number,
-                                                    e_0=e_0)
+        out = sparse_hamiltonian.SparseHamiltonian(norb,
+                                                   ops,
+                                                   e_0=e_0)
 
-    if not conserve_number:
-        ops = transform_to_spin_broken(ops)
+    else:
+        if not conserve_number:
+            ops = transform_to_spin_broken(ops)
 
-    ops = normal_ordered(ops)
+        ops = normal_ordered(ops)
 
-    ops_rank, e_0 = split_openfermion_tensor(ops)
+        ops_rank, e_0 = split_openfermion_tensor(ops)
 
-    norb = 0
-    for term in ops_rank.values():
-        ablk, bblk = largest_operator_index(term)
-        norb = max(norb + 1, ablk // 2 + 1, bblk // 2 + 1)
+        norb = 0
+        for term in ops_rank.values():
+            ablk, bblk = largest_operator_index(term)
+            norb = max(norb + 1, ablk // 2 + 1, bblk // 2 + 1)
 
-    ops_mat = {}
-    for rank, term in ops_rank.items():
-        ops_mat[rank] = fermionops_tomatrix(term, norb=norb)
+        ops_mat = {}
+        maxrank = 0
+        for rank, term in ops_rank.items():
+            index = rank // 2 - 1
+            ops_mat[index] = fermionops_tomatrix(term, norb)
+            maxrank = max(index, maxrank)
 
 
-    if len(ops_mat) == 1:
-        if 2 in ops_mat:
-            return process_rank2_matrix(ops_mat[2],
-                                        norb=norb,
-                                        conserve_number=conserve_number,
-                                        e_0=e_0)
-
-        if 4 in ops_mat:
-            if check_diagonal_coulomb(ops_mat[4]):
-                return diagonal_coulomb.DiagonalCoulomb(ops_mat[4], e_0=e_0)
-
-    for i in range(2, 9, 2):
-        if i not in ops_mat:
-            mat_dim = tuple([2*norb for _ in range(i)])
-            ops_mat[i] = numpy.zeros(mat_dim)
-
-    return general_hamiltonian.General(tuple([ops_mat[2],
-                                              ops_mat[4],
-                                              ops_mat[6],
-                                              ops_mat[8]]),
-                                       conserve_number=conserve_number,
+        if len(ops_mat) == 1 and (0 in ops_mat):
+            out = process_rank2_matrix(ops_mat[0],
+                                       norb=norb,
                                        e_0=e_0)
+        elif len(ops_mat) == 1 and \
+            (1 in ops_mat) and \
+            check_diagonal_coulomb(ops_mat[1]):
+            out = diagonal_coulomb.DiagonalCoulomb(ops_mat[1], e_0=e_0)
+
+        else:
+            for i in range(maxrank + 1):
+                if i not in ops_mat:
+                    mat_dim = tuple([2*norb for _ in range((i + 1)*2)])
+                    ops_mat[i] = numpy.zeros(mat_dim)
+
+            ops_mat2 = []
+            for i in range(maxrank + 1):
+                ops_mat2.append(ops_mat[i])
+
+            out = general_hamiltonian.General(tuple(ops_mat2), e_0=e_0)
+
+    out._conserve_number = conserve_number
+    return out
 
 
 def transform_to_spin_broken(ops: 'FermionOperator') -> 'FermionOperator':
@@ -194,27 +200,17 @@ def fermionops_tomatrix(ops: 'FermionOperator', norb: int) -> numpy.ndarray:
     """
     ablk, bblk = largest_operator_index(ops)
 
-    ablk = ablk // 2 + 1
-    bblk = (bblk - 1) // 2 + 1
-
-    if norb:
-        if norb < ablk:
-            raise ValueError('Highest alpha index exceeds the norb of orbitals')
-        if norb < bblk:
-            raise ValueError('Highest beta index exceeds the norb of orbitals')
-        dim = 2*norb
-
-    else:
-        dim = max(2*ablk, 2*bblk)
-
-    ablk = dim // 2
+    if norb <= ablk // 2:
+        raise ValueError('Highest alpha index exceeds the norb of orbitals')
+    if norb <= bblk // 2:
+        raise ValueError('Highest beta index exceeds the norb of orbitals')
 
     rank = ops.many_body_order()
 
     if rank % 2:
         raise ValueError('Odd rank operator not supported')
 
-    tensor_dim = [dim for _ in range(rank)]
+    tensor_dim = [norb * 2 for _ in range(rank)]
     index_mask = [0 for _ in range(rank)]
 
     tensor = numpy.zeros(tensor_dim, dtype=numpy.complex128)
@@ -234,7 +230,7 @@ def fermionops_tomatrix(ops: 'FermionOperator', norb: int) -> numpy.ndarray:
                                  'annihilation is expected')
 
             if index % 2:
-                ind = (index - 1) // 2 + ablk
+                ind = (index - 1) // 2 + norb
             else:
                 ind = index // 2
 
@@ -245,73 +241,8 @@ def fermionops_tomatrix(ops: 'FermionOperator', norb: int) -> numpy.ndarray:
     return tensor
 
 
-
-def fermion_op_to_rank2(ops: 'FermionOperator', norb: int = 0) -> Tuple[numpy.ndarray]:
-    """Convert a string of FermionOperators into the super matrix
-
-        | a^ a   a^ a^ |
-        | a  a   a  a^ |
-
-    Args:
-        ops (FermionOperator) - a string of FermionOperators
-
-    Returns:
-        numpy.array(dtype=numpy.complex128)
-    """
-    ablk, bblk = largest_operator_index(ops)
-
-    ablk = ablk // 2 + 1
-    bblk = (bblk - 1) // 2 + 1
-
-    if norb:
-        if norb < ablk:
-            raise ValueError('Highest alpha index exceeds the norb of orbitals')
-        if norb < bblk:
-            raise ValueError('Highest beta index exceeds the norb of orbitals')
-        dim = 2*norb
-
-    else:
-        dim = max(2*ablk, 2*bblk)
-
-    ablk = dim //2
-
-    h1e = numpy.zeros((2*dim, 2*dim), dtype=numpy.complex128)
-
-    if ops.many_body_order() != 2:
-        raise ValueError('Rank of operator not-equal 2')
-
-    for term in ops.terms:
-
-        left, right = term[0][0], term[1][0]
-
-        if left % 2:
-            ind = (left - 1) // 2 + ablk
-        else:
-            ind = left // 2
-
-        if right % 2:
-            jnd = (right - 1) // 2 + ablk
-        else:
-            jnd = right // 2
-
-        if term[0][1] and term[1][1]:
-            h1e[ind, jnd + dim] += ops.terms[term]
-
-        elif term[0][1] and not term[1][1]:
-            h1e[ind, jnd] += ops.terms[term]
-
-        elif not term[0][1] and term[1][1]:
-            h1e[ind + dim, jnd + dim] += ops.terms[term]
-
-        else:
-            h1e[ind + dim, jnd] += ops.terms[term]
-
-    return h1e
-
-
 def process_rank2_matrix(mat: numpy.ndarray,
                          norb: int,
-                         conserve_number: bool = True,
                          e_0: complex = 0. + 0.j) -> 'hamiltonian.Hamiltonian':
     """Look at the structure of the (1, 0) component of the one body matrix and
     determine the symmetries.
@@ -320,8 +251,6 @@ def process_rank2_matrix(mat: numpy.ndarray,
         mat (numpy.ndarray) - input matrix to be processed
 
         norb (int) - the number of orbitals in the system
-
-        conserve_number (bool) - whether the Hamiltonian conserves the number
 
         e_0 (copmlex) - scalar part of the Hamiltonian
 
@@ -341,24 +270,20 @@ def process_rank2_matrix(mat: numpy.ndarray,
 
     if diagonal:
         return diagonal_hamiltonian.Diagonal(mat.diagonal(),
-                                             conserve_number=conserve_number,
                                              e_0=e_0)
 
     if mat[norb:2*norb, :norb].any():
         return gso_hamiltonian.GSOHamiltonian(tuple([mat]),
-                                              conserve_number=conserve_number,
                                               e_0=e_0)
 
     if numpy.allclose(mat[:norb, :norb], mat[norb:, norb:]):
         return restricted_hamiltonian.Restricted(tuple([mat]),
-                                                 conserve_number=conserve_number,
                                                  e_0=e_0)
 
     spin_mat = numpy.zeros((norb, 2*norb), dtype=mat.dtype)
     spin_mat[:, :norb] = mat[:norb, :norb]
     spin_mat[:, norb: 2*norb] = mat[norb:, norb:]
     return sso_hamiltonian.SSOHamiltonian(tuple([spin_mat]),
-                                          conserve_number=conserve_number,
                                           e_0=e_0)
 
 

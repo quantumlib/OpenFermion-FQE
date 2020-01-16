@@ -64,7 +64,7 @@ def wick(target: str,
         """ input is the string. Returns a list of indices described by index
         label, dagger (or not), and spin numbers
         """
-        out = []
+        out: List[Tuple[str, bool, int]] = []
         used: List[str] = []
         rawinp = inp.split()
         assert len(rawinp) % 2 != 1
@@ -78,6 +78,10 @@ def wick(target: str,
 
             dagger = len(iop) == 2 and iop[1] == "^"
             ispin = 0 if not spinfree else index % nrank
+
+            for other in out:
+                if spinfree and other[2] == ispin and other[1] == dagger:
+                    raise ValueError('non-number conserving input to Wick')
             out.append((iop[0], dagger, ispin))
             used.append(iop[0])
         return out

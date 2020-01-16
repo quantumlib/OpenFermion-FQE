@@ -27,22 +27,18 @@ class DiagonalCoulomb(hamiltonian.Hamiltonian):
     """
 
     def __init__(self,
-                 h2e: 'numpy.ndarray',
-                 conserve_number: bool = True,
+                 h2e: numpy.ndarray,
                  e_0: complex = 0. + 0.j) -> None:
         """
         Args:
             h2e (numpy.array) - dense two-body tensor that contains Diagonal
                 Coulomb elements
 
-            conserve_number (bool) - a flag to indicate if the Hamiltonian and \
-                the wavefunction will be number conserving.
-
             e_0 (complex) - this is a scalar potential associated with the \
                 Hamiltonian.
         """
 
-        super().__init__(conserve_number=conserve_number, e_0=e_0)
+        super().__init__(e_0=e_0)
         diag = numpy.zeros(h2e.shape[0], dtype=h2e.dtype)
         self._dim = h2e.shape[0]
         self._tensor: Dict[int, 'numpy.ndarray'] = {}

@@ -49,13 +49,16 @@ class TimeReversalOp(fqe_operator.FqeOperator):
             nalpha, nbeta = alpha_beta_electrons(nele, nab)
             if nalpha < nbeta:
                 if not (nele, nbeta-nalpha) in out._civec.keys():
-                    raise Exception('The wave function space is not closed under time reversal')
+                    raise ValueError('The wave function space is not closed under time reversal')
                 sector2 = out._civec[(nele, nbeta-nalpha)]
                 tmp = numpy.copy(sector.coeff)
                 phase = (-1)**(nbeta*(nalpha+1))
                 phase2 = (-1)**(nalpha*(nbeta+1))
                 sector.coeff = sector2.coeff.T.conj() * phase2
                 sector2.coeff = tmp.T.conj() * phase
+            elif nalpha > nbeta: 
+                if not (nele, nbeta-nalpha) in out._civec.keys():
+                    raise ValueError('The wave function space is not closed under time reversal')
             elif nalpha == nbeta:
                 sector.coeff = sector.coeff.T.conj()
         return vdot(brastate, out)

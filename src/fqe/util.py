@@ -512,8 +512,6 @@ def dot(wfn1: 'wavefunction.Wavefunction', wfn2: 'wavefunction.Wavefunction') ->
     ketkeys = wfn2.sectors()
     keylist = [config for config in brakeys if config in ketkeys]
     ipval = .0 + .0j
-    if not keylist:
-        return ipval
     for sector in keylist:
         ipval += numpy.dot(wfn1.get_coeff(sector).flatten(),
                            wfn2.get_coeff(sector).flatten())
@@ -537,8 +535,6 @@ def vdot(wfn1: 'wavefunction.Wavefunction', wfn2: 'wavefunction.Wavefunction') -
     ketkeys = wfn2.sectors()
     keylist = [config for config in brakeys if config in ketkeys]
     ipval = .0 + .0j
-    if not keylist:
-        return ipval
     for config in keylist:
         ipval += numpy.vdot(wfn1.get_coeff(config).flatten(),
                             wfn2.get_coeff(config).flatten())
@@ -566,7 +562,3 @@ def zero_transform(string0: int, unocc: int, occ: int, norb: int) -> bool:
             return False
 
     return True
-
-
-if __name__ == '__main__':
-    print(map_broken_symmetry(2, 4))

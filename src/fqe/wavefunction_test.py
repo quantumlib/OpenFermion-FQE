@@ -17,6 +17,7 @@
 
 import os
 import sys
+import copy
 
 from io import StringIO
 
@@ -24,10 +25,14 @@ import unittest
 
 import numpy
 
+from openfermion import FermionOperator
+
 from fqe.wavefunction import Wavefunction
 from fqe import get_spin_conserving_wavefunction
 from fqe import get_number_conserving_wavefunction
-
+from fqe.hamiltonians import general_hamiltonian
+from fqe.hamiltonians import sparse_hamiltonian
+from fqe.hamiltonians import diagonal_hamiltonian
 
 from fqe.unittest_data import build_wfn, build_hamiltonian
 
@@ -55,6 +60,7 @@ class WavefunctionTest(unittest.TestCase):
         self.assertRaises(ValueError, test1.ax_plus_y, 1.0, test2)
         self.assertRaises(ValueError, test1.__add__, test2)
         self.assertRaises(ValueError, test1.__sub__, test2)
+        self.assertRaises(ValueError, test1.set_wfn, strategy='from_data')
 
 
     def test_general_functions(self):
@@ -77,6 +83,103 @@ class WavefunctionTest(unittest.TestCase):
         work = test1 - test2
         ref = numpy.zeros((4, 4), dtype=numpy.complex128)
         self.assertTrue(numpy.allclose(ref, work._civec[(2, 0)].coeff))
+
+
+    def test_apply_number(self):
+        norb = 4
+        test = numpy.random.rand(norb, norb)
+        diag = numpy.random.rand(norb*2)
+        diag2 = copy.deepcopy(diag)
+        e_0 = 0
+        for i in range(norb):
+            e_0 += diag[i + norb]
+            diag2[i + norb] = - diag[i + norb]
+        hamil = diagonal_hamiltonian.Diagonal(diag2, e_0=e_0)
+        hamil._conserve_number = False
+        wfn = Wavefunction([[4, 2, norb]], broken=['number'])
+        wfn.set_wfn(strategy='from_data', raw_data={(4, 2): test})
+        out1 = wfn.apply(hamil)
+
+        hamil = diagonal_hamiltonian.Diagonal(diag)
+        wfn = Wavefunction([[4, 2, norb]])
+        wfn.set_wfn(strategy='from_data', raw_data={(4, 2): test})
+        out2 = wfn.apply(hamil)
+
+        self.assertTrue(numpy.allclose(out1._civec[(4, 2)].coeff,
+                                       out2._civec[(4, 2)].coeff))
+
+
+    def test_apply_type_error(self):
+        data = numpy.zeros((2, 2), dtype=numpy.complex128)
+        wfn = Wavefunction([[2, 0, 2]], broken=['spin'])
+        hamil = general_hamiltonian.General((data, ))
+        hamil._conserve_number = False
+        self.assertRaises(TypeError, wfn.apply, hamil)
+        self.assertRaises(TypeError, wfn.time_evolve, 0.1, hamil)
+
+        wfn = Wavefunction([[2, 0, 2]], broken=['number'])
+        hamil = general_hamiltonian.General((data, ))
+        self.assertRaises(TypeError, wfn.apply, hamil)
+        self.assertRaises(TypeError, wfn.time_evolve, 0.1, hamil)
+
+
+    def test_apply_individual_nbody_error(self):
+        fop = FermionOperator('1^ 0')
+        fop += FermionOperator('2^ 0')
+        fop += FermionOperator('2^ 1')
+        hamil = sparse_hamiltonian.SparseHamiltonian(2, fop)
+        wfn = Wavefunction([[2, 0, 2]], broken=['spin'])
+        self.assertRaises(ValueError, wfn._apply_individual_nbody, hamil)
+        self.assertRaises(ValueError, wfn._evolve_individual_nbody, 0.1, hamil)
+
+        fop = FermionOperator('1^ 0')
+        fop += FermionOperator('2^ 0')
+        hamil = sparse_hamiltonian.SparseHamiltonian(2, fop)
+        self.assertRaises(ValueError, wfn._evolve_individual_nbody, 0.1, hamil)
+
+        fop = FermionOperator('1^ 0', 1.0)
+        fop += FermionOperator('0^ 1', 0.9)
+        hamil = sparse_hamiltonian.SparseHamiltonian(2, fop)
+        self.assertRaises(ValueError, wfn._evolve_individual_nbody, 0.1, hamil)
+
+        fop = FermionOperator('1^ 0^')
+        hamil = sparse_hamiltonian.SparseHamiltonian(2, fop)
+        self.assertRaises(ValueError, wfn._apply_individual_nbody, hamil)
+        self.assertRaises(ValueError, wfn._evolve_individual_nbody, 0.1, hamil)
+
+        self.assertRaises(TypeError, wfn._evolve_individual_nbody, 0.1, 1)
+
+
+    def test_apply_diagonal(self):
+        wfn = Wavefunction([[2, 0, 2]])
+        wfn.set_wfn(strategy='random')
+
+        data = numpy.random.rand(2)
+        hamil = diagonal_hamiltonian.Diagonal(data)
+        out1 = wfn._apply_diagonal(hamil)
+
+        fac = 0.5
+        hamil = diagonal_hamiltonian.Diagonal(data, e_0=fac)
+        out2 = wfn._apply_diagonal(hamil)
+        out2.ax_plus_y(-fac, wfn)
+        self.assertTrue((out1 - out2).norm() < 1.0e-8)
+
+
+    def test_apply_nbody(self):
+        wfn = Wavefunction([[2, 0, 2]])
+        wfn.set_wfn(strategy='random')
+
+        fac = 3.14
+        fop = FermionOperator('1^ 1', fac)
+        hamil = sparse_hamiltonian.SparseHamiltonian(2, fop)
+        out1 = wfn._apply_few_nbody(hamil)
+
+        fop = FermionOperator('1 1^', fac)
+        hamil = sparse_hamiltonian.SparseHamiltonian(2, fop)
+        out2 = wfn._apply_few_nbody(hamil)
+        out2.scale(-1.0)
+        out2.ax_plus_y(fac, wfn)
+        self.assertTrue((out1 - out2).norm() < 1.0e-8)
 
 
     def test_rdm(self):
@@ -102,6 +205,11 @@ class WavefunctionTest(unittest.TestCase):
         self.assertAlmostEqual(expval, energy)
 
 
+    def test_expectatoin_value_type_error(self):
+        wfn = Wavefunction([[4, 0, 4]])
+        self.assertRaises(TypeError, wfn.expectationValue, 1)
+
+
     def test_save_read(self):
         """Check that the wavefunction can be properly archived and
         retieved
@@ -120,10 +228,7 @@ class WavefunctionTest(unittest.TestCase):
         self.assertEqual(read_wfn._conserve_number, wfn._conserve_number)
         self.assertEqual(read_wfn._norb, wfn._norb)
 
-        try:
-            os.remove('test_save_read')
-        except:
-            print('Could not remove temporary wavefunction file')
+        os.remove('test_save_read')
 
         wfn = get_spin_conserving_wavefunction(2, 6)
         wfn.set_wfn(strategy='random')
@@ -138,10 +243,7 @@ class WavefunctionTest(unittest.TestCase):
         self.assertEqual(read_wfn._conserve_number, wfn._conserve_number)
         self.assertEqual(read_wfn._norb, wfn._norb)
 
-        try:
-            os.remove('test_save_read')
-        except:
-            print('Could not remove temporary wavefunction file')
+        os.remove('test_save_read')
 
 
     def test_wavefunction_print(self):

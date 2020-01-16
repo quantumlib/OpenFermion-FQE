@@ -13,11 +13,13 @@
 ../src/fqe/fci_graph_test.py
 ../src/fqe/fqe_data.py
 ../src/fqe/fqe_data_set.py
+../src/fqe/fqe_data_set_test.py
 ../src/fqe/fqe_data_test.py
 ../src/fqe/fqe_decorators.py
 ../src/fqe/fqe_decorators_test.py
 ../src/fqe/fqe_ops/__init__.py
 ../src/fqe/fqe_ops/fqe_operator.py
+../src/fqe/fqe_ops/fqe_operator_test.py
 ../src/fqe/fqe_ops/fqe_ops_test.py
 ../src/fqe/fqe_ops/fqe_ops_utils.py
 ../src/fqe/fqe_ops/fqe_ops_utils_test.py
@@ -47,6 +49,7 @@
 ../src/fqe/unittest_data/__init__.py
 ../src/fqe/unittest_data/build_hamiltonian.py
 ../src/fqe/unittest_data/build_lih_data.py
+../src/fqe/unittest_data/build_nh_data.py
 ../src/fqe/unittest_data/build_wfn.py
 ../src/fqe/util.py
 ../src/fqe/util_test.py

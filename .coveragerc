@@ -1,0 +1,6 @@
+[run]
+omit =
+    src/fqe/unittest_data/build_nh_data.py
+[report]
+exclude_lines = 
+    if TYPE_CHECKING:

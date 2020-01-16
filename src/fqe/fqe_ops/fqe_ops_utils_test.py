@@ -27,6 +27,12 @@ class TestFqeUtils(unittest.TestCase):
     def test_validate_rdm_string(self):
         """Check that the string passed in to rdm access is valid.
         """
+        bad = '1d 2'
+        self.assertRaises(TypeError, fqe_ops_utils.validate_rdm_string, bad)
+        bad = 'td s'
+        self.assertRaises(TypeError, fqe_ops_utils.validate_rdm_string, bad)
+        bad = 't^ s^'
+        self.assertRaises(ValueError, fqe_ops_utils.validate_rdm_string, bad)
         rdm1 = '1^ 2'
         rdm2 = '7^ 8 23 1^'
         rdm3 = '0^ 1 2^ 3 4^ 5'
@@ -55,3 +61,4 @@ class TestFqeUtils(unittest.TestCase):
         self.assertEqual('0^ 1 4^ 6 5 7^', fqe_ops_utils.switch_broken_symmetry(numberbroken))
         spinbroken = '0^ 6 7^ 2 10^ 5'
         self.assertEqual('0^ 6 7 2 10^ 5^', fqe_ops_utils.switch_broken_symmetry(spinbroken))
+        self.assertEqual('t^ s', fqe_ops_utils.switch_broken_symmetry('t^ s'))

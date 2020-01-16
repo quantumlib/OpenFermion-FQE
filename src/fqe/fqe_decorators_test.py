@@ -29,9 +29,11 @@ from fqe.hamiltonians import diagonal_coulomb
 from fqe.hamiltonians import diagonal_hamiltonian
 
 from fqe.fqe_decorators import split_openfermion_tensor
-from fqe.fqe_decorators import fermion_op_to_rank2
 from fqe.fqe_decorators import build_hamiltonian
 from fqe.fqe_decorators import transform_to_spin_broken
+from fqe.fqe_decorators import fermionops_tomatrix
+from fqe.fqe_decorators import process_rank2_matrix
+from fqe.fqe_decorators import check_diagonal_coulomb
 
 class TestFqedecorators(unittest.TestCase):
     """Fqe decorators test class
@@ -73,66 +75,30 @@ class TestFqedecorators(unittest.TestCase):
                 self.assertRaises(ValueError, split_openfermion_tensor, ops[rank])
 
 
-    def test_build_rank2_matrix(self):
-        """Rank two matrices have several special cases which must be
-        initialized
-        """
-        # === numpy control options ===
-        numpy.set_printoptions(floatmode='fixed', precision=6, linewidth=200, suppress=True)
-        numpy.random.seed(seed=409)
+    def test_fermoinops_tomatrix(self):
+        norb = 4
+        ops = FermionOperator('9^ 1')
+        self.assertRaises(ValueError, fermionops_tomatrix, ops, norb)
+        ops = FermionOperator('10^ 4')
+        self.assertRaises(ValueError, fermionops_tomatrix, ops, norb)
+        ops = FermionOperator('3^ 1 4')
+        self.assertRaises(ValueError, fermionops_tomatrix, ops, norb)
+        ops = FermionOperator('3 1')
+        self.assertRaises(ValueError, fermionops_tomatrix, ops, norb)
+        ops = FermionOperator('3^ 1^')
+        self.assertRaises(ValueError, fermionops_tomatrix, ops, norb)
 
+
+    def test_process_rank2_matrix(self):
+        numpy.random.seed(seed=409)
         norb = 2
         raw = numpy.random.rand(8, 8) + 1.j*numpy.random.rand(8, 8)
-        hermitian = raw + raw.conj().T
+        self.assertRaises(ValueError, process_rank2_matrix, raw, 0)
 
-        opstr = FermionOperator()
 
-        for i in range(norb):
-            for j in range(norb):
-                opstr += FermionOperator(str(2*i) + '^ ' + str(2*j),
-                                         hermitian[i, j])
-                opstr += FermionOperator(str(2*i) + '^ ' + str(2*j + 1),
-                                         hermitian[i, j + norb])
-                opstr += FermionOperator(str(2*i + 1) + '^ ' + str(2*j),
-                                         hermitian[i + norb, j])
-                opstr += FermionOperator(str(2*i + 1) + '^ ' + str(2*j + 1),
-                                         hermitian[i + norb, j + norb])
-
-        for i in range(norb):
-            for j in range(norb):
-                opstr += FermionOperator(str(2*i) + '^ ' + str(2*j) + '^ ',
-                                         hermitian[i, j + 2*norb])
-                opstr += FermionOperator(str(2*i) + '^ ' + str(2*j + 1) + '^ ',
-                                         hermitian[i, j + 3*norb])
-                opstr += FermionOperator(str(2*i + 1) + '^ ' + str(2*j) + '^ ',
-                                         hermitian[i + norb, j + 2*norb])
-                opstr += FermionOperator(str(2*i + 1) + '^ ' + str(2*j + 1) + '^ ',
-                                         hermitian[i + norb, j + 3*norb])
-
-        for i in range(norb):
-            for j in range(norb):
-                opstr += FermionOperator(str(2*i) + ' ' + str(2*j),
-                                         hermitian[i + 2*norb, j])
-                opstr += FermionOperator(str(2*i) + ' ' + str(2*j + 1),
-                                         hermitian[i + 2*norb, j + norb])
-                opstr += FermionOperator(str(2*i + 1) + ' ' + str(2*j),
-                                         hermitian[i + 3*norb, j])
-                opstr += FermionOperator(str(2*i + 1) + ' ' + str(2*j + 1),
-                                         hermitian[i + 3*norb, j + norb])
-
-        for i in range(norb):
-            for j in range(norb):
-                opstr += FermionOperator(str(2*i) + ' ' + str(2*j) + '^ ',
-                                         hermitian[i + 2*norb, j + 2*norb])
-                opstr += FermionOperator(str(2*i) + ' ' + str(2*j + 1) + '^ ',
-                                         hermitian[i + 2*norb, j + 3*norb])
-                opstr += FermionOperator(str(2*i + 1) + ' ' + str(2*j) + '^ ',
-                                         hermitian[i + 3*norb, j + 2*norb])
-                opstr += FermionOperator(str(2*i + 1) + ' ' + str(2*j + 1) + '^ ',
-                                         hermitian[i + 3*norb, j + 3*norb])
-
-        test_hamil = fermion_op_to_rank2(opstr)
-        self.assertTrue(numpy.allclose(test_hamil, hermitian))
+    def test_check_diagonal_coulomb(self):
+        mat = numpy.random.rand(4, 4, 4, 4)
+        self.assertTrue(not check_diagonal_coulomb(mat))
 
 
     def test_transform_to_spin_broken(self):
@@ -153,6 +119,7 @@ class TestFqedecorators(unittest.TestCase):
     def test_build_hamiltonian_paths(self):
         """Check that all cases of hamiltonian objects are built
         """
+        self.assertRaises(TypeError, build_hamiltonian, 0)
         with self.subTest(name='general'):
             ops = FermionOperator('1^ 4^ 0 3', 1.0) \
                   + FermionOperator('0^ 5^ 3 2^ 4^ 1 7 6', 1.2) \

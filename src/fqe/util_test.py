@@ -67,6 +67,18 @@ class UnitTest(unittest.TestCase):
         self.assertEqual(2, util.bubblesort(test_list))
 
 
+    def test_reverse_bubblesort_permutation_count(self):
+        """ Make sure that we are counting the correct number of permutations
+        to sort the list
+        """
+        test_list = [[0, 0], [1, 0]]
+        self.assertEqual(1, util.reverse_bubble_list(test_list))
+        test_list = [[0, 0], [1, 0], [2, 0]]
+        self.assertEqual(3, util.reverse_bubble_list(test_list))
+        test_list = [[0, 0], [2, 0], [1, 0]]
+        self.assertEqual(2, util.reverse_bubble_list(test_list))
+
+
     def test_configuration_key_union_empty(self):
         """The union of no configuration keys should be an empty list
         """

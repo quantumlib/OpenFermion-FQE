@@ -17,6 +17,7 @@
 import unittest
 
 from fqe.fqe_ops import s2_op, sz_op, tr_op, number_op
+from fqe import wavefunction
 
 
 class TestFqeOps(unittest.TestCase):
@@ -39,3 +40,8 @@ class TestFqeOps(unittest.TestCase):
         num = number_op.NumberOperator()
         self.assertEqual(num.representation(), 'N')
         self.assertEqual(num.rank(), 2)
+
+        wfn = wavefunction.Wavefunction([[4, 2, 4], [4, 0, 4]])
+        self.assertRaises(ValueError, t_r.contract, wfn, wfn)
+        wfn = wavefunction.Wavefunction([[4, -2, 4], [4, 0, 4]])
+        self.assertRaises(ValueError, t_r.contract, wfn, wfn)

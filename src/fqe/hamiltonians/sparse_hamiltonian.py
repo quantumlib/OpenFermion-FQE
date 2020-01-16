@@ -35,7 +35,6 @@ class SparseHamiltonian(hamiltonian.Hamiltonian):
                  norb: int,
                  operators: Union[FermionOperator, str],
                  conserve_spin: bool = True,
-                 conserve_number: bool = True,
                  e_0: complex = 0. + 0.j) -> None:
         """
         Args:
@@ -45,8 +44,6 @@ class SparseHamiltonian(hamiltonian.Hamiltonian):
                 coefficient in the FermionOperator format.
 
             conserve_spin (bool) - whether or not to conserve the Sz symmetry
-
-            conserve_number (bool) - whether or not to conserve the N symmetry
 
             e_0 (complex) - scalar part of the Hamiltonian
         """
@@ -59,7 +56,7 @@ class SparseHamiltonian(hamiltonian.Hamiltonian):
         if work is not None:
             e_0 += work
 
-        super().__init__(conserve_number=conserve_number, e_0=e_0)
+        super().__init__(e_0=e_0)
 
         self._norb = norb
         self._operators: List[Tuple[complex,
