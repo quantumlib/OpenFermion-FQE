@@ -21,6 +21,8 @@ import unittest
 from typing import Tuple
 
 import numpy
+from openfermion import FermionOperator
+
 from fqe.hamiltonians import hamiltonian
 from fqe.hamiltonians import diagonal_coulomb
 from fqe.hamiltonians import diagonal_hamiltonian
@@ -29,7 +31,6 @@ from fqe.hamiltonians import sso_hamiltonian
 from fqe.hamiltonians import restricted_hamiltonian
 from fqe.hamiltonians import sparse_hamiltonian
 from fqe.hamiltonians import general_hamiltonian
-from openfermion import FermionOperator
 
 class TestHamiltonian(unittest.TestCase):
     """Test class for the base Hamiltonian
@@ -118,6 +119,7 @@ class TestHamiltonian(unittest.TestCase):
         self.assertEqual(test.dim(), 5)
         self.assertEqual(test.rank(), 2)
         self.assertTrue(numpy.allclose(h1e, test.tensor(2)))
+        self.assertRaises(TypeError, gso_hamiltonian.GSOHamiltonian, "test")
 
 
     def test_sso(self):
@@ -128,6 +130,7 @@ class TestHamiltonian(unittest.TestCase):
         self.assertEqual(test.dim(), 5)
         self.assertEqual(test.rank(), 2)
         self.assertTrue(numpy.allclose(h1e, test.tensor(2)))
+        self.assertRaises(TypeError, sso_hamiltonian.SSOHamiltonian, "test")
 
 
     def test_restricted(self):
@@ -138,6 +141,9 @@ class TestHamiltonian(unittest.TestCase):
         self.assertEqual(test.dim(), 5)
         self.assertEqual(test.rank(), 2)
         self.assertTrue(numpy.allclose(h1e, test.tensor(2)))
+        self.assertRaises(TypeError,
+                          restricted_hamiltonian.Restricted,
+                          "test")
 
 
     def test_general_hamiltonian(self):
@@ -156,6 +162,7 @@ class TestHamiltonian(unittest.TestCase):
         for i in range(h1e.shape[0]):
             h1e[i, i] = 0.0
         self.assertTrue(numpy.std(h1e) < 1.0e-8)
+        self.assertRaises(TypeError, general_hamiltonian.General, "test")
 
 
     def test_sparse(self):

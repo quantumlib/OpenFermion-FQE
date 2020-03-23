@@ -48,6 +48,8 @@ class GSOHamiltonian(hamiltonian.Hamiltonian):
         self._tensor: Dict[int, numpy.ndarray] = {}
 
         for rank, matrix in enumerate(tensors):
+            if not (isinstance(rank, int) and isinstance(matrix, numpy.ndarray)):
+                raise TypeError("tensors should be a tuple of numpy.ndarray")
             assert (matrix.ndim % 2) == 0
 
             self._tensor[2*(rank + 1)] = matrix
