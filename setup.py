@@ -56,10 +56,10 @@ def main() -> None:
     setup(
         name='fqe',
         version=__version__,
-        author='Quantum Simulation Technologies Inc.',
-        author_email='throssell@qsimulate.com',
+        author='The OpenFermion FQE Developers',
+        author_email='help@openfermion.org',
         url='http://www.openfermion.org',
-        description=('Fermionic Quantum Emulator for OpenFermion'),
+        description=('OpenFermion Fermionic Quantum Emulator'),
         long_description=long_description,
         install_requires=requirements,
         license='Apache 2',
