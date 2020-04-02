@@ -109,3 +109,6 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# pycharm-env
+.idea
