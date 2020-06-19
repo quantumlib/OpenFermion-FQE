@@ -62,7 +62,6 @@ class FqeData:
             norb (int) - the number of spatial orbitals
             fcigraph (optional, ...)
         """
-
         validate_config(nalpha, nbeta, norb)
 
         if not (fcigraph is None) and (nalpha != fcigraph.nalpha() or \
@@ -73,7 +72,6 @@ class FqeData:
             self._core = FciGraph(nalpha, nbeta, norb)
         else:
             self._core = fcigraph
-
         self._dtype = dtype
         self._low_thresh = 0.3
         self._nele = self._core.nalpha() + self._core.nbeta()

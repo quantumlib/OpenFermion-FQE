@@ -17,7 +17,7 @@ frequently used operations.
 
 from typing import Generator, List
 
-from itertools import permutations
+from itertools import combinations
 
 
 def check_conserved_bits(str0: int, conserved: int) -> bool:
@@ -98,10 +98,11 @@ def lexicographic_bitstring_generator(str0: int, norb: int) -> List[int]:
     """
     out = []
     gs_bs = '{0:b}'.format(str0).zfill(norb)
-    bits_set = set(permutations(gs_bs))
-    for string in bits_set:
-        out.append(int(''.join(string), 2))
-
+    gs_bs = [int(x) for x in gs_bs]
+    n_elec = sum(gs_bs)
+    n_orbs = len(gs_bs)
+    for ones_positions in combinations(range(n_orbs), n_elec):
+        out.append(sum([2**z for z in ones_positions]))  # convert directly to int
     return sorted(out)
 
 

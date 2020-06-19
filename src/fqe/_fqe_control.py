@@ -238,6 +238,8 @@ def from_cirq(state: numpy.ndarray, thresh: float) -> 'wavefunction.Wavefunction
         for orb in occ:
             if numpy.absolute(state[orb[0]]) > thresh:
                 param.append([pnum, orb[1], norb])
+    param = set([tuple(p) for p in param])
+    param = [list(x) for x in param]
     wfn = wavefunction.Wavefunction(param)
     transform.from_cirq(wfn, state)
     return wfn
