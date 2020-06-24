@@ -100,13 +100,13 @@ class Wavefunction:
 
         if param:
             for i in param:
+                if i[2] != self._norb:
+                    raise ValueError('Number of orbitals is not consistent')
+
+            for i in param:
                 self._norb = i[2]
                 nalpha, nbeta = alpha_beta_electrons(i[0], i[1])
                 self._civec[(i[0], i[1])] = FqeData(nalpha, nbeta, self._norb)
-
-            for i in param:
-                if i[2] != self._norb:
-                    raise ValueError('Number of orbitals is not consistent')
 
             if self._conserve_number:
                 self._conserved['n'] = param[0][0]
