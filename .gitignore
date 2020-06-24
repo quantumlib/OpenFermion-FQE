@@ -112,3 +112,6 @@ dmypy.json
 
 # pycharm-env
 .idea
+
+# mac DS_STore
+*.DS_Store

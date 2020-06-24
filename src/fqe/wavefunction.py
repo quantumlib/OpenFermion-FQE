@@ -80,7 +80,6 @@ class Wavefunction:
                 FqeData objects.  The key is a tuple defined by the number of \
                 electrons and the spin projection of the system.
         """
-
         self._symmetry_map: Dict[Tuple[int, int], Tuple[int, int]] = {}
         self._conserved: Dict[str, int] = {}
 
