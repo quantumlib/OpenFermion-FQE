@@ -99,12 +99,12 @@ class Wavefunction:
                             ' the complete Fock space.')
 
         if param:
-            for i in param:
-                if i[2] != self._norb:
-                    raise ValueError('Number of orbitals is not consistent')
+            user_input_norbs = set([x[2] for x in param])
+            if len(user_input_norbs) != 1:
+                raise ValueError('Number of orbitals is not consistent')
 
+            self._norb = list(user_input_norbs)[0]
             for i in param:
-                self._norb = i[2]
                 nalpha, nbeta = alpha_beta_electrons(i[0], i[1])
                 self._civec[(i[0], i[1])] = FqeData(nalpha, nbeta, self._norb)
 

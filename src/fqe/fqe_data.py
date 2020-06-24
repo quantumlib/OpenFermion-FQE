@@ -45,7 +45,6 @@ class FqeData:
     """This is a basic data structure for use in the FQE.
     """
 
-
     def __init__(self,
                  nalpha: int,
                  nbeta: int,
@@ -64,7 +63,7 @@ class FqeData:
         """
         validate_config(nalpha, nbeta, norb)
 
-        if not (fcigraph is None) and (nalpha != fcigraph.nalpha() or \
+        if not (fcigraph is None) and (nalpha != fcigraph.nalpha() or
             nbeta != fcigraph.nbeta() or norb != fcigraph.norb()):
             raise ValueError("FciGraph does not match other parameters")
 
@@ -79,7 +78,6 @@ class FqeData:
         self.coeff = numpy.zeros((self._core.lena(), self._core.lenb()),
                                  dtype=self._dtype)
 
-
     def __getitem__(self, key: Tuple[int, int]) -> complex:
         """Get an item from the fqe data structure by using the knowles-handy
         pointers.
@@ -87,20 +85,17 @@ class FqeData:
         return self.coeff[self._core.index_alpha(key[0]),
                           self._core.index_beta(key[1])]
 
-
     def __setitem__(self, key: Tuple[int, int], value: complex) -> None:
         """Set an element in the fqe data strucuture
         """
         self.coeff[self._core.index_alpha(key[0]),
                    self._core.index_beta(key[1])] = value
 
-
     def get_fcigraph(self) -> 'FciGraph':
         """
         Returns the underlying FciGraph object
         """
         return self._core
-
 
     def apply_diagonal_inplace(self, array: 'Nparray') -> None:
         """Iterate over each element and perform apply operation in place
@@ -131,7 +126,6 @@ class FqeData:
         for alp_cnf in range(self._core.lena()):
             for bet_cnf in range(self._core.lenb()):
                 self.coeff[alp_cnf, bet_cnf] *= alpha[alp_cnf] + beta[bet_cnf]
-
 
     def evolve_diagonal(self, array: 'Nparray') -> 'Nparray':
         """Iterate over each element and return the exponential scaled
@@ -164,7 +158,6 @@ class FqeData:
 
         return data
 
-
     def diagonal_coulomb(self,
                          diag: 'Nparray',
                          array: 'Nparray') -> 'Nparray':
@@ -190,7 +183,6 @@ class FqeData:
 
         return data
 
-
     def apply(self, array: Tuple['Nparray']) -> 'Nparray':
         """
         API for application of dense operators (1- through 4-body operators) to
@@ -200,7 +192,6 @@ class FqeData:
         out = copy.deepcopy(self)
         out.apply_inplace(array)
         return out
-
 
     def apply_inplace(self, array: Tuple['Nparray', ...]) -> None:
         """
@@ -243,7 +234,6 @@ class FqeData:
                                                         array[2],
                                                         array[3])
 
-
     def _apply_array_spatial1(self, h1e: 'Nparray') -> 'Nparray':
         """
         API for application of 1- and 2-body spatial operators to the
@@ -253,7 +243,6 @@ class FqeData:
         assert h1e.shape == (self.norb(), self.norb())
         dvec = self.calculate_dvec_spatial()
         return numpy.einsum("ij,ijkl->kl", h1e, dvec)
-
 
     def _apply_array_spin1(self, h1e: 'Nparray') -> 'Nparray':
         """
@@ -266,7 +255,6 @@ class FqeData:
         (dveca, dvecb) = self.calculate_dvec_spin()
         return numpy.einsum("ij,ijkl->kl", h1e[:norb, :norb], dveca) \
              + numpy.einsum("ij,ijkl->kl", h1e[norb:, norb:], dvecb)
-
 
     def _apply_array_spatial12(self,
                                h1e: 'Nparray',
@@ -298,7 +286,6 @@ class FqeData:
 
         return self._apply_array_spatial12_halffilling(h1e, h2e)
 
-
     def _apply_array_spin12(self,
                             h1e: 'Nparray',
                             h2e: 'Nparray') -> 'Nparray':
@@ -328,7 +315,6 @@ class FqeData:
             return self._apply_array_spin12_lowfilling(h1e, h2e)
 
         return self._apply_array_spin12_halffilling(h1e, h2e)
-
 
     def _apply_array_spatial12_halffilling(self,
                                            h1e: 'Nparray',
@@ -376,7 +362,6 @@ class FqeData:
 
         return out
 
-
     def _apply_array_spin12_halffilling(self,
                                         h1e: 'Nparray',
                                         h2e: 'Nparray') -> 'Nparray':
@@ -404,7 +389,6 @@ class FqeData:
                               h2e[norb:, norb:, norb:, norb:], dvecb)
         out += self.calculate_coeff_spin_with_dvec((ndveca, ndvecb))
         return out
-
 
     def _apply_array_spatial12_lowfilling(self,
                                           h1e: 'Nparray',
@@ -500,7 +484,6 @@ class FqeData:
                     for source, target, sign in beta_map[(min(i, j), max(i, j))]:
                         out[:, source] -= intermediate[ijn, :, target] * sign
         return out
-
 
     def _apply_array_spin12_lowfilling(self, h1e: 'Nparray', h2e: 'Nparray') -> 'Nparray':
         """
@@ -609,7 +592,6 @@ class FqeData:
                         out[:, source] -= intermediate[ijn, :, target] * sign
         return out
 
-
     def _apply_array_spatial123(self, h1e: 'Nparray', h2e: 'Nparray', h3e: 'Nparray', \
                                 dvec: 'Nparray' = None, evec: 'Nparray' = None) -> 'Nparray':
         """
@@ -652,7 +634,6 @@ class FqeData:
 
         out -= self._calculate_coeff_spatial_with_dvec(dvec)
         return out
-
 
     def _apply_array_spin123(self,
                              h1e: 'Nparray',
@@ -748,7 +729,6 @@ class FqeData:
         out -= self.calculate_coeff_spin_with_dvec((dveca, dvecb))
         return out
 
-
     def _apply_array_spatial1234(self,
                                  h1e: 'Nparray',
                                  h2e: 'Nparray',
@@ -810,7 +790,6 @@ class FqeData:
 
         out += self._calculate_coeff_spatial_with_dvec(dvec2)
         return out
-
 
     def _apply_array_spin1234(self,
                               h1e: 'Nparray',
@@ -909,7 +888,6 @@ class FqeData:
         out += self.calculate_coeff_spin_with_dvec((dveca2, dvecb2))
         return out
 
-
     def apply_inplace_s2(self) -> None:
         """
         Apply the S squared operator to self.
@@ -930,7 +908,6 @@ class FqeData:
                 for j in range(self.norb()):
                     for source, target, parity in self.beta_map(j, i):
                         self.coeff[:, source] -= dvec[j, i, :, target] * parity
-
 
     def apply_individual_nbody(self,
                                coeff: complex,
@@ -989,7 +966,6 @@ class FqeData:
                 out.coeff[targeta, targetb] = work
         return out
 
-
     def rdm1(self, bradata: Optional['FqeData'] = None) -> 'Nparray':
         """
         API for calculating 1-particle RDMs given a wave function. When bradata
@@ -1001,7 +977,6 @@ class FqeData:
         else:
             dvec2 = self.calculate_dvec_spatial()
         return (numpy.einsum('jikl,kl->ij', dvec2.conj(), self.coeff), )
-
 
     def rdm12(self, bradata: Optional['FqeData'] = None) -> numpy.ndarray:
         """
@@ -1027,7 +1002,6 @@ class FqeData:
 
         return self._rdm12_halffilling(bradata)
 
-
     def _rdm12_halffilling(self,
                            bradata: Optional['FqeData'] = None
                            ) -> numpy.ndarray:
@@ -1042,7 +1016,6 @@ class FqeData:
         for i in range(self.norb()):
             out2[:, i, i, :] += out1[:, :]
         return out1, out2
-
 
     def _rdm12_lowfilling(self,
                           bradata: Optional['FqeData'] = None
@@ -1124,7 +1097,6 @@ class FqeData:
 
         return self.rdm1(bradata)[0], out
 
-
     def rdm123(self,
                bradata: Optional['FqeData'] = None,
                dvec: 'Nparray' = None,
@@ -1174,7 +1146,6 @@ class FqeData:
                 for k in range(norb):
                     out3[j, k, i, i, :, :] -= out2[k, j, :, :]
         return (out1, out2, out3)
-
 
     def rdm1234(self, bradata: Optional['FqeData'] = None) -> 'Nparray':
         """
@@ -1226,7 +1197,6 @@ class FqeData:
                         out4[i, j, k, l, :, :, l, :] += out3[i, j, k, :, :, :]
         return (out1, out2, out3, out4)
 
-
     def calculate_dvec_spatial(self) -> 'Nparray':
         """Generate
 
@@ -1236,7 +1206,6 @@ class FqeData:
         using self.coeff as an input
         """
         return self._calculate_dvec_spatial_with_coeff(self.coeff)
-
 
     def calculate_dvec_spin(self) -> Tuple['Nparray', 'Nparray']:
         """Generate a pair of
@@ -1248,7 +1217,6 @@ class FqeData:
         the tuple to be returned
         """
         return self._calculate_dvec_spin_with_coeff(self.coeff)
-
 
     def _calculate_dvec_spatial_with_coeff(self, coeff: 'Nparray') -> 'Nparray':
         """Generate
@@ -1266,7 +1234,6 @@ class FqeData:
                 for source, target, parity in self.beta_map(i, j):
                     dvec[i, j, :, target] += coeff[:, source] * parity
         return dvec
-
 
     def _calculate_dvec_spin_with_coeff(self,
                                         coeff: 'Nparray') -> Tuple['Nparray', 'Nparray']:
@@ -1289,7 +1256,6 @@ class FqeData:
                     dvecb[i, j, :, target] += coeff[:, source] * parity
         return (dveca, dvecb)
 
-
     def _calculate_coeff_spatial_with_dvec(self, dvec: 'Nparray') -> 'Nparray':
         """Generate
 
@@ -1305,7 +1271,6 @@ class FqeData:
                 for source, target, parity in self.beta_map(j, i):
                     out[:, source] += dvec[i, j, :, target] * parity
         return out
-
 
     def calculate_dvec_spatial_compressed(self) -> 'Nparray':
         """Generate
@@ -1327,7 +1292,6 @@ class FqeData:
                     dvec[ijn, :, target] += self.coeff[:, source] * parity
         return dvec
 
-
     def calculate_coeff_spin_with_dvec(self,
                                        dvec: Tuple['Nparray', 'Nparray']) -> 'Nparray':
         """Generate
@@ -1344,7 +1308,6 @@ class FqeData:
                 for source, target, parity in self.beta_map(j, i):
                     out[:, source] += dvec[1][i, j, :, target] * parity
         return out
-
 
     def evolve_inplace_individual_nbody_trivial(self,
                                                 time: float,
@@ -1381,7 +1344,6 @@ class FqeData:
         for i_a in amap:
             for i_b in bmap:
                 self.coeff[i_a, i_b] *= factor
-
 
     def evolve_inplace_individual_nbody_nontrivial(self,
                                                    time: float,
@@ -1476,7 +1438,6 @@ class FqeData:
 
         self.coeff = cosdata1.coeff + cosdata2.coeff - self.coeff
 
-
     def apply_cos_sin(self,
                       time: float,
                       ncoeff: complex,
@@ -1523,20 +1484,17 @@ class FqeData:
                 sindata.coeff[i_a, i_b] = self.coeff[i_a, i_b] * sinfactor
         return (cosdata, sindata)
 
-
     def alpha_map(self, iorb: int, jorb: int) -> List[Tuple[int, int, int]]:
         """Access the mapping for a singlet excitation from the current
         sector for alpha orbitals
         """
         return self._core.alpha_map(iorb, jorb)
 
-
     def beta_map(self, iorb: int, jorb: int) -> List[Tuple[int, int, int]]:
         """Access the mapping for a singlet excitation from the current
         sector for beta orbitals
         """
         return self._core.beta_map(iorb, jorb)
-
 
     def ax_plus_y(self, sval: complex, other: 'FqeData') -> 'FqeData':
         """Scale and add the data in the fqedata structure
@@ -1548,48 +1506,40 @@ class FqeData:
         self.coeff += other.coeff * sval
         return self
 
-
     def __hash__(self):
         """Fqedata sructures are unqiue in nele, s_z and the dimension.
         """
         return hash((self._nele, self._m_s))
-
 
     def conj(self) -> None:
         """Conjugate the coefficients
         """
         numpy.conjugate(self.coeff, self.coeff)
 
-
     def lena(self) -> int:
         """Length of the alpha configuration space
         """
         return self._core.lena()
-
 
     def lenb(self) -> int:
         """Length of the beta configuration space
         """
         return self._core.lenb()
 
-
     def nalpha(self) -> int:
         """Number of alpha electrons
         """
         return self._core.nalpha()
-
 
     def nbeta(self) -> int:
         """Number of beta electrons
         """
         return self._core.nbeta()
 
-
     def n_electrons(self) -> int:
         """Particle number getter
         """
         return self._nele
-
 
     def generator(self):
         """Iterate over the elements of the sector as alpha string, beta string
@@ -1601,18 +1551,15 @@ class FqeData:
                 beta_str = self._core.string_beta(indb)
                 yield alpha_str, beta_str, self.coeff[inda, indb]
 
-
     def norb(self) -> int:
         """Number of beta electrons
         """
         return self._core.norb()
 
-
     def norm(self) -> float:
         """Return the norm of the the sector wavefunction
         """
         return numpy.linalg.norm(self.coeff)
-
 
     def print_sector(self, pformat=None, threshold=0.0001):
         """Iterate over the strings and coefficients and print then
@@ -1634,12 +1581,10 @@ class FqeData:
                     print('{} {}'.format(pformat(alpha_str, beta_str),
                                          self.coeff[inda, indb]))
 
-
     def beta_inversion(self):
         """Return the coefficients with an inversion of the beta strings.
         """
         return numpy.flip(self.coeff, 1)
-
 
     def scale(self, sval: complex):
         """ Scale the wavefunction by the value sval
@@ -1652,12 +1597,10 @@ class FqeData:
         """
         self.coeff = self.coeff.astype(numpy.complex128)*sval
 
-
     def fill(self, value: complex):
         """ Fills the wavefunction with the value specified
         """
         self.coeff.fill(value)
-
 
     def set_wfn(self, strategy: Optional[str] = None,
                 raw_data: 'Nparray' = numpy.empty(0)) -> None:

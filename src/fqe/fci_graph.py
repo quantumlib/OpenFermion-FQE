@@ -26,6 +26,7 @@ from fqe.util import init_bitstring_groundstate
 
 Spinmap = Dict[Tuple[int, ...], List[Tuple[int, int, int]]]
 
+
 class FciGraph:
     """ FciGraph contains the addressing system for the wavefunction.  Each
     determinant is considered as a product of alpha creation operators and
@@ -63,7 +64,6 @@ class FciGraph:
 
         self._fci_map: Dict[Tuple[int, ...], Tuple[Spinmap, Spinmap]] = {}
 
-
     def insert_mapping(self,
                        dna: int,
                        dnb: int,
@@ -82,7 +82,6 @@ class FciGraph:
         """
         self._fci_map[(dna, dnb)] = mapping_pair
 
-
     def find_mapping(self, dna: int, dnb: int) -> Tuple[Spinmap, Spinmap]:
         """
         Returns the pair of mappings that corresponds to dna and dnb
@@ -98,7 +97,6 @@ class FciGraph:
         """
         assert (dna, dnb) in self._fci_map
         return self._fci_map[(dna, dnb)]
-
 
     def _build_mapping(self,
                        strings: List[int],
@@ -129,7 +127,6 @@ class FciGraph:
 
         return out
 
-
     def alpha_map(self, iorb: int, jorb: int) -> List[Tuple[int, int, int]]:
         """
         Returns the Knowles-Handy mapping (within this FciGraph) for alpha electrons for
@@ -145,7 +142,6 @@ class FciGraph:
         """
         assert (iorb, jorb) in self._alpha_map.keys()
         return self._alpha_map[(iorb, jorb)]
-
 
     def beta_map(self, iorb: int, jorb: int) -> List[Tuple[int, int, int]]:
         """
@@ -163,36 +159,30 @@ class FciGraph:
         assert (iorb, jorb) in self._beta_map.keys()
         return self._beta_map[(iorb, jorb)]
 
-
     def lena(self) -> int:
         """Return the number of alpha electrons
         """
         return self._lena
-
 
     def lenb(self) -> int:
         """Return the number of beta electrons
         """
         return self._lenb
 
-
     def nalpha(self) -> int:
         """Return the number of alpha electrons
         """
         return self._nalpha
-
 
     def nbeta(self) -> int:
         """Return the number of beta electrons
         """
         return self._nbeta
 
-
     def norb(self) -> int:
         """Return the number of beta electrons
         """
         return self._norb
-
 
     def _build_strings(self, nele: int, length: int) -> Tuple[List[int], Dict[int, int]]:
         """Build all bitstrings for index the FCI and their lexicographic index
@@ -219,7 +209,6 @@ class FciGraph:
 
         return string_list, index_list
 
-
     def string_alpha(self, address: int) -> int:
         """Retrieve the alpha bitstring reprsentation stored at the address
 
@@ -230,7 +219,6 @@ class FciGraph:
             (bitstring) - an occupation representation of the configuration
         """
         return self._astr[address]
-
 
     def string_beta(self, address: int) -> int:
         """Retrieve the beta bitstring reprsentation stored at the address
@@ -243,18 +231,15 @@ class FciGraph:
         """
         return self._bstr[address]
 
-
     def string_alpha_all(self) -> List[int]:
         """Return all bitstrings for alpha occupied orbitals
         """
         return self._astr
 
-
     def string_beta_all(self) -> List[int]:
         """Return all bitstrings for beta occupied orbitals
         """
         return self._bstr
-
 
     def index_alpha(self, bit_string: int) -> int:
         """Retrieve the alpha index stored by it's bitstring
@@ -267,7 +252,6 @@ class FciGraph:
         """
         return self._aind[bit_string]
 
-
     def index_beta(self, bit_string: int) -> int:
         """Retrieve the beta bitstring reprsentation stored at the address
 
@@ -279,20 +263,17 @@ class FciGraph:
         """
         return self._bind[bit_string]
 
-
     def index_alpha_all(self) -> Dict[int, int]:
         """Return the index and the corresponding occupation string for all
         alpha strings
         """
         return self._aind
 
-
     def index_beta_all(self) -> Dict[int, int]:
         """Return the index and the corresponding occupation string for all
         beta strings
         """
         return self._bind
-
 
     def _build_string_address(self, nele: int, norb: int, occupation: List[int]) -> int:
         """Given a list of occupied orbitals in ascending order generate the
