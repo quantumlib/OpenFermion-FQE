@@ -16,7 +16,7 @@
 #The protected member access does not mutate passed in data and so can be exposed.
 #pylint: disable=protected-access
 
-from typing import Any, List, Union, Tuple
+from typing import List, Union, Tuple
 import copy
 
 from openfermion import FermionOperator
@@ -32,14 +32,11 @@ class SparseHamiltonian(hamiltonian.Hamiltonian):
     """
 
     def __init__(self,
-                 norb: int,
                  operators: Union[FermionOperator, str],
                  conserve_spin: bool = True,
                  e_0: complex = 0. + 0.j) -> None:
         """
         Args:
-            norb (int) - the number of orbitals
-
             operators(Union[FermionOperator, str]) - operator with a \
                 coefficient in the FermionOperator format.
 
@@ -58,23 +55,14 @@ class SparseHamiltonian(hamiltonian.Hamiltonian):
 
         super().__init__(e_0=e_0)
 
-        self._norb = norb
         self._operators: List[Tuple[complex,
                                     List[Tuple[int, int]],
                                     List[Tuple[int, int]]]] = []
         self._conserve_spin = conserve_spin
-        self._matrix_data: List[List[Any]] = []
 
+        self._rank = 0
         for prod in operators.terms:
-            work = []
-            for ele in prod:
-                if ele[0] % 2:
-                    work.append(((ele[0] - 1) // 2) + self._norb)
-                else:
-                    work.append(ele[0] // 2)
-            self._matrix_data.append([operators.terms[prod], work])
-
-        self._rank = len(self._matrix_data[0][1])
+            self._rank = max(self._rank, len(prod))
 
         ops = list(operators.get_operators())
 
@@ -91,13 +79,11 @@ class SparseHamiltonian(hamiltonian.Hamiltonian):
             self._operators.append((coeff*phase, alpha_out, beta_out))
 
 
-    def dim(self) -> int:
+    def dim(self):
         """Dim is the orbital dimension of the Hamiltonian arrays.
+        This function should not be used with SparseHamiltonian
         """
-        if self._conserve_spin:
-            return self._norb
-
-        return 2*self._norb
+        raise NotImplementedError
 
 
     def rank(self) -> int:

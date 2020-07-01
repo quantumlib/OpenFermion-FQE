@@ -1041,7 +1041,7 @@ class Wavefunction:
 
         if isinstance(ops, str):
             if any(char.isdigit() for char in ops):
-                ops = sparse_hamiltonian.SparseHamiltonian(self._norb, ops)
+                ops = sparse_hamiltonian.SparseHamiltonian(ops)
             else:
                 return self.rdm(ops, brawfn=brawfn)
 
@@ -1235,7 +1235,7 @@ class Wavefunction:
         """
         rank = len(string.split()) // 2
         if any(char.isdigit() for char in string):
-            result = self.apply(sparse_hamiltonian.SparseHamiltonian(self._norb, string))
+            result = self.apply(sparse_hamiltonian.SparseHamiltonian(string))
             if brawfn is None:
                 return vdot(self, result)
             return vdot(brawfn, result)
@@ -1266,8 +1266,7 @@ if __name__ == "__main__":
     ops = FermionOperator('2^ 0', 3.0 - 1.j)
     ops += FermionOperator('0^ 2', 3.0 + 1.j)
     print(ops)
-    sham = fqe.get_sparse_hamiltonian(6,
-                                      ops,
+    sham = fqe.get_sparse_hamiltonian(ops,
                                       conserve_spin=False)
     evolved = fqe.time_evolve(lihwfn, time, sham)
     evolved.print_wfn()

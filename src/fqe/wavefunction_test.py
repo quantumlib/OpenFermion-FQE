@@ -127,23 +127,23 @@ class WavefunctionTest(unittest.TestCase):
         fop = FermionOperator('1^ 0')
         fop += FermionOperator('2^ 0')
         fop += FermionOperator('2^ 1')
-        hamil = sparse_hamiltonian.SparseHamiltonian(2, fop)
+        hamil = sparse_hamiltonian.SparseHamiltonian(fop)
         wfn = Wavefunction([[2, 0, 2]], broken=['spin'])
         self.assertRaises(ValueError, wfn._apply_individual_nbody, hamil)
         self.assertRaises(ValueError, wfn._evolve_individual_nbody, 0.1, hamil)
 
         fop = FermionOperator('1^ 0')
         fop += FermionOperator('2^ 0')
-        hamil = sparse_hamiltonian.SparseHamiltonian(2, fop)
+        hamil = sparse_hamiltonian.SparseHamiltonian(fop)
         self.assertRaises(ValueError, wfn._evolve_individual_nbody, 0.1, hamil)
 
         fop = FermionOperator('1^ 0', 1.0)
         fop += FermionOperator('0^ 1', 0.9)
-        hamil = sparse_hamiltonian.SparseHamiltonian(2, fop)
+        hamil = sparse_hamiltonian.SparseHamiltonian(fop)
         self.assertRaises(ValueError, wfn._evolve_individual_nbody, 0.1, hamil)
 
         fop = FermionOperator('1^ 0^')
-        hamil = sparse_hamiltonian.SparseHamiltonian(2, fop)
+        hamil = sparse_hamiltonian.SparseHamiltonian(fop)
         self.assertRaises(ValueError, wfn._apply_individual_nbody, hamil)
         self.assertRaises(ValueError, wfn._evolve_individual_nbody, 0.1, hamil)
 
@@ -171,11 +171,11 @@ class WavefunctionTest(unittest.TestCase):
 
         fac = 3.14
         fop = FermionOperator('1^ 1', fac)
-        hamil = sparse_hamiltonian.SparseHamiltonian(2, fop)
+        hamil = sparse_hamiltonian.SparseHamiltonian(fop)
         out1 = wfn._apply_few_nbody(hamil)
 
         fop = FermionOperator('1 1^', fac)
-        hamil = sparse_hamiltonian.SparseHamiltonian(2, fop)
+        hamil = sparse_hamiltonian.SparseHamiltonian(fop)
         out2 = wfn._apply_few_nbody(hamil)
         out2.scale(-1.0)
         out2.ax_plus_y(fac, wfn)

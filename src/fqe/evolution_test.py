@@ -378,8 +378,7 @@ class EvolutionTest(unittest.TestCase):
 
         with self.subTest(nbody='one body'):
             ops = FermionOperator('0^ 1', 2.2 - 0.1j) + FermionOperator('1^ 0', 2.2 + 0.1j)
-            sham = fqe.get_sparse_hamiltonian(norb,
-                                              ops,
+            sham = fqe.get_sparse_hamiltonian(ops,
                                               conserve_spin=False)
 
             h1e = hamiltonian_utils.nbody_matrix(ops, norb)
@@ -401,7 +400,7 @@ class EvolutionTest(unittest.TestCase):
             ops = FermionOperator('1^ 3^ 1 2', 2.0 - 2.j)
             ops += FermionOperator('2^ 1^ 3 1', 2.0 + 2.j)
 
-            sham = sparse_hamiltonian.SparseHamiltonian(norb, ops)
+            sham = sparse_hamiltonian.SparseHamiltonian(ops)
 
             h2e = hamiltonian_utils.nbody_matrix(ops, norb)
 
@@ -424,7 +423,7 @@ class EvolutionTest(unittest.TestCase):
         with self.subTest(nbody='three body'):
             ops = FermionOperator('2^ 1^ 0^ 2 0 1', 1.0 - 1.j)
             ops += FermionOperator('1^ 0^ 2^ 0 1 2', 1.0 + 1.j)
-            sham = sparse_hamiltonian.SparseHamiltonian(norb, ops)
+            sham = sparse_hamiltonian.SparseHamiltonian(ops)
 
             h3e = hamiltonian_utils.nbody_matrix(ops, norb)
 
@@ -447,7 +446,7 @@ class EvolutionTest(unittest.TestCase):
         with self.subTest(nbody='four body'):
             ops = FermionOperator('0^ 1^ 3^ 4^ 2 1 3 4', 1.0 + 0.j)
             ops += FermionOperator('4^ 3^ 1^ 2^ 4 3 1 0', 1.0 + 0.j)
-            sham = sparse_hamiltonian.SparseHamiltonian(norb, ops)
+            sham = sparse_hamiltonian.SparseHamiltonian(ops)
 
             h4e = hamiltonian_utils.nbody_matrix(ops, norb)
 
@@ -765,7 +764,7 @@ class EvolutionTest(unittest.TestCase):
         ops += FermionOperator('5^ 0^ 2 1', 2.0 + 2.j)
         ops2 = FermionOperator('3^ 2^ 0 5', 2.0 - 2.j)
         ops2 += FermionOperator('5^ 0^ 2 3', 2.0 + 2.j)
-        sham = sparse_hamiltonian.SparseHamiltonian(norb, ops + ops2)
+        sham = sparse_hamiltonian.SparseHamiltonian(ops + ops2)
 
         wfn = fqe.get_number_conserving_wavefunction(nele, norb)
         wfn.set_wfn(strategy='random')
