@@ -29,8 +29,6 @@ class SSOHamiltonian(hamiltonian.Hamiltonian):
     terms and no alpha/beta mixing blocks. An example is a part of \
     non-relativistic molecular Hamiltonians in the trotterized algorithms.
     """
-
-
     def __init__(self,
                  tensors: Tuple[numpy.ndarray, ...],
                  e_0: complex = 0. + 0.j) -> None:

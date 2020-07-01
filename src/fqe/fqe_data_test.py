@@ -18,6 +18,8 @@
 import sys
 import copy
 
+from itertools import product
+
 import unittest
 
 from io import StringIO
@@ -26,6 +28,8 @@ import numpy
 
 from fqe import fqe_data
 from fqe import fci_graph
+
+import openfermion as of
 
 
 class FqeDataTest(unittest.TestCase):
@@ -1285,3 +1289,56 @@ class FqeDataTest(unittest.TestCase):
         sys.stdout = save_stdout
         outstring = chkprint.getvalue()
         self.assertEqual(outstring, ref_string)
+
+    def test_random_wfn_opdm_tpdm_alpha_beta(self):
+        """Check we can compute opdm-alpha, opdm-beta from dveca, dvecb"""
+        norb = 4
+        wfn = numpy.random.randn(36).reshape((6, 6)) + 1j * numpy.random.randn(
+            36).reshape((6, 6))
+        wfn /= numpy.linalg.norm(wfn)
+
+        work = fqe_data.FqeData(2, 2, norb)
+        work.coeff = numpy.copy(wfn)
+        dveca, dvecb = work.calculate_dvec_spin()
+        alpha_opdm = numpy.einsum('ijkl,kl->ij', dveca, work.coeff.conj())
+        beta_opdm = numpy.einsum('ijkl,kl->ij', dvecb, work.coeff.conj())
+
+        state = numpy.zeros(2 ** (2 * norb), dtype=numpy.complex128)
+        for alpha_string, beta_string in product(work._core._astr,
+                                                 work._core._bstr):
+            # needs to be flipped for OpenFermion Ordering
+            a_string_binary = numpy.binary_repr(alpha_string, width=norb)[::-1]
+            a_idx = work._core._aind[alpha_string]
+            b_string_binary = numpy.binary_repr(beta_string, width=norb)[::-1]
+            b_idx = work._core._bind[beta_string]
+            joined_string = a_string_binary + b_string_binary
+            joined_idx = int(joined_string, 2)
+            state[joined_idx] = work.coeff[a_idx, b_idx]
+
+        test_alpha_opdm = numpy.zeros((norb, norb), dtype=numpy.complex128)
+        for i, j in product(range(4), repeat=2):
+            op = of.get_sparse_operator(of.FermionOperator(((i, 1), (j, 0))),
+                                        n_qubits=2 * norb)
+            test_alpha_opdm[i, j] = state.conj().T @ op @ state
+        assert numpy.allclose(test_alpha_opdm, alpha_opdm)
+        test_beta_opdm = numpy.zeros((norb, norb), dtype=numpy.complex128)
+        for i, j in product(range(4), repeat=2):
+            op = of.get_sparse_operator(
+                of.FermionOperator(((i + norb, 1), (j + norb, 0))),
+                n_qubits=2 * norb)
+            test_beta_opdm[i, j] = state.conj().T @ op @ state
+
+        assert numpy.allclose(test_beta_opdm, beta_opdm)
+
+        spin_summed_opdm = alpha_opdm + beta_opdm
+        test_spin_summed_opdm = work.rdm1()[0]
+        assert numpy.allclose(test_spin_summed_opdm, spin_summed_opdm)
+
+        tpdm_ab = numpy.einsum('liab,jkab->ijkl', dveca.conj(), dvecb)
+        test_tpdm_ab = numpy.zeros((norb, norb, norb, norb), dtype=numpy.complex128)
+        for i, j, k, l in product(range(norb), repeat=4):
+            op = of.get_sparse_operator(of.FermionOperator(
+                ((i, 1), (l, 0), (j + norb, 1), (k + norb, 0))),
+                                        n_qubits=2 * norb)
+            test_tpdm_ab[i, j, k, l] = state.conj().T @ op @ state
+        assert numpy.allclose(tpdm_ab, test_tpdm_ab)

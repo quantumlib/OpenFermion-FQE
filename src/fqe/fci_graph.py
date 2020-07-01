@@ -35,7 +35,6 @@ class FciGraph:
     alpha orbitals and the beta orbitals.  From this information, any pointer
     into the wavefunction can be generated.
     """
-
     def __init__(self, nalpha: int, nbeta: int, norb: int) -> None:
         """
         Args:
@@ -51,12 +50,12 @@ class FciGraph:
         self._norb = norb
         self._nalpha = nalpha
         self._nbeta = nbeta
-        self._lena = int(binom(norb, nalpha))
-        self._lenb = int(binom(norb, nbeta))
-        self._astr: List[int] = []
-        self._bstr: List[int] = []
-        self._aind: Dict[int, int] = {}
-        self._bind: Dict[int, int] = {}
+        self._lena = int(binom(norb, nalpha))  # size of alpha-Hilbert space
+        self._lenb = int(binom(norb, nbeta))  # size of beta-Hilbert space
+        self._astr: List[int] = []  # string labels for alpha-Hilbert space
+        self._bstr: List[int] = []  # string labels for beta-Hilbert space
+        self._aind: Dict[int, int] = {}  # map string-binary to matrix index
+        self._bind: Dict[int, int] = {}  # map string-binary to matrix index
         self._astr, self._aind = self._build_strings(self._nalpha, self._lena)
         self._bstr, self._bind = self._build_strings(self._nbeta, self._lenb)
         self._alpha_map: Spinmap = self._build_mapping(self._astr, self._aind)
@@ -198,11 +197,12 @@ class FciGraph:
         """
         grs = init_bitstring_groundstate(nele)
         blist = lexicographic_bitstring_generator(grs, self._norb)
-        string_list = [0 for _ in range(length)]
-        index_list = {}
+        string_list = [0 for _ in range(length)]  # strings in lexicographic order
+        index_list = {}  # map bitsting to its lexicographic address
         for i in range(length):
-            wbit = blist[i]
+            wbit = blist[i]  # integer that is the spin-bitstring
             occ = integer_index(wbit)
+            # get the lexicographic address of the bitstring
             address = self._build_string_address(nele, self._norb, occ)
             string_list[address] = wbit
             index_list[wbit] = address
@@ -329,3 +329,8 @@ class FciGraph:
             det_addr += _addressing_array_element(norb, nele, i, occupation[i-1]+1)
 
         return int(det_addr)
+
+
+if __name__ == "__main__":
+    fcig = FciGraph(4, 4, 8)
+    print(fcig)

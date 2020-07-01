@@ -161,7 +161,7 @@ def gather_nbody_spin_sectors(operators: 'FermionOperator') -> Newop:
     passed in {creation}{annihilation} order.
 
     Args:
-        opeartors (FermionOperator) - operstors in the FermionOperator format
+        operators (FermionOperator) - operstors in the FermionOperator format
     """
     # Get the indices of the elements
     nalpha = 0
