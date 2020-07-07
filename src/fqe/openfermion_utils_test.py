@@ -395,5 +395,5 @@ class OpenFermionUtilsTest(unittest.TestCase):
         restricted_ham = openfermion_utils.molecular_data_to_restricted_fqe_op(
             molecule=molecule)
         h1e_test, h2e_test = restricted_ham.tensors()
-        assert numpy.allclose(h1e_test, h1e)
-        assert numpy.allclose(h2e_test, h2e)
+        self.assertTrue(numpy.allclose(h1e_test, h1e))
+        self.assertTrue(numpy.allclose(h2e_test, h2e))

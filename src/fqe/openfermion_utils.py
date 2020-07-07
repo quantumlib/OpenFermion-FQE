@@ -462,6 +462,16 @@ def molecular_data_to_restricted_fqe_op(
     Args:
         molecule: MolecularData object to convert.
     """
-    h1e = molecule.one_body_integrals
-    h2e = numpy.einsum('ijlk', -0.5 * molecule.two_body_integrals)
-    return RestrictedHamiltonian((h1e, h2e))
+    return integrals_to_fqe_restricted(molecule.one_body_integrals,
+                                       molecule.two_body_integrals)
+
+
+def integrals_to_fqe_restricted(h1e, h2e) -> RestrictedHamiltonian:
+    """
+    Convert integrals in physics ordering to a RestrictedHamiltonian
+
+    Args:
+        h1e: one-electron spin-free integrals
+        h2e: two-electron spin-free integrals <12|21>
+    """
+    return RestrictedHamiltonian((h1e, numpy.einsum('ijlk', -0.5 * h2e)))
