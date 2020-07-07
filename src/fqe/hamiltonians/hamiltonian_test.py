@@ -170,9 +170,7 @@ class TestHamiltonian(unittest.TestCase):
         """
         oper = FermionOperator('0 0^')
         oper += FermionOperator('1 1^')
-        test = sparse_hamiltonian.SparseHamiltonian(4, oper)
-        self.assertEqual(test.dim(), 4)
+        test = sparse_hamiltonian.SparseHamiltonian(oper)
         self.assertEqual(test.rank(), 2)
-        test = sparse_hamiltonian.SparseHamiltonian(4, oper, False)
-        self.assertEqual(test.dim(), 8)
+        test = sparse_hamiltonian.SparseHamiltonian(oper, False)
         self.assertTrue(not test.is_individual())

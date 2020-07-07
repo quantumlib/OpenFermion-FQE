@@ -430,16 +430,13 @@ def get_restricted_hamiltonian(tensors: Tuple[numpy.ndarray, ...],
     return restricted_hamiltonian.Restricted(tensors, e_0=e_0)
 
 
-def get_sparse_hamiltonian(norb: int,
-                           operators: Union['FermionOperator', str],
+def get_sparse_hamiltonian(operators: Union['FermionOperator', str],
                            conserve_spin: bool = True,
                            e_0: complex = 0. + 0.j
                            ) -> 'sparse_hamiltonian.SparseHamiltonian':
     """Initialize the sparse hamiltonaian
 
     Args:
-        norb (int) - the number of orbitals
-
         operators (Union[FermionOperator, str]) - the FermionOperator to be used to \
             initialize the sparse Hamiltonian
 
@@ -447,8 +444,7 @@ def get_sparse_hamiltonian(norb: int,
 
         e_0 (complex) - scalar part of the Hamiltonian
     """
-    return sparse_hamiltonian.SparseHamiltonian(norb,
-                                                operators,
+    return sparse_hamiltonian.SparseHamiltonian(operators,
                                                 conserve_spin=conserve_spin,
                                                 e_0=e_0)
 

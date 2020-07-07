@@ -75,9 +75,7 @@ def build_hamiltonian(ops: Union[FermionOperator, hamiltonian.Hamiltonian],
     assert is_hermitian(ops)
 
     if len(ops.terms) <= 2:
-        out = sparse_hamiltonian.SparseHamiltonian(norb,
-                                                   ops,
-                                                   e_0=e_0)
+        out = sparse_hamiltonian.SparseHamiltonian(ops, e_0=e_0)
 
     else:
         if not conserve_number:
