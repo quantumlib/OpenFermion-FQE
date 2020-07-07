@@ -427,7 +427,7 @@ def get_restricted_hamiltonian(tensors: Tuple[numpy.ndarray, ...],
 
         e_0 (complex) - scalar part of the Hamiltonian
     """
-    return restricted_hamiltonian.Restricted(tensors, e_0=e_0)
+    return restricted_hamiltonian.RestrictedHamiltonian(tensors, e_0=e_0)
 
 
 def get_sparse_hamiltonian(operators: Union['FermionOperator', str],

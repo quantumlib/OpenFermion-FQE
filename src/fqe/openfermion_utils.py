@@ -17,7 +17,8 @@
 
 from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
 
-from openfermion import FermionOperator, up_index, down_index, QubitOperator
+from openfermion import (FermionOperator, up_index, down_index, QubitOperator,
+                         MolecularData)
 from openfermion.transforms import jordan_wigner, reverse_jordan_wigner
 
 import numpy
@@ -26,6 +27,8 @@ from fqe.bitstring import gbit_index, integer_index, count_bits
 from fqe.bitstring import lexicographic_bitstring_generator
 from fqe.util import alpha_beta_electrons, bubblesort
 from fqe.util import init_bitstring_groundstate, paritysort_int
+from fqe.hamiltonians.hamiltonian import Hamiltonian
+from fqe.hamiltonians.restricted_hamiltonian import RestrictedHamiltonian
 
 if TYPE_CHECKING:
     from fqe.wavefunction import Wavefunction
@@ -447,3 +450,28 @@ def update_operator_coeff(operators: 'FermionOperator',
     """
     for ops, val in zip(operators.terms, coeff):
         operators.terms[ops] = 1.0*val
+
+
+def molecular_data_to_restricted_fqe_op(
+        molecule: MolecularData) -> RestrictedHamiltonian:
+    """
+    Convert an OpenFermion MolecularData object to a FQE Hamiltonian
+
+    FQE Hamiltonians are provide spatial orbitals
+
+    Args:
+        molecule: MolecularData object to convert.
+    """
+    return integrals_to_fqe_restricted(molecule.one_body_integrals,
+                                       molecule.two_body_integrals)
+
+
+def integrals_to_fqe_restricted(h1e, h2e) -> RestrictedHamiltonian:
+    """
+    Convert integrals in physics ordering to a RestrictedHamiltonian
+
+    Args:
+        h1e: one-electron spin-free integrals
+        h2e: two-electron spin-free integrals <12|21>
+    """
+    return RestrictedHamiltonian((h1e, numpy.einsum('ijlk', -0.5 * h2e)))

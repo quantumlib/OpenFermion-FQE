@@ -275,8 +275,8 @@ def process_rank2_matrix(mat: numpy.ndarray,
                                               e_0=e_0)
 
     if numpy.allclose(mat[:norb, :norb], mat[norb:, norb:]):
-        return restricted_hamiltonian.Restricted(tuple([mat]),
-                                                 e_0=e_0)
+        return restricted_hamiltonian.RestrictedHamiltonian(tuple([mat]),
+                                                            e_0=e_0)
 
     spin_mat = numpy.zeros((norb, 2*norb), dtype=mat.dtype)
     spin_mat[:, :norb] = mat[:norb, :norb]

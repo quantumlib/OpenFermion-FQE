@@ -493,7 +493,7 @@ class EvolutionTest(unittest.TestCase):
                         h3e[:norb, :norb, :norb, :norb, :norb, :norb],
                         h4e[:norb, :norb, :norb, :norb, :norb, :norb, :norb, :norb]])
 
-        hamil = restricted_hamiltonian.Restricted(h_wrap)
+        hamil = restricted_hamiltonian.RestrictedHamiltonian(h_wrap)
 
         hci = numpy.zeros((lena, lenb, lena, lenb), dtype=numpy.complex128)
 

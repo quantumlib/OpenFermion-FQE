@@ -137,12 +137,12 @@ class TestHamiltonian(unittest.TestCase):
         """Test some of the functions in SSOHamiltonian
         """
         h1e = numpy.random.rand(5, 5).astype(numpy.complex128)
-        test = restricted_hamiltonian.Restricted((h1e, ))
+        test = restricted_hamiltonian.RestrictedHamiltonian((h1e,))
         self.assertEqual(test.dim(), 5)
         self.assertEqual(test.rank(), 2)
         self.assertTrue(numpy.allclose(h1e, test.tensor(2)))
         self.assertRaises(TypeError,
-                          restricted_hamiltonian.Restricted,
+                          restricted_hamiltonian.RestrictedHamiltonian,
                           "test")
 
 
