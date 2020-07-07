@@ -22,7 +22,7 @@ from numpy import linalg
 from fqe.hamiltonians import hamiltonian
 
 
-class Restricted(hamiltonian.Hamiltonian):
+class RestrictedHamiltonian(hamiltonian.Hamiltonian):
     """The Restricted Hamiltonian is characterized by having identical alpha
     and beta terms and no alpha/beta mixing blocks. An example is
     non-relativistic molecular Hamiltonians in the RHF basis

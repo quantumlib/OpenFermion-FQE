@@ -230,7 +230,7 @@ if __name__ == "__main__":
     nele = nalpha + nbeta
     h1e, h2e, lih_ground = build_lih_data('energy')
     h2e_zeros = np.zeros_like(h2e)
-    elec_hamil = fqe.restricted_hamiltonian.Restricted((h1e, h2e))
+    elec_hamil = fqe.restricted_hamiltonian.RestrictedHamiltonian((h1e, h2e))
     wfn = fqe.Wavefunction([[nele, nalpha - nbeta, norb]])
     wfn.set_wfn(strategy='from_data',
                 raw_data={(nele, nalpha - nbeta): lih_ground})

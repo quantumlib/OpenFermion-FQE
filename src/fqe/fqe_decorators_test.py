@@ -157,7 +157,7 @@ class TestFqedecorators(unittest.TestCase):
                     ops += FermionOperator(opstr, coeff)
                     opstr = str(i + 1) + '^ ' + str(j + 1)
                     ops += FermionOperator(opstr, coeff)
-            self.assertIsInstance(build_hamiltonian(ops), restricted_hamiltonian.Restricted)
+            self.assertIsInstance(build_hamiltonian(ops), restricted_hamiltonian.RestrictedHamiltonian)
 
         with self.subTest(name='sso'):
             ops = FermionOperator()

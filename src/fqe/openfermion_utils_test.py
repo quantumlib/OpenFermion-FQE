@@ -17,18 +17,19 @@
 
 import unittest
 
-from openfermion import FermionOperator
+from openfermion import FermionOperator, MolecularData
 from openfermion.transforms import jordan_wigner
 
 import numpy
 
 from fqe import openfermion_utils
 from fqe import wavefunction
+from fqe.unittest_data.build_lih_data import build_lih_data
+
 
 class OpenFermionUtilsTest(unittest.TestCase):
     """Unit tests
     """
-
 
     def test_ascending_index_order_inorder(self):
         """Transformations in openfermion return FermionOperators from highest
@@ -41,7 +42,6 @@ class OpenFermionUtilsTest(unittest.TestCase):
                                                             order='inorder')
         self.assertEqual(f_ops, test)
 
-
     def test_ascending_index_order(self):
         """Transformations in openfermion return FermionOperators from highest
         index to the lowest index.  Occationally we would like to reverse this.
@@ -52,7 +52,6 @@ class OpenFermionUtilsTest(unittest.TestCase):
             f_ops = openfermion_utils.ascending_index_order(key, ops.terms[key])
         self.assertEqual(f_ops, test)
 
-
     def test_bit_to_fermion_creation_alpha(self):
         """Spin index conversetion between the fqe and opernfermion is that
         alpha/up fermions are indicated by index*2. bit 1 is index 0 for up
@@ -60,7 +59,6 @@ class OpenFermionUtilsTest(unittest.TestCase):
         """
         self.assertEqual(openfermion_utils.bit_to_fermion_creation(1, 'up'),
                          FermionOperator('0^', 1.0))
-
 
     def test_bit_to_fermion_creation_beta(self):
         """Spin index conversetion between the fqe and opernfermion is that
@@ -70,26 +68,22 @@ class OpenFermionUtilsTest(unittest.TestCase):
         self.assertEqual(openfermion_utils.bit_to_fermion_creation(1, 'down'),
                          FermionOperator('1^', 1.0))
 
-
     def test_bit_to_fermion_creation_spinless(self):
         """Spinless particles are converted directly into their occupation index.
         """
         self.assertEqual(openfermion_utils.bit_to_fermion_creation(1),
                          FermionOperator('0^', 1.0))
 
-
     def test_bit_to_fermion_creation_null(self):
         """Empty bitstrings will return None.
         """
         self.assertIsNone(openfermion_utils.bit_to_fermion_creation(0))
-
 
     def test_bit_to_fermion_creation_error(self):
         """Bad options for indexes should raise an error
         """
         self.assertRaises(ValueError, openfermion_utils.bit_to_fermion_creation,
                           1, spin='around')
-
 
     def test_bit_to_fermion_creation_order(self):
         """Return the representation of a bitstring as FermionOperators acting
@@ -98,7 +92,6 @@ class OpenFermionUtilsTest(unittest.TestCase):
         bit = (1 << 6) + 31
         self.assertEqual(openfermion_utils.bit_to_fermion_creation(bit),
                          FermionOperator('0^ 1^ 2^ 3^ 4^ 6^', 1.0))
-
 
     def test_fqe_to_fermion_operator(self):
         """Convert the fqe representation to openfermion operators.
@@ -139,7 +132,6 @@ class OpenFermionUtilsTest(unittest.TestCase):
         for term in ops.terms:
             self.assertAlmostEqual(ops.terms[term], test.terms[term])
 
-
     def test_convert_qubit_wfn_to_fqe_syntax(self):
         """Reexpress a qubit wavefunction in terms of Fermion Operators
         """
@@ -158,13 +150,11 @@ class OpenFermionUtilsTest(unittest.TestCase):
         for i in ops.terms:
             self.assertAlmostEqual(ops.terms[i], test.terms[i])
 
-
     def test_determinant_to_ops_null(self):
         """A determinant with no occupation should return None type.
         """
         self.assertEqual(openfermion_utils.determinant_to_ops(0, 0),
                          FermionOperator('', 1.0))
-
 
     def test_determinant_to_ops_alpha(self):
         """A singly occupied determinant should just have a single creation
@@ -173,7 +163,6 @@ class OpenFermionUtilsTest(unittest.TestCase):
         self.assertEqual(openfermion_utils.determinant_to_ops(1, 0),
                          FermionOperator('0^', 1.0))
 
-
     def test_determinant_to_ops_beta(self):
         """A singly occupied determinant should just have a single creation
         operator in it.
@@ -181,13 +170,11 @@ class OpenFermionUtilsTest(unittest.TestCase):
         self.assertEqual(openfermion_utils.determinant_to_ops(0, 1),
                          FermionOperator('1^', 1.0))
 
-
     def test_determinant_to_ops(self):
         """Convert a determinant to openfermion ops
         """
         test_ops = FermionOperator('0^ 2^ 4^ 1^ 3^', 1.0)
         self.assertEqual(openfermion_utils.determinant_to_ops(7, 3), test_ops)
-
 
     def test_determinant_to_ops_inorder(self):
         """If spin case is not necessary to distinguish in the representation
@@ -197,7 +184,6 @@ class OpenFermionUtilsTest(unittest.TestCase):
         self.assertEqual(openfermion_utils.determinant_to_ops(7, 3,
                                                               inorder=True),
                          test_ops)
-
 
     def test_fci_fermion_operator_representation(self):
         """If we don't already have a wavefunction object to build from we can
@@ -216,7 +202,6 @@ class OpenFermionUtilsTest(unittest.TestCase):
         ops = openfermion_utils.fci_fermion_operator_representation(3, 3, 1)
         self.assertEqual(ops, test)
 
-
     def test_fci_qubit_representation(self):
         """If we don't already have a wavefunction object to build from we can
         just specify the parameters and build the FermionOperator string.
@@ -234,7 +219,6 @@ class OpenFermionUtilsTest(unittest.TestCase):
         ops = openfermion_utils.fci_qubit_representation(3, 3, 1)
         self.assertEqual(ops, test)
 
-
     def test_fermion_operator_to_bitstring(self):
         """Interoperability between OpenFermion and the FQE necessitates that
         we can convert between the representations.
@@ -246,7 +230,6 @@ class OpenFermionUtilsTest(unittest.TestCase):
         for term in ops.terms:
             result = openfermion_utils.fermion_operator_to_bitstring(term)
             self.assertListEqual(test, list(result))
-
 
     def test_fermion_opstring_to_bitstring(self):
         """Interoperability between OpenFermion and the FQE necessitates that
@@ -264,7 +247,6 @@ class OpenFermionUtilsTest(unittest.TestCase):
         for val in result:
             self.assertTrue(val in test)
 
-
     def test_ladder_op(self):
         """Make sure that our qubit ladder operators are the same as the jw
         transformation
@@ -273,7 +255,6 @@ class OpenFermionUtilsTest(unittest.TestCase):
         annihilate = jordan_wigner(FermionOperator('10', 1. + .0j))
         self.assertEqual(create, openfermion_utils.ladder_op(10, 1))
         self.assertEqual(annihilate, openfermion_utils.ladder_op(10, 0))
-
 
     def test_mutate_config_vacuum(self):
         """Adding a single electron to the vavuum should return a parity of one
@@ -312,7 +293,6 @@ class OpenFermionUtilsTest(unittest.TestCase):
                                  list(openfermion_utils.mutate_config(0, 0,
                                                                       term)))
 
-
     def test_mutate_config_alpha_beta_order(self):
         """Any beta operator must commute with all alpha operators before it
         can act on the reference state.  This changes the parity
@@ -329,7 +309,6 @@ class OpenFermionUtilsTest(unittest.TestCase):
             self.assertListEqual(ref1,
                                  list(openfermion_utils.mutate_config(9, 8,
                                                                       term)))
-
 
     def test_mutate_config_operator_order(self):
         """Bare configurations have no affliated sign and so for the parity to
@@ -350,7 +329,6 @@ class OpenFermionUtilsTest(unittest.TestCase):
                                  list(openfermion_utils.mutate_config(15, 0,
                                                                       term)))
 
-
     def test_mutate_config_operator_order_with_beta(self):
         """Same test as before but now we create a beta electron inbetween to
         ensure that the parity of the alpha string is accounted for
@@ -368,7 +346,6 @@ class OpenFermionUtilsTest(unittest.TestCase):
                                  list(openfermion_utils.mutate_config(15, 0,
                                                                       term)))
 
-
     def test_update_operator_coeff(self):
         """Update the coefficients of an operator string
         """
@@ -381,7 +358,6 @@ class OpenFermionUtilsTest(unittest.TestCase):
 
         openfermion_utils.update_operator_coeff(ops, coeff)
         self.assertEqual(ops, test)
-
 
     def test_split_openfermion_tensor(self):
         """Split a FermionOperator string into terms based on the length
@@ -399,3 +375,25 @@ class OpenFermionUtilsTest(unittest.TestCase):
         self.assertEqual(ops1, split[1])
         self.assertEqual(ops2, split[2])
         self.assertEqual(ops3, split[3])
+
+    def test_moleculardata_to_restricted_hamiltonian(self):
+        """
+        Convert an OpenFermion MolecularData object to a
+        fqe.RestrictedHamiltonian
+        """
+        h1e, h2e, _ = build_lih_data('energy')
+        # dummy geometry
+        geometry = [['Li', [0, 0, 0], ['H', [0, 0, 1.4]]]]
+        charge = 0
+        multiplicity = 1
+        molecule = MolecularData(geometry=geometry, basis='sto-3g',
+                                 charge=charge, multiplicity=multiplicity)
+        molecule.one_body_integrals = h1e
+        molecule.two_body_integrals = numpy.einsum('ijlk', -2 * h2e)
+        molecule.nuclear_repulsion = 0
+
+        restricted_ham = openfermion_utils.molecular_data_to_restricted_fqe_op(
+            molecule=molecule)
+        h1e_test, h2e_test = restricted_ham.tensors()
+        assert numpy.allclose(h1e_test, h1e)
+        assert numpy.allclose(h2e_test, h2e)
