@@ -34,7 +34,7 @@ When using OpenFermion-FQE for research projects, please cite:
 
 ```
 @misc{fqe_2020,
-    author       = {Nicholas C. Rubin, Toru Shiozaki, Kyle Throssen, Garnet Chan, Ryan Babbush},
+    author       = {Nicholas C. Rubin, Toru Shiozaki, Kyle Throssell, Garnet Chan, Ryan Babbush},
     title        = {The Fermionic Quantum Emulator},
     month        = {Aug},
     year         = {2020},
