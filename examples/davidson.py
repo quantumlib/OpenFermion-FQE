@@ -288,5 +288,3 @@ if __name__ == "__main__":
     print("full mat DL ", ww.real - 1)
     print('GS Energy ', ecalc.real)
     print("DL-FQE ", dl_w.real)
-
-
