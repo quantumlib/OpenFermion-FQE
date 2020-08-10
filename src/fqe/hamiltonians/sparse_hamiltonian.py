@@ -20,7 +20,7 @@ from typing import List, Union, Tuple
 import copy
 
 from openfermion import FermionOperator
-from openfermion.utils import normal_ordered
+from openfermion.transforms import normal_ordered
 
 from fqe.hamiltonians import hamiltonian, hamiltonian_utils
 

@@ -1,7 +1,8 @@
 cirq
 jupyter
 numpy>=1.14
-openfermion
+# openfermion
+git+https://github.com/quantumlib/OpenFermion.git@master#egg=openfermion
 scipy
 pyasn1-modules==0.2.7
 Sphinx>=2.3.1

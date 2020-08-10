@@ -23,8 +23,8 @@ from typing import List, Optional, TYPE_CHECKING, Union, Tuple
 import cirq
 import numpy
 
-from openfermion.transforms import jordan_wigner
-from openfermion import FermionOperator
+from openfermion.transforms.opconversions import jordan_wigner
+from openfermion.ops import FermionOperator
 
 from fqe.util import qubit_particle_number_index_spin
 from fqe import util

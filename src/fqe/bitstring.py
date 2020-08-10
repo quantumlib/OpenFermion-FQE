@@ -66,6 +66,7 @@ def gbit_index(str0: int) -> Generator[int, None, None]:
         bit_index += 1
 
 
+
 def integer_index(str0: int) -> List[int]:
     """Generate integers indicating the position of occupied orbitals in a
     bitstring starting from 0.  This is a convience wrapper for the gbit_index

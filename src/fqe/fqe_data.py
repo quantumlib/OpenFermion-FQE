@@ -163,20 +163,35 @@ class FqeData:
                          array: 'Nparray') -> 'Nparray':
         """Iterate over each element and return the scaled wavefunction.
         """
+        import numpy as np
         data = numpy.copy(self.coeff)
 
+        # position of orbital occupation in each bitstring
         beta_occ = []
         for bet_cnf in range(self.lenb()):
+            # print(np.binary_repr(self._core.string_beta(bet_cnf), width=self._core.norb()))
             beta_occ.append(integer_index(self._core.string_beta(bet_cnf)))
+
+        # print("Positions of occupations in betastrings")
+        # print(beta_occ)
 
         for alp_cnf in range(self.lena()):
             alpha_occ = integer_index(self._core.string_alpha(alp_cnf))
             for bet_cnf in range(self._core.lenb()):
+                # print("alpha|beta", end='\t')
+                # print(np.binary_repr(self._core.string_alpha(alp_cnf),
+                #                      width=self._core.norb()), end='\t')
+                # print(np.binary_repr(self._core.string_beta(bet_cnf),
+                #                      width=self._core.norb()), end='\t')
                 occ = alpha_occ + beta_occ[bet_cnf]
+                # print("occ ", occ)
                 diag_ele = 0.0
                 for ind in occ:
+                    # sum_{i, sigma}n_{i, \sigma} where sigma in [alpha, beta]
                     diag_ele += diag[ind]
                     for jnd in occ:
+                        # \sum_{i,j, sigma, tau} n_{i, sigma}n_{j,tau}
+                        # sigma, tau in [alpha, beta]
                         diag_ele += array[ind, jnd]
 
                 data[alp_cnf, bet_cnf] *= numpy.exp(diag_ele)

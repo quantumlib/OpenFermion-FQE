@@ -25,7 +25,8 @@ import copy
 import numpy
 
 from openfermion import FermionOperator
-from openfermion.utils import normal_ordered, is_hermitian
+from openfermion.utils import is_hermitian
+from openfermion import normal_ordered
 
 from fqe.hamiltonians import hamiltonian
 from fqe.hamiltonians import general_hamiltonian
