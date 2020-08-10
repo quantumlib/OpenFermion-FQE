@@ -18,7 +18,8 @@ import unittest
 
 import numpy
 
-from openfermion.utils import normal_ordered, hermitian_conjugated
+from openfermion.utils import hermitian_conjugated
+from openfermion.transforms import normal_ordered
 from openfermion import FermionOperator
 from fqe.hamiltonians import general_hamiltonian
 from fqe.hamiltonians import restricted_hamiltonian
@@ -34,6 +35,7 @@ from fqe.fqe_decorators import transform_to_spin_broken
 from fqe.fqe_decorators import fermionops_tomatrix
 from fqe.fqe_decorators import process_rank2_matrix
 from fqe.fqe_decorators import check_diagonal_coulomb
+
 
 class TestFqedecorators(unittest.TestCase):
     """Fqe decorators test class

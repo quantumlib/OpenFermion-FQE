@@ -594,6 +594,8 @@ class Wavefunction:
     def get_coeff(self, key: Tuple[int, int]) -> numpy.ndarray:
         """Retrieve a vector from a configuration in the wavefunction
 
+        key indicates wavefunction sector by [num_alpha, num_beta]
+
         Args:
             key (int, int) - a key identifying the configuration to access
 

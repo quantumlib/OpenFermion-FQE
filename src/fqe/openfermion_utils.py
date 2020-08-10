@@ -158,6 +158,8 @@ def fqe_to_fermion_operator(wfn: 'Wavefunction') -> 'FermionOperator':
         sector = wfn.sector(key)
         for alpha, beta, coeffcient in sector.generator():
             ops += coeffcient*determinant_to_ops(alpha, beta)
+            if numpy.isclose(coeffcient, 0):
+                continue
     return ops
 
 
