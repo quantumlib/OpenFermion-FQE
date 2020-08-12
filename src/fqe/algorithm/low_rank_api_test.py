@@ -1,12 +1,11 @@
 from itertools import product
-import os
 import numpy as np
 from fqe.algorithm.low_rank_api import LowRankTrotter
-import fqe
 import openfermion as of
 from openfermion.config import EQ_TOLERANCE
 
-from openfermion.testing.lih_integration_test import LiHIntegrationTest
+from fqe.unittest_data.generate_lih_molecule import build_lih_moleculardata
+
 
 
 def test_initialization():
@@ -15,9 +14,7 @@ def test_initialization():
     for oa in obj_attributes:
         assert hasattr(empty, oa)
 
-    lih_obj = LiHIntegrationTest()
-    lih_obj.setUp()
-    molecule = lih_obj.molecule
+    molecule = build_lih_moleculardata()
     oei, tei = molecule.get_integrals()
     molecule_load = LowRankTrotter(molecule=molecule)
     assert np.allclose(molecule_load.oei, oei)
@@ -27,9 +24,7 @@ def test_initialization():
 
 
 def test_first_factorization():
-    lih_obj = LiHIntegrationTest()
-    lih_obj.setUp()
-    molecule = lih_obj.molecule
+    molecule = build_lih_moleculardata()
     oei, tei = molecule.get_integrals()
     lrt_obj = LowRankTrotter(oei=oei, tei=tei)
     eigenvalues, one_body_squares, one_body_correction = \
@@ -81,9 +76,7 @@ def test_first_factorization():
 
 
 def test_second_factorization():
-    lih_obj = LiHIntegrationTest()
-    lih_obj.setUp()
-    molecule = lih_obj.molecule
+    molecule = build_lih_moleculardata()
     oei, tei = molecule.get_integrals()
     lrt_obj = LowRankTrotter(oei=oei, tei=tei)
     eigenvalues, one_body_squares, one_body_correction = \
@@ -102,9 +95,7 @@ def test_second_factorization():
 
 def test_trotter_prep():
     times = [0.1, 0.2, 0.3]
-    lih_obj = LiHIntegrationTest()
-    lih_obj.setUp()
-    molecule = lih_obj.molecule
+    molecule = build_lih_moleculardata()
     oei, tei = molecule.get_integrals()
     lrt_obj = LowRankTrotter(oei=oei, tei=tei)
     eigenvalues, one_body_squares, one_body_correction = \
@@ -142,12 +133,15 @@ def test_trotter_prep():
 
 
 def test_get_l_m():
-    lih_obj = LiHIntegrationTest()
-    lih_obj.setUp()
-    molecule = lih_obj.molecule
+    molecule = build_lih_moleculardata()
     oei, tei = molecule.get_integrals()
     lrt_obj = LowRankTrotter(oei=oei, tei=tei)
     num_l, m_list = lrt_obj.get_l_and_m(1.0E-8, 1.0E-8)
     assert isinstance(num_l, int)
     assert isinstance(m_list, list)
     assert len(m_list) == num_l
+
+[]
+if __name__ == "__main__":
+    lih = LiHIntegrationTest()
+    lih.setUp()
