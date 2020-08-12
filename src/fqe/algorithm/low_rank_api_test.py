@@ -4,9 +4,9 @@ from fqe.algorithm.low_rank_api import LowRankTrotter
 import openfermion as of
 from openfermion.config import EQ_TOLERANCE
 
-from fqe.unittest_data.generate_lih_molecule import build_lih_moleculardata
+from fqe.unittest_data.generate_openfermion_molecule import build_lih_moleculardata
 
-
+from scipy.linalg import expm
 
 def test_initialization():
     empty = LowRankTrotter()
@@ -109,8 +109,8 @@ def test_trotter_prep():
 
         # compute true values
         trotter_basis_change = [basis_change_matrices[0] @
-                                np.exp(-1j * tt * lrt_obj.oei +
-                                       one_body_correction[::2, ::2])]
+                                expm(-1j * tt * lrt_obj.oei +
+                                     one_body_correction[::2, ::2])]
         time_scaled_rho_rho_matrices = []
         for ii in range(len(basis_change_matrices) - 1):
             trotter_basis_change.append(
@@ -120,10 +120,13 @@ def test_trotter_prep():
             time_scaled_rho_rho_matrices.append(
                 tt * scaled_density_density_matrices[ii]
             )
+        time_scaled_rho_rho_matrices.append(tt * scaled_density_density_matrices[-1])
         trotter_basis_change.append(
             basis_change_matrices[ii + 1].conj().T
         )
 
+        assert len(trotter_basis_change) == len(test_tbasis)
+        assert len(time_scaled_rho_rho_matrices) == len(test_srr)
         # check against true values
         for t1, t2 in zip(trotter_basis_change, test_tbasis):
             assert np.allclose(t1, t2)
@@ -140,8 +143,3 @@ def test_get_l_m():
     assert isinstance(num_l, int)
     assert isinstance(m_list, list)
     assert len(m_list) == num_l
-
-[]
-if __name__ == "__main__":
-    lih = LiHIntegrationTest()
-    lih.setUp()
