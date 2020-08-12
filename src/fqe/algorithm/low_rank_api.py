@@ -12,6 +12,7 @@ from typing import Optional, Tuple
 from openfermion import MolecularData
 from openfermion import (low_rank_two_body_decomposition,
                          prepare_one_body_squared_evolution)
+from scipy.linalg import expm
 import numpy as np
 
 
@@ -141,10 +142,13 @@ class LowRankTrotter:
             self.second_factorization(eigenvalues, one_body_squares, self.mcut)
 
         trotter_basis_change = [basis_change_matrices[0] @
-                                np.exp(-1j * delta_t * self.oei +
-                                       one_body_correction[::2, ::2])]
+                                expm(-1j * delta_t * self.oei +
+                                     one_body_correction[::2, ::2])]
         time_scaled_rho_rho_matrices = []
+        # print("basis_change_matrices length ", len(basis_change_matrices))
+        # print("length of rho-rho ", len(scaled_density_density_matrices))
         for ii in range(len(basis_change_matrices) - 1):
+            # print("U{}U{}.T".format(ii + 1 ,ii), "\t nn{}".format(ii))
             trotter_basis_change.append(
                 basis_change_matrices[ii + 1] @
                 basis_change_matrices[ii].conj().T
@@ -152,6 +156,11 @@ class LowRankTrotter:
             time_scaled_rho_rho_matrices.append(
                 delta_t * scaled_density_density_matrices[ii]
             )
+        # get the last element
+        # print("U{}.T".format(ii + 1), "\t nn{}".format(ii + 1))
+        time_scaled_rho_rho_matrices.append(
+            delta_t * scaled_density_density_matrices[-1].astype(np.complex128)
+        )
         trotter_basis_change.append(
             basis_change_matrices[ii + 1].conj().T
         )

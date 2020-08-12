@@ -114,7 +114,7 @@ def davidsonliu(hmat: np.ndarray, nroots: int,
 
 
 def davidsonliu_fqe(hmat: Hamiltonian, nroots: int,
-                    guess_vecs,  epsilon: float=1.0E-8, verbose=False):
+                    guess_vecs,  nele, sz, norb, epsilon: float=1.0E-8, verbose=False):
     if nroots < 1 or nroots > 2**(hmat.dim() - 1):
         raise ValueError("Number of roots is incorrectly specified")
 
@@ -128,15 +128,20 @@ def davidsonliu_fqe(hmat: Hamiltonian, nroots: int,
     # this hack!
     diagonal_ham = np.zeros_like(guess_vecs[0].sector(gv_sector).coeff)
     graph = guess_vecs[0].sector(gv_sector).get_fcigraph()
+    empty_vec = np.zeros_like(diagonal_ham)
+    comp_basis = fqe.Wavefunction([[nele, sz, norb]])
+    old_ia, old_ib = None, None
     for ia in graph.string_alpha_all():
         for ib in graph.string_beta_all():
-            comp_basis = fqe.Wavefunction([[nele, nalpha - nbeta, norb]])
-            empty_vec = np.zeros_like(diagonal_ham)
-            empty_vec[graph.index_alpha(ia), graph.index_beta(ib)] = 1.0
+            # empty_vec = np.zeros_like(diagonal_ham)
+            if old_ia is not None and old_ib is not None:
+                empty_vec[old_ia,  old_ib] = 0.
+            empty_vec[graph.index_alpha(ia), graph.index_beta(ib)] = 1.
+            old_ia, old_ib = graph.index_alpha(ia), graph.index_beta(ib)
             comp_basis.set_wfn(strategy='from_data',
-                        raw_data={(nele, nalpha - nbeta): empty_vec})
+                        raw_data={(nele, sz): empty_vec})
             diagonal_ham[graph.index_alpha(ia), graph.index_beta(ib)] = \
-                comp_basis.expectationValue(elec_hamil).real
+                comp_basis.expectationValue(hmat).real
 
     old_thetas = np.array([np.infty] * nroots)
     while len(guess_vecs) <= graph.lena() * graph.lenb() / 2:

@@ -48,7 +48,7 @@ def main() -> None:
     long_description = ('===============\n' +
                         'OpenFermion-FQE\n' +
                         '===============\n')
-    stream = io.open('README.rst', encoding='utf-8')
+    stream = io.open('README.md', encoding='utf-8')
     stream.readline()
     long_description += stream.read()
 

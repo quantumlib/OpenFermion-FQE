@@ -99,4 +99,7 @@ def double_factor_trotter_evolution(initial_wfn: fqe.Wavefunction,
                                                         deltat)
         intermediate_wfn = evolve_fqe_givens(intermediate_wfn,
                                              basis_change_unitaries[step])
+
+        intermediate_wfn.print_wfn()
+        print(intermediate_wfn.norm())
     return intermediate_wfn
