@@ -142,8 +142,8 @@ class LowRankTrotter:
             self.second_factorization(eigenvalues, one_body_squares, self.mcut)
 
         trotter_basis_change = [basis_change_matrices[0] @
-                                expm(-1j * delta_t * self.oei +
-                                     one_body_correction[::2, ::2])]
+                                expm(-1j * delta_t * (self.oei +
+                                     one_body_correction[::2, ::2]))]
         time_scaled_rho_rho_matrices = []
         # print("basis_change_matrices length ", len(basis_change_matrices))
         # print("length of rho-rho ", len(scaled_density_density_matrices))

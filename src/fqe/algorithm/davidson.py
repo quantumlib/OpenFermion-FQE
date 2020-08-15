@@ -137,6 +137,7 @@ def davidsonliu_fqe(hmat: Hamiltonian, nroots: int,
             if old_ia is not None and old_ib is not None:
                 empty_vec[old_ia,  old_ib] = 0.
             empty_vec[graph.index_alpha(ia), graph.index_beta(ib)] = 1.
+            assert np.isclose(np.sum(empty_vec), 1)
             old_ia, old_ib = graph.index_alpha(ia), graph.index_beta(ib)
             comp_basis.set_wfn(strategy='from_data',
                         raw_data={(nele, sz): empty_vec})

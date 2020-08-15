@@ -8,6 +8,7 @@ from fqe.unittest_data.generate_openfermion_molecule import build_lih_moleculard
 
 from scipy.linalg import expm
 
+
 def test_initialization():
     empty = LowRankTrotter()
     obj_attributes = ['molecule', 'oei', 'tei', 'icut', 'lmax', 'mcut', 'mmax']
@@ -109,8 +110,8 @@ def test_trotter_prep():
 
         # compute true values
         trotter_basis_change = [basis_change_matrices[0] @
-                                expm(-1j * tt * lrt_obj.oei +
-                                     one_body_correction[::2, ::2])]
+                                expm(-1j * tt * (lrt_obj.oei +
+                                     one_body_correction[::2, ::2]))]
         time_scaled_rho_rho_matrices = []
         for ii in range(len(basis_change_matrices) - 1):
             trotter_basis_change.append(
@@ -130,9 +131,11 @@ def test_trotter_prep():
         # check against true values
         for t1, t2 in zip(trotter_basis_change, test_tbasis):
             assert np.allclose(t1, t2)
+            assert np.allclose(t1.conj().T @ t1, np.eye(t1.shape[0]))
 
         for t1, t2 in zip(test_srr, time_scaled_rho_rho_matrices):
             assert np.allclose(t1, t2)
+            assert of.is_hermitian(t1)
 
 
 def test_get_l_m():

@@ -92,6 +92,7 @@ def double_factor_trotter_evolution(initial_wfn: fqe.Wavefunction,
     if len(basis_change_unitaries) - 1 != len(vij_mats):
         raise ValueError(
             "number of basis changes is not consistent with len(vij)")
+
     intermediate_wfn = evolve_fqe_givens(initial_wfn, basis_change_unitaries[0])
     for step in range(1, len(basis_change_unitaries)):
         intermediate_wfn = evolve_fqe_diagaonal_coulomb(intermediate_wfn,
@@ -100,6 +101,6 @@ def double_factor_trotter_evolution(initial_wfn: fqe.Wavefunction,
         intermediate_wfn = evolve_fqe_givens(intermediate_wfn,
                                              basis_change_unitaries[step])
 
-        intermediate_wfn.print_wfn()
-        print(intermediate_wfn.norm())
+        # intermediate_wfn.print_wfn()
+        # print(intermediate_wfn.norm())
     return intermediate_wfn
