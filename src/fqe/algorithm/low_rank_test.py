@@ -84,7 +84,7 @@ def evolve_wf_diagonal_coulomb(wf: np.ndarray, vij_mat: np.ndarray,
             diagonal_coulomb += of.FermionOperator(
                 ((2 * i + sigma, 1), (2 * i + sigma, 0), (2 * j + tau, 1),
                  (2 * j + tau, 0)), coefficient=vij_mat[i, j])
-    bigU = expm(-1j * time * of.get_sparse_operator(diagonal_coulomb).toarray())
+    bigU = expm(-1j * time * of.get_sparse_operator(diagonal_coulomb, n_qubits=2 * norbs).toarray())
     return bigU @ wf
 
 
@@ -120,7 +120,7 @@ def double_factor_trotter_wf_evolution(initial_wfn: np.ndarray,
                                                       vij_mats[step - 1],
                                                       deltat)
         intermediate_wfn = evolve_wf_givens(intermediate_wfn,
-                                             basis_change_unitaries[step])
+                                            basis_change_unitaries[step])
     return intermediate_wfn
 
 
