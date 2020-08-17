@@ -30,7 +30,7 @@ import numpy
 from scipy.special import binom
 
 from fqe.bitstring import integer_index, get_bit, count_bits_above
-from fqe.bitstring import set_bit, unset_bit
+from fqe.bitstring import set_bit, unset_bit, reverse_integer_index
 from fqe.util import rand_wfn, validate_config
 from fqe.fci_graph import FciGraph
 from fqe.fci_graph_set import FciGraphSet
@@ -1357,19 +1357,15 @@ class FqeData:
 
         amap = set()
         bmap = set()
+        amask = reverse_integer_index(opa) 
+        bmask = reverse_integer_index(opb) 
         for index in range(self.lena()):
             current = self._core.string_alpha(index)
-            check = True
-            for i in opa:
-                check &= bool(get_bit(current, i))
-            if check:
+            if (~current) & amask == 0:
                 amap.add(index)
         for index in range(self.lenb()):
             current = self._core.string_beta(index)
-            check = True
-            for i in opb:
-                check &= bool(get_bit(current, i))
-            if check:
+            if (~current) & bmask == 0:
                 bmap.add(index)
 
         factor = numpy.exp(-time * numpy.real(coeff) * 2.j)
