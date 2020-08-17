@@ -1480,23 +1480,17 @@ class FqeData:
         """
         amap = set()
         bmap = set()
+        apmask = reverse_integer_index(opa) 
+        ahmask = reverse_integer_index(oha)
+        bpmask = reverse_integer_index(opb)
+        bhmask = reverse_integer_index(ohb)
         for index in range(self.lena()):
             current = self._core.string_alpha(index)
-            check = True
-            for i in opa:
-                check &= bool(get_bit(current, i))
-            for i in oha:
-                check &= not bool(get_bit(current, i))
-            if check:
+            if ((~current) & apmask) == 0 and (current & ahmask) == 0:
                 amap.add(index)
         for index in range(self.lenb()):
             current = self._core.string_beta(index)
-            check = True
-            for i in opb:
-                check &= bool(get_bit(current, i))
-            for i in ohb:
-                check &= not bool(get_bit(current, i))
-            if check:
+            if ((~current) & bpmask) == 0 and (current & bhmask) == 0:
                 bmap.add(index)
 
         absol = numpy.absolute(ncoeff)
