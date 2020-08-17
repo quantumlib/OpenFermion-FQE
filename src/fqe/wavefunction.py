@@ -954,11 +954,14 @@ class Wavefunction:
             final_wfn = self._evolve_individual_nbody(time, hamil, inplace)
 
         else:
-            if inplace:
+            is_diag = ((hamil.quadratic() and hamil.diagonal()) or hamil.diagonal_coulomb())
+            if inplace and not is_diag: 
                 raise ValueError("Inplace is not implemented for this case")
 
             if self._conserve_spin and not self._conserve_number:
                 work_wfn = self._copy_beta_inversion()
+            elif inplace:
+                work_wfn = self
             else:
                 work_wfn = copy.deepcopy(self)
 
@@ -967,7 +970,7 @@ class Wavefunction:
                 if hamil.diagonal():
 
                     ihtdiag = -1.j*time*hamil.diag_values()
-                    final_wfn = work_wfn._evolve_diagonal(ihtdiag)
+                    final_wfn = work_wfn._evolve_diagonal(ihtdiag, inplace)
 
                 else:
                     transformation = hamil.calc_diag_transform()
@@ -988,7 +991,7 @@ class Wavefunction:
 
                 diag, vij = hamil.iht(time)
 
-                final_wfn = work_wfn._evolve_diagonal_coulomb(diag, vij)
+                final_wfn = work_wfn._evolve_diagonal_coulomb(diag, vij, inplace)
 
             else:
 
@@ -1004,23 +1007,33 @@ class Wavefunction:
 
         return final_wfn
 
-    def _evolve_diagonal(self, ithdiag: numpy.ndarray) -> 'Wavefunction':
+    def _evolve_diagonal(self, ithdiag: numpy.ndarray, inplace: bool = False) -> 'Wavefunction':
         """Evolve a diagonal Hamiltonian on the wavefunction
         """
-        wfn = copy.deepcopy(self)
+        if inplace:
+            wfn = self
+        else:
+            wfn = copy.deepcopy(self)
 
         for key, sector in self._civec.items():
-            wfn._civec[key].coeff = sector.evolve_diagonal(ithdiag)
+            wfn._civec[key].coeff = sector.evolve_diagonal(ithdiag, inplace)
 
         return wfn
 
-    def _evolve_diagonal_coulomb(self, diag: numpy.ndarray, vij: numpy.ndarray) -> 'Wavefunction':
+    def _evolve_diagonal_coulomb(self,
+                                 diag: numpy.ndarray,
+                                 vij: numpy.ndarray,
+                                 inplace: bool = False) -> 'Wavefunction':
         """Evolve a diagonal coulomb Hamiltonian on the wavefunction
         """
 
-        wfn = copy.deepcopy(self)
+        if inplace:
+            wfn = self
+        else:
+            wfn = copy.deepcopy(self)
+
         for key, sector in self._civec.items():
-            wfn._civec[key].coeff = sector.diagonal_coulomb(diag, vij)
+            wfn._civec[key].coeff = sector.diagonal_coulomb(diag, vij, inplace)
 
         return wfn
 

@@ -161,8 +161,8 @@ def get_wavefunction(nele: int, m_s: int, norb: int) -> 'wavefunction.Wavefuncti
 
 def time_evolve(wfn: 'wavefunction.Wavefunction',
                 time: float,
-                hamil: Union['hamiltonian.Hamiltonian',
-                             'FermionOperator']) -> 'wavefunction.Wavefunction':
+                hamil: Union['hamiltonian.Hamiltonian', 'FermionOperator'],
+                inplace: bool = False) -> 'wavefunction.Wavefunction':
     """Time-evolve a wavefunction with the specified Hamiltonian.
 
     Args:
@@ -175,7 +175,7 @@ def time_evolve(wfn: 'wavefunction.Wavefunction',
     Returns:
         (wavefunction.Wavefunction) - a wavefunction object after time evolution
     """
-    return wfn.time_evolve(time, hamil)
+    return wfn.time_evolve(time, hamil, inplace)
 
 
 def get_wavefunction_multiple(param: List[List[int]]) -> List['wavefunction.Wavefunction']:

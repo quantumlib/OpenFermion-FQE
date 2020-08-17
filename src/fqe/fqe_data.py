@@ -30,7 +30,7 @@ import numpy
 from scipy.special import binom
 
 from fqe.bitstring import integer_index, get_bit, count_bits_above
-from fqe.bitstring import set_bit, unset_bit
+from fqe.bitstring import set_bit, unset_bit, reverse_integer_index
 from fqe.util import rand_wfn, validate_config
 from fqe.fci_graph import FciGraph
 from fqe.fci_graph_set import FciGraphSet
@@ -127,7 +127,7 @@ class FqeData:
             for bet_cnf in range(self._core.lenb()):
                 self.coeff[alp_cnf, bet_cnf] *= alpha[alp_cnf] + beta[bet_cnf]
 
-    def evolve_diagonal(self, array: 'Nparray') -> 'Nparray':
+    def evolve_diagonal(self, array: 'Nparray', inplace: bool = False) -> 'Nparray':
         """Iterate over each element and return the exponential scaled
         contribution.
         """
@@ -140,31 +140,40 @@ class FqeData:
             raise ValueError('Non-diagonal array passed' \
                              ' into apply_diagonal_array')
 
-        data = numpy.copy(self.coeff).astype(numpy.complex128)
+        if inplace:
+            data = self.coeff
+        else:
+            data = numpy.copy(self.coeff).astype(numpy.complex128)
 
         for alp_cnf in range(self._core.lena()):
             diag_ele = 0.0
             for ind in integer_index(self._core.string_alpha(alp_cnf)):
                 diag_ele += array[ind]
 
-            data[alp_cnf, :] *= numpy.exp(diag_ele)
+            if diag_ele != 0.0:
+                data[alp_cnf, :] *= numpy.exp(diag_ele)
 
         for bet_cnf in range(self._core.lenb()):
             diag_ele = 0.0
             for ind in integer_index(self._core.string_beta(bet_cnf)):
                 diag_ele += array[beta_ptr + ind]
 
-            data[:, bet_cnf] *= numpy.exp(diag_ele)
+            if diag_ele:
+                data[:, bet_cnf] *= numpy.exp(diag_ele)
 
         return data
 
     def diagonal_coulomb(self,
                          diag: 'Nparray',
-                         array: 'Nparray') -> 'Nparray':
+                         array: 'Nparray',
+                         inplace: bool = False) -> 'Nparray':
         """Iterate over each element and return the scaled wavefunction.
         """
         import numpy as np
-        data = numpy.copy(self.coeff)
+        if inplace:
+            data = self.coeff
+        else:
+            data = numpy.copy(self.coeff)
 
         # position of orbital occupation in each bitstring
         beta_occ = []
@@ -1348,19 +1357,15 @@ class FqeData:
 
         amap = set()
         bmap = set()
+        amask = reverse_integer_index(opa) 
+        bmask = reverse_integer_index(opb) 
         for index in range(self.lena()):
             current = self._core.string_alpha(index)
-            check = True
-            for i in opa:
-                check &= bool(get_bit(current, i))
-            if check:
+            if (~current) & amask == 0:
                 amap.add(index)
         for index in range(self.lenb()):
             current = self._core.string_beta(index)
-            check = True
-            for i in opb:
-                check &= bool(get_bit(current, i))
-            if check:
+            if (~current) & bmask == 0:
                 bmap.add(index)
 
         factor = numpy.exp(-time * numpy.real(coeff) * 2.j)

@@ -82,6 +82,22 @@ def integer_index(str0: int) -> List[int]:
     return list(gbit_index(str0))
 
 
+def reverse_integer_index(occ: List[int]) -> int:
+    """Reverse of the integer index function above. This function generates an
+    bitstring that correspoinds to the list passed as an argument.
+
+    Args:
+        occ (List[int]) - list of occupied orbitals
+
+    Returns:
+        int bitstring - orbital occupation representation
+    """
+    out = 0
+    for i in occ:
+        out = set_bit(out, i)
+    return out
+
+
 def lexicographic_bitstring_generator(str0: int, norb: int) -> List[int]:
     """
     Generate all bitstrings with a definite bit count starting from an initial

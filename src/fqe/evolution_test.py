@@ -110,6 +110,10 @@ class EvolutionTest(unittest.TestCase):
         tay_ene = tay_wfn.expectationValue(hamil)
         self.assertTrue(numpy.abs(tay_ene - initial_energy) < 1.e-7)
 
+        fqe.time_evolve(wfn, time, hamil, True)
+        computed = numpy.reshape(wfn._civec[(nele, nalpha-nbeta)].coeff, (cidim))
+        self.assertTrue(numpy.abs(linalg.norm(reference - computed)) < 1.e-8)
+
 
     def test_quadratic_both_conserved(self):
         """Test time evolution with a Hamiltonian that conserves both spin and number
@@ -303,6 +307,11 @@ class EvolutionTest(unittest.TestCase):
         err = numpy.std(reference / reference.flat[0] - coeff.flatten() / coeff.flat[0])
         self.assertTrue(err < 1.e-8)
 
+        test_wfn.time_evolve(time, hamil, True)
+        coeff = test_wfn._civec[(nele, m_s)].coeff
+
+        err = numpy.std(reference / reference.flat[0] - coeff.flatten() / coeff.flat[0])
+        self.assertTrue(err < 1.e-8)
 
 
     def test_diagonal_spin(self):
