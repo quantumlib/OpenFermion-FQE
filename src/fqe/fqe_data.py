@@ -979,12 +979,15 @@ class FqeData:
         targetb_vec = numpy.array([xx[1] for xx in betamap])
         parityb_vec = numpy.array([xx[2] for xx in betamap])
 
-        for sourcea, targeta, paritya in alphamap:
-            out.coeff[targeta, targetb_vec] = \
-                coeff * paritya * numpy.multiply(
-                    self.coeff[sourcea, sourceb_vec], parityb_vec)
+        if len(alphamap) == 0 or len(betamap) == 0:
+            return out
+        else:
+            for sourcea, targeta, paritya in alphamap:
+                out.coeff[targeta, targetb_vec] = \
+                    coeff * paritya * numpy.multiply(
+                        self.coeff[sourcea, sourceb_vec], parityb_vec)
 
-        return out
+            return out
 
     def rdm1(self, bradata: Optional['FqeData'] = None) -> 'Nparray':
         """
@@ -1371,8 +1374,9 @@ class FqeData:
         factor = numpy.exp(-time * numpy.real(coeff) * 2.j)
         lamap = list(amap)
         lbmap = list(bmap)
-        xi, yi = numpy.meshgrid(lamap, lbmap, indexing='ij')
-        self.coeff[xi, yi] *= factor
+        if len(lamap) != 0 and len(lbmap) != 0:
+            xi, yi = numpy.meshgrid(lamap, lbmap, indexing='ij')
+            self.coeff[xi, yi] *= factor
 
     def evolve_inplace_individual_nbody_nontrivial(self,
                                                    time: float,
@@ -1509,10 +1513,13 @@ class FqeData:
         sindata.coeff.fill(0.0)
         lamap = list(amap)
         lbmap = list(bmap)
-        xi, yi = numpy.meshgrid(lamap, lbmap, indexing='ij')
-        cosdata.coeff[xi, yi] *= cosfactor
-        sindata.coeff[xi, yi] = self.coeff[xi, yi] * sinfactor
-        return (cosdata, sindata)
+        if len(lamap) == 0 or len(lbmap) == 0:
+            return (cosdata, sindata)
+        else:
+            xi, yi = numpy.meshgrid(lamap, lbmap, indexing='ij')
+            cosdata.coeff[xi, yi] *= cosfactor
+            sindata.coeff[xi, yi] = self.coeff[xi, yi] * sinfactor
+            return (cosdata, sindata)
 
     def alpha_map(self, iorb: int, jorb: int) -> List[Tuple[int, int, int]]:
         """Access the mapping for a singlet excitation from the current
