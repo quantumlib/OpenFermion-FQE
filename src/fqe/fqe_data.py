@@ -1688,26 +1688,29 @@ class FqeData:
             self.coeff = numpy.copy(raw_data)
 
     def __copy__(self):
+        # FCIGraph is passed as by reference
         new_data = FqeData(nalpha=self._core.nalpha(),
                            nbeta=self._core.nbeta(),
                            norb=self._core.norb(),
                            fcigraph=self._core,
                            dtype=self._dtype)
         new_data._low_thresh = self._low_thresh
-        new_data.coeff = numpy.copy(self.coeff)
+        new_data.coeff[:, :] = self.coeff[:, :]
         return new_data
 
     def __deepcopy__(self, memodict={}):
+        # FCIGraph is passed as by reference
         new_data = FqeData(nalpha=self._core.nalpha(),
                            nbeta=self._core.nbeta(),
                            norb=self._core.norb(),
                            fcigraph=self._core,
                            dtype=self._dtype)
         new_data._low_thresh = self._low_thresh
-        # TODO: Check if this is necessary for numeric types
-        # new_data.coeff = copy.deepcopy(self.coeff)
-        new_data.coeff = numpy.copy(self.coeff)
+        # NOTE: numpy.copy only okay for numeric type self.coeff
+        # NOTE: Otherwise implement copy.deepcopy(self.coeff)
+        new_data.coeff[:, :] = self.coeff[:, :]
         return new_data
+
 
 if __name__ == "__main__":
     import numpy as np
