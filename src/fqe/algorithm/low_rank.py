@@ -7,41 +7,55 @@ from fqe.hamiltonians.restricted_hamiltonian import RestrictedHamiltonian
 from fqe.hamiltonians.diagonal_coulomb import DiagonalCoulomb
 
 
-def evolve_fqe_givens(fqe_wfn: fqe.Wavefunction,
-                      u: np.ndarray) -> fqe.Wavefunction:
+def evolve_fqe_givens(wfn: fqe.Wavefunction, u: np.ndarray) -> np.ndarray:
     """
-    Evolve a wavefunction by a
+    Evolve a wavefunction by u generated from a 1-body Hamiltonian
     Args:
         wfn np.ndarray: 2^{n} x 1 vector
         u: (n//2 x n//2) unitary matrix
 
     Returns:
-        New evolved 2^{n} x 1 vector
+        New evolved wfn object
     """
     rotations, diagonal = givens_decomposition_square(u.copy())
+    # Iterate through each layer and time evolve by the appropriate
+    # fermion operators
     for layer in rotations:
-        # TODO: We only need one hamiltonian per layer. Not n per layer.
         for givens in layer:
             i, j, theta, phi = givens
-            zero_op = np.zeros((u.shape[0], u.shape[0]))
-            zero_op[j, j] = -phi
-            fqe_wfn = fqe_wfn.time_evolve(1., RestrictedHamiltonian((zero_op,)))
-
-            zero_op = np.zeros((u.shape[0], u.shape[0]), dtype=np.complex128)
-            zero_op[i, j] = -1j * theta
-            zero_op[j, i] = 1j * theta
-            assert of.is_hermitian(zero_op)
-            fqe_wfn = fqe_wfn.time_evolve(1., RestrictedHamiltonian((zero_op,)))
+            if not np.isclose(phi, 0):
+                op = of.FermionOperator(((2 * j, 1), (2 * j, 0)), coefficient=-phi)
+                # wfn = wfn.time_evolve(1., op)
+                wfn.time_evolve(1., op, inplace=True)
+                op = of.FermionOperator(((2 * j + 1, 1), (2 * j + 1, 0)),
+                                        coefficient=-phi)
+                # wfn = wfn.time_evolve(1., op)
+                wfn.time_evolve(1., op, inplace=True)
+            if not np.isclose(theta, 0):
+                op = of.FermionOperator(((2 * i, 1), (2 * j, 0)),
+                                        coefficient=-1j * theta) + of.FermionOperator(
+                    ((2 * j, 1), (2 * i, 0)), coefficient=1j * theta)
+                # wfn = wfn.time_evolve(1., op)
+                wfn.time_evolve(1., op, inplace=True)
+                op = of.FermionOperator(((2 * i + 1, 1), (2 * j + 1, 0)),
+                                        coefficient=-1j * theta) + of.FermionOperator(
+                    ((2 * j + 1, 1), (2 * i + 1, 0)), coefficient=1j * theta)
+                # wfn = wfn.time_evolve(1., op)
+                wfn.time_evolve(1., op, inplace=True)
 
     # evolve the last diagonal phases
-    # TODO: We only need one hamiltonian for the last layer
     for idx, final_phase in enumerate(diagonal):
         if not np.isclose(final_phase, 1.0):
-            zero_op = np.zeros((u.shape[0], u.shape[0]))
-            zero_op[idx, idx] = -np.angle(final_phase)
-            fqe_wfn = fqe_wfn.time_evolve(1., RestrictedHamiltonian((zero_op,)))
+            op = of.FermionOperator(((2 * idx, 1), (2 * idx, 0)),
+                                    -np.angle(final_phase))
+            # wfn = wfn.time_evolve(1., op)
+            wfn.time_evolve(1., op, inplace=True)
+            op = of.FermionOperator(((2 * idx + 1, 1), (2 * idx + 1, 0)),
+                                    -np.angle(final_phase))
+            # wfn = wfn.time_evolve(1., op)
+            wfn.time_evolve(1., op, inplace=True)
 
-    return fqe_wfn
+    return wfn
 
 
 def evolve_fqe_diagaonal_coulomb(wfn: fqe.Wavefunction, vij_mat: np.ndarray,
