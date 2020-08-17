@@ -127,7 +127,7 @@ class FqeData:
             for bet_cnf in range(self._core.lenb()):
                 self.coeff[alp_cnf, bet_cnf] *= alpha[alp_cnf] + beta[bet_cnf]
 
-    def evolve_diagonal(self, array: 'Nparray') -> 'Nparray':
+    def evolve_diagonal(self, array: 'Nparray', inplace: bool = False) -> 'Nparray':
         """Iterate over each element and return the exponential scaled
         contribution.
         """
@@ -140,31 +140,40 @@ class FqeData:
             raise ValueError('Non-diagonal array passed' \
                              ' into apply_diagonal_array')
 
-        data = numpy.copy(self.coeff).astype(numpy.complex128)
+        if inplace:
+            data = self.coeff
+        else:
+            data = numpy.copy(self.coeff).astype(numpy.complex128)
 
         for alp_cnf in range(self._core.lena()):
             diag_ele = 0.0
             for ind in integer_index(self._core.string_alpha(alp_cnf)):
                 diag_ele += array[ind]
 
-            data[alp_cnf, :] *= numpy.exp(diag_ele)
+            if diag_ele != 0.0:
+                data[alp_cnf, :] *= numpy.exp(diag_ele)
 
         for bet_cnf in range(self._core.lenb()):
             diag_ele = 0.0
             for ind in integer_index(self._core.string_beta(bet_cnf)):
                 diag_ele += array[beta_ptr + ind]
 
-            data[:, bet_cnf] *= numpy.exp(diag_ele)
+            if diag_ele:
+                data[:, bet_cnf] *= numpy.exp(diag_ele)
 
         return data
 
     def diagonal_coulomb(self,
                          diag: 'Nparray',
-                         array: 'Nparray') -> 'Nparray':
+                         array: 'Nparray',
+                         inplace: bool = False) -> 'Nparray':
         """Iterate over each element and return the scaled wavefunction.
         """
         import numpy as np
-        data = numpy.copy(self.coeff)
+        if inplace:
+            data = self.coeff
+        else:
+            data = numpy.copy(self.coeff)
 
         # position of orbital occupation in each bitstring
         beta_occ = []
