@@ -1701,7 +1701,7 @@ class FqeData:
         new_data._low_thresh = self._low_thresh
         # NOTE: numpy.copy only okay for numeric type self.coeff
         # NOTE: Otherwise implement copy.deepcopy(self.coeff)
-        new_data.coeff = numpy.copy(self.coeff)
+        new_data.coeff[:, :] = self.coeff[:, :]
         return new_data
 
 
