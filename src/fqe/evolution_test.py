@@ -395,6 +395,10 @@ class EvolutionTest(unittest.TestCase):
             result.ax_plus_y(-1.0, nbody_evol)
             self.assertTrue(result.norm() < 1.e-8)
 
+            wfn =  wfn._evolve_individual_nbody(time, sham, True)
+            wfn.ax_plus_y(-1.0, nbody_evol)
+            self.assertTrue(wfn.norm() < 1.e-8)
+
 
         with self.subTest(nbody='two body'):
             ops = FermionOperator('1^ 3^ 1 2', 2.0 - 2.j)

@@ -927,7 +927,7 @@ class Wavefunction:
 
 
     @wrap_time_evolve
-    def time_evolve(self, time: float, hamil) -> 'Wavefunction':
+    def time_evolve(self, time: float, hamil, inplace: bool = False) -> 'Wavefunction':
         """Perform time evolution of the wavefunction given Fermion Operators
         either as raw operations or wrapped up in a Hamiltonian.
 
@@ -951,9 +951,11 @@ class Wavefunction:
 
         if isinstance(hamil, sparse_hamiltonian.SparseHamiltonian) and hamil.is_individual():
 
-            final_wfn = self._evolve_individual_nbody(time, hamil)
+            final_wfn = self._evolve_individual_nbody(time, hamil, inplace)
 
         else:
+            if inplace:
+                raise ValueError("Inplace is not implemented for this case")
 
             if self._conserve_spin and not self._conserve_number:
                 work_wfn = self._copy_beta_inversion()
@@ -1108,7 +1110,8 @@ class Wavefunction:
         return out
 
     def _evolve_individual_nbody(self, time: float,
-                                 hamil: 'sparse_hamiltonian.SparseHamiltonian') -> 'Wavefunction':
+                                 hamil: 'sparse_hamiltonian.SparseHamiltonian',
+                                 inplace: bool = False) -> 'Wavefunction':
         """Apply up to 4-body individual operator.
 
         This routine assumes the Hamiltonian is normal ordered.
@@ -1178,7 +1181,10 @@ class Wavefunction:
             if not numpy.abs(coeff0 - numpy.conj(coeff1)*parity) < 1.0e-8:
                 raise ValueError('Coefficients in _evolve_individual_nbody is not Hermitian')
 
-        out = copy.deepcopy(self)
+        if inplace:
+            out = self
+        else:
+            out = copy.deepcopy(self)
 
         if daga == undaga and dagb == undagb:
             for _, sector in out._civec.items():
