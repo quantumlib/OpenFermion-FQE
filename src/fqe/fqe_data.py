@@ -975,10 +975,15 @@ class FqeData:
         make_mapping_each(False)
         out = copy.deepcopy(self)
         out.coeff.fill(0.0)
+        sourceb_vec = numpy.array([xx[0] for xx in betamap])
+        targetb_vec = numpy.array([xx[1] for xx in betamap])
+        parityb_vec = numpy.array([xx[2] for xx in betamap])
+
         for sourcea, targeta, paritya in alphamap:
-            for sourceb, targetb, parityb in betamap:
-                work = coeff * self.coeff[sourcea, sourceb] * paritya * parityb
-                out.coeff[targeta, targetb] = work
+            out.coeff[targeta, targetb_vec] = \
+                coeff * paritya * numpy.multiply(
+                    self.coeff[sourcea, sourceb_vec], parityb_vec)
+
         return out
 
     def rdm1(self, bradata: Optional['FqeData'] = None) -> 'Nparray':
@@ -1364,9 +1369,10 @@ class FqeData:
                 bmap.add(index)
 
         factor = numpy.exp(-time * numpy.real(coeff) * 2.j)
-        for i_a in amap:
-            for i_b in bmap:
-                self.coeff[i_a, i_b] *= factor
+        lamap = list(amap)
+        lbmap = list(bmap)
+        xi, yi = numpy.meshgrid(lamap, lbmap, indexing='ij')
+        self.coeff[xi, yi] *= factor
 
     def evolve_inplace_individual_nbody_nontrivial(self,
                                                    time: float,
@@ -1501,10 +1507,11 @@ class FqeData:
         cosdata = copy.deepcopy(self)
         sindata = copy.deepcopy(self)
         sindata.coeff.fill(0.0)
-        for i_a in amap:
-            for i_b in bmap:
-                cosdata.coeff[i_a, i_b] *= cosfactor
-                sindata.coeff[i_a, i_b] = self.coeff[i_a, i_b] * sinfactor
+        lamap = list(amap)
+        lbmap = list(bmap)
+        xi, yi = numpy.meshgrid(lamap, lbmap, indexing='ij')
+        cosdata.coeff[xi, yi] *= cosfactor
+        sindata.coeff[xi, yi] = self.coeff[xi, yi] * sinfactor
         return (cosdata, sindata)
 
     def alpha_map(self, iorb: int, jorb: int) -> List[Tuple[int, int, int]]:
@@ -1680,6 +1687,27 @@ class FqeData:
         elif strategy == 'from_data':
             self.coeff = numpy.copy(raw_data)
 
+    def __copy__(self):
+        new_data = FqeData(nalpha=self._core.nalpha(),
+                           nbeta=self._core.nbeta(),
+                           norb=self._core.norb(),
+                           fcigraph=self._core,
+                           dtype=self._dtype)
+        new_data._low_thresh = self._low_thresh
+        new_data.coeff = numpy.copy(self.coeff)
+        return new_data
+
+    def __deepcopy__(self, memodict={}):
+        new_data = FqeData(nalpha=self._core.nalpha(),
+                           nbeta=self._core.nbeta(),
+                           norb=self._core.norb(),
+                           fcigraph=self._core,
+                           dtype=self._dtype)
+        new_data._low_thresh = self._low_thresh
+        # TODO: Check if this is necessary for numeric types
+        # new_data.coeff = copy.deepcopy(self.coeff)
+        new_data.coeff = numpy.copy(self.coeff)
+        return new_data
 
 if __name__ == "__main__":
     import numpy as np
