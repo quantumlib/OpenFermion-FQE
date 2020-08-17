@@ -1688,7 +1688,7 @@ class FqeData:
                            fcigraph=self._core,
                            dtype=self._dtype)
         new_data._low_thresh = self._low_thresh
-        new_data.coeff = numpy.copy(self.coeff)
+        new_data.coeff[:, :] = self.coeff[:, :]
         return new_data
 
     def __deepcopy__(self, memodict={}):
