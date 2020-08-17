@@ -349,7 +349,8 @@ def wrap_time_evolve(time_evolve):
     @wraps(time_evolve)
     def convert(self,
                 time: float,
-                ops: Union['FermionOperator', 'hamiltonian.Hamiltonian']):
+                ops: Union['FermionOperator', 'hamiltonian.Hamiltonian'],
+                inplace: bool = False):
         """ Converts an FermionOperator to hamiltonian.Hamiltonian
 
         Args:
@@ -358,7 +359,7 @@ def wrap_time_evolve(time_evolve):
             ops (FermionOperator or Hamiltonian) - input operator
         """
         hamil = build_hamiltonian(ops, conserve_number=self.conserve_number())
-        return time_evolve(self, time, hamil)
+        return time_evolve(self, time, hamil, inplace)
     return convert
 
 
