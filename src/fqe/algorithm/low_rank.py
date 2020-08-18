@@ -25,37 +25,32 @@ def evolve_fqe_givens(wfn: fqe.Wavefunction, u: np.ndarray) -> np.ndarray:
             i, j, theta, phi = givens
             if not np.isclose(phi, 0):
                 op = of.FermionOperator(((2 * j, 1), (2 * j, 0)), coefficient=-phi)
-                # wfn = wfn.time_evolve(1., op)
-                wfn.time_evolve(1., op, inplace=True)
+                wfn = wfn.time_evolve(1., op)
                 op = of.FermionOperator(((2 * j + 1, 1), (2 * j + 1, 0)),
                                         coefficient=-phi)
-                # wfn = wfn.time_evolve(1., op)
-                wfn.time_evolve(1., op, inplace=True)
+                wfn = wfn.time_evolve(1., op)
             if not np.isclose(theta, 0):
                 op = of.FermionOperator(((2 * i, 1), (2 * j, 0)),
                                         coefficient=-1j * theta) + of.FermionOperator(
                     ((2 * j, 1), (2 * i, 0)), coefficient=1j * theta)
-                # wfn = wfn.time_evolve(1., op)
-                wfn.time_evolve(1., op, inplace=True)
+                wfn = wfn.time_evolve(1., op)
                 op = of.FermionOperator(((2 * i + 1, 1), (2 * j + 1, 0)),
                                         coefficient=-1j * theta) + of.FermionOperator(
                     ((2 * j + 1, 1), (2 * i + 1, 0)), coefficient=1j * theta)
-                # wfn = wfn.time_evolve(1., op)
-                wfn.time_evolve(1., op, inplace=True)
+                wfn = wfn.time_evolve(1., op)
 
     # evolve the last diagonal phases
     for idx, final_phase in enumerate(diagonal):
         if not np.isclose(final_phase, 1.0):
             op = of.FermionOperator(((2 * idx, 1), (2 * idx, 0)),
                                     -np.angle(final_phase))
-            # wfn = wfn.time_evolve(1., op)
-            wfn.time_evolve(1., op, inplace=True)
+            wfn = wfn.time_evolve(1., op)
             op = of.FermionOperator(((2 * idx + 1, 1), (2 * idx + 1, 0)),
                                     -np.angle(final_phase))
-            # wfn = wfn.time_evolve(1., op)
-            wfn.time_evolve(1., op, inplace=True)
+            wfn = wfn.time_evolve(1., op)
 
     return wfn
+
 
 
 def evolve_fqe_diagaonal_coulomb(wfn: fqe.Wavefunction, vij_mat: np.ndarray,
