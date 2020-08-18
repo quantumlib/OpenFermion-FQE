@@ -1717,55 +1717,84 @@ class FqeData:
         new_data.coeff[:, :] = self.coeff[:, :]
         return new_data
 
+    def get_spin_opdm(self):
+        """estimate the alpha-alpha and beta-beta block of the 1-RDM"""
+        dveca, dvecb = self.calculate_dvec_spin()
+        alpha_opdm = numpy.einsum('ijkl,kl->ij', dveca, self.coeff.conj())
+        beta_opdm = numpy.einsum('ijkl,kl->ij', dvecb, self.coeff.conj())
+        return alpha_opdm, beta_opdm
+
+    def get_ab_tpdm(self):
+        """Get the alpha-beta block of the 2-RDM
+
+        tensor[i, j, k, l] = <ia^ jb^ kb la>
+        """
+        dveca, dvecb = self.calculate_dvec_spin()
+        tpdm_ab = numpy.einsum('liab,jkab->ijkl', dveca.conj(), dvecb)
+        return tpdm_ab
+
+    def get_aa_tpdm(self):
+        """Get the alpha-alpha block of the 2-RDM
+
+        tensor[i, j, k, l] = <ia^ ja^ ka la>
+        """
+        dveca, _ = self.calculate_dvec_spin()
+        alpha_opdm = numpy.einsum('ijkl,kl->ij', dveca, self.coeff.conj())
+        nik_njl_aa = numpy.einsum('kiab,jlab->ikjl', dveca.conj(), dveca)
+        tensor_aa = numpy.einsum('il,jk->ikjl', alpha_opdm,
+                                 numpy.eye(alpha_opdm.shape[0]))
+        return alpha_opdm, (tensor_aa - nik_njl_aa).transpose(0, 2, 1, 3)
+
+    def get_bb_tpdm(self):
+        """Get the beta-beta block of the 2-RDM
+
+        tensor[i, j, k, l] = <ib^ jb^ kb lb>
+        """
+        _, dvecb = self.calculate_dvec_spin()
+        beta_opdm = numpy.einsum('ijkl,kl->ij', dvecb, self.coeff.conj())
+        nik_njl_bb = numpy.einsum('kiab,jlab->ikjl', dvecb.conj(), dvecb)
+        tensor_bb = numpy.einsum('il,jk->ikjl', beta_opdm,
+                                 numpy.eye(beta_opdm.shape[0]))
+        return beta_opdm, (tensor_bb - nik_njl_bb).transpose(0, 2, 1, 3)
+
+    def get_openfermion_rdms(self):
+        """
+        Generate spin-rdms and return in openfermion format
+        """
+        opdm_a, tpdm_aa = self.get_aa_tpdm()
+        opdm_b, tpdm_bb = self.get_bb_tpdm()
+        tpdm_ab = self.get_ab_tpdm()
+        nqubits = 2 * opdm_a.shape[0]
+        tpdm = numpy.zeros((nqubits, nqubits, nqubits, nqubits),
+                           dtype=tpdm_ab.dtype)
+        opdm = numpy.zeros((nqubits, nqubits), dtype=opdm_a.dtype)
+        opdm[::2, ::2] = opdm_a
+        opdm[1::2, 1::2] = opdm_b
+        # same spin
+        tpdm[::2, ::2, ::2, ::2] = tpdm_aa
+        tpdm[1::2, 1::2, 1::2, 1::2] = tpdm_bb
+
+        # mixed spin
+        tpdm[::2, 1::2, 1::2, ::2] = tpdm_ab
+        tpdm[::2, 1::2, ::2, 1::2] = numpy.einsum('ijkl->ijlk', -tpdm_ab)
+        tpdm[1::2, ::2, ::2, 1::2] = numpy.einsum('ijkl->jilk', tpdm_ab)
+        tpdm[1::2, ::2, 1::2, ::2] = numpy.einsum('ijkl->ijlk',
+                                                  -tpdm[1::2, ::2, ::2, 1::2])
+
+        return opdm, tpdm
+
 
 if __name__ == "__main__":
     import numpy as np
     from itertools import product
     import openfermion as of
+    import fqe
     norb = 4
-    wfn = numpy.asarray([[-0.9986416294264632 + 0.j,
-                          0.0284839005060597 + 0.j,
-                          0.0189102058837960 + 0.j,
-                          -0.0096809878541792 + 0.j,
-                          -0.0096884853951631 + 0.j,
-                          0.0000930227399218 + 0.j],
-                         [0.0284839005060596 + 0.j,
-                          -0.0008124361774354 + 0.j,
-                          -0.0005393690860379 + 0.j,
-                          0.0002761273781438 + 0.j,
-                          0.0002763412278424 + 0.j,
-                          -0.0000026532545717 + 0.j],
-                         [0.0189102058837960 + 0.j,
-                          -0.0005393690860379 + 0.j,
-                          -0.0003580822950200 + 0.j,
-                          0.0001833184879206 + 0.j,
-                          0.0001834604608161 + 0.j,
-                          -0.0000017614718954 + 0.j],
-                         [-0.0096809878541792 + 0.j,
-                          0.0002761273781438 + 0.j,
-                          0.0001833184879206 + 0.j,
-                          -0.0000938490075630 + 0.j,
-                          -0.0000939216898957 + 0.j,
-                          0.0000009017769626 + 0.j],
-                         [-0.0096884853951631 + 0.j,
-                          0.0002763412278424 + 0.j,
-                          0.0001834604608161 + 0.j,
-                          -0.0000939216898957 + 0.j,
-                          -0.0000939944285181 + 0.j,
-                          0.0000009024753531 + 0.j],
-                         [0.0000930227399218 + 0.j,
-                          -0.0000026532545717 + 0.j,
-                          -0.0000017614718954 + 0.j,
-                          0.0000009017769626 + 0.j,
-                          0.0000009024753531 + 0.j,
-                          -0.0000000086650004 + 0.j]],
-                        dtype=numpy.complex128)
-    wfn = np.random.randn(36).reshape((6, 6)) + 1j * np.random.randn(36).reshape((6, 6))
-    wfn /= np.linalg.norm(wfn)
-    print(np.linalg.norm(wfn))
+    sz = 2
+    wfn = fqe.Wavefunction([[norb, sz, norb]])
+    wfn.set_wfn(strategy='random')
 
-    work = FqeData(2, 2, norb)
-    work.coeff = numpy.copy(wfn)
+    work = wfn.sector((norb, sz))
     print(work.coeff.shape)
     print(work._core.lena(), work._core.lenb())
     print(work.coeff)
@@ -1774,6 +1803,7 @@ if __name__ == "__main__":
     alpha_opdm = np.einsum('ijkl,kl->ij', dveca, work.coeff.conj())
     beta_opdm = np.einsum('ijkl,kl->ij', dvecb, work.coeff.conj())
     print(alpha_opdm)
+    print(beta_opdm)
     print(dveca.shape)
 
     state = np.zeros(2**(2 * norb), dtype=np.complex128)
@@ -1790,53 +1820,82 @@ if __name__ == "__main__":
         state[joined_idx] = work.coeff[a_idx, b_idx]
 
     test_alpha_opdm = np.zeros((norb, norb), dtype=np.complex128)
-    for i, j in product(range(4), repeat=2):
+    for i, j in product(range(norb), repeat=2):
         op = of.get_sparse_operator(of.FermionOperator(((i, 1), (j, 0))),
                               n_qubits=2 * norb)
         test_alpha_opdm[i, j] = state.conj().T @ op @ state
 
-    print(test_alpha_opdm)
     assert np.allclose(test_alpha_opdm, alpha_opdm)
-    print()
     test_beta_opdm = np.zeros((norb, norb), dtype=np.complex128)
-    for i, j in product(range(4), repeat=2):
+    for i, j in product(range(norb), repeat=2):
         op = of.get_sparse_operator(of.FermionOperator(((i + norb, 1), (j + norb, 0))),
                               n_qubits=2 * norb)
         test_beta_opdm[i, j] = state.conj().T @ op @ state
 
     assert np.allclose(test_beta_opdm, beta_opdm)
-    print(beta_opdm)
-    print()
 
     spin_summed_opdm = alpha_opdm + beta_opdm
     test_spin_summed_opdm = work.rdm1()[0]
-    print(test_spin_summed_opdm)
-    print()
-    print(spin_summed_opdm)
     assert np.allclose(test_spin_summed_opdm, spin_summed_opdm)
-
-    # for i in range(norb):
-    #     for j in range(norb):
-    #         for source, target, parity in work.alpha_map(i, j):
-    #             print(source, target, parity)
-
-    # exit()
 
 
     tpdm_ab = np.einsum('liab,jkab->ijkl', dveca.conj(), dvecb)
-    print(tpdm_ab.shape)
+    tpdm_ab2 = work.get_ab_tpdm()
+    assert np.allclose(tpdm_ab, tpdm_ab2)
+    # print(tpdm_ab.shape)
     test_tpdm_ab = np.zeros((norb, norb, norb, norb), dtype=np.complex128)
     for i, j, k, l in product(range(norb), repeat=4):
-        # op = of.get_sparse_operator(of.FermionOperator(((i, 1), (j + norb, 1), (k + norb, 0), (l, 0))),
-        #                             n_qubits=2 * norb)
         op = of.get_sparse_operator(of.FermionOperator(((i, 1), (l, 0), (j + norb, 1), (k + norb, 0))),
                                     n_qubits=2 * norb)
-        print("{}a".format(i), "{}b".format(j), "{}b".format(k), "{}a".format(l))
+        # print("{}a".format(i), "{}b".format(j), "{}b".format(k), "{}a".format(l))
         test_tpdm_ab[i, j, k, l] = state.conj().T @ op @ state
-        print(test_tpdm_ab[i, j, k, l], tpdm_ab[i, j, k, l])
+        # print(test_tpdm_ab[i, j, k, l], tpdm_ab[i, j, k, l])
         if not np.isclose(test_tpdm_ab[i, j, k, l], tpdm_ab[i, j, k, l]):
             print(np.einsum('ab,ab', dveca[0, 1, :, :].conj(), dvecb[0, 1, :, :]))
             exit()
 
-    print(np.linalg.norm(tpdm_ab - test_tpdm_ab))
+    # print(np.linalg.norm(tpdm_ab - test_tpdm_ab))
     assert np.allclose(tpdm_ab, test_tpdm_ab)
+
+
+    alpha_opdm_2, tpdm_aa = work.get_aa_tpdm()
+    assert np.allclose(alpha_opdm_2, alpha_opdm)
+    test_tpdm_aa = np.zeros((norb, norb, norb, norb), dtype=np.complex128)
+    krond = np.eye(norb)
+    for i, j, k, l in product(range(norb), repeat=4):
+        op = of.get_sparse_operator(
+            of.FermionOperator(((i, 1), (j, 1), (k, 0), (l, 0))),
+            n_qubits=2 * norb)
+        test_tpdm_aa[i, j, k, l] = state.conj().T @ op @ state
+        # print(test_tpdm_aa[i, j, k, l], tpdm_aa[i, j, k, l])
+        assert np.isclose(test_tpdm_aa[i, j, k, l], tpdm_aa[i, j, k, l])
+
+    beta_opdm_2, tpdm_bb = work.get_bb_tpdm()
+    assert np.allclose(beta_opdm_2, beta_opdm)
+    test_tpdm_bb = np.zeros((norb, norb, norb, norb), dtype=np.complex128)
+    krond = np.eye(norb)
+    for i, j, k, l in product(range(norb), repeat=4):
+        op = of.get_sparse_operator(
+            of.FermionOperator(((i + norb, 1), (j + norb, 1), (k + norb, 0), (l + norb, 0))),
+            n_qubits=2 * norb)
+        test_tpdm_bb[i, j, k, l] = state.conj().T @ op @ state
+        assert np.isclose(test_tpdm_bb[i, j, k, l], tpdm_bb[i, j, k, l])
+
+    cirq_wf = fqe.to_cirq(wfn).reshape((-1, 1))
+    test_of_tpdm = np.zeros(tuple([2 * norb] * 4), dtype=np.complex128)
+    of_opdm, of_tpdm = work.get_openfermion_rdms()
+    for i, j, k, l in product(range(2 * norb), repeat=4):
+        op = of.get_sparse_operator(
+            of.FermionOperator(((i, 1), (j, 1), (k, 0), (l, 0))),
+            n_qubits=2 * norb)
+        test_of_tpdm[i, j, k, l] = cirq_wf.conj().T @ op @ cirq_wf
+        print((i, j, k, l), test_of_tpdm[i, j, k, l], of_tpdm[i, j, k, l])
+        assert np.isclose(of_tpdm[i, j, k, l], test_of_tpdm[i, j, k, l])
+
+    test_of_opdm = np.zeros_like(of_opdm)
+    for i, j in product(range(2 * norb), repeat=2):
+        op = of.get_sparse_operator(
+            of.FermionOperator(((i, 1), (j, 0))),
+            n_qubits=2 * norb)
+        test_of_opdm[i, j] = cirq_wf.conj().T @ op @ cirq_wf
+        assert np.isclose(test_of_opdm[i, j], of_opdm[i, j])

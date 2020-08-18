@@ -28,6 +28,7 @@ import numpy
 
 from fqe import fqe_data
 from fqe import fci_graph
+import fqe
 
 import openfermion as of
 
@@ -1293,15 +1294,17 @@ class FqeDataTest(unittest.TestCase):
     def test_random_wfn_opdm_tpdm_alpha_beta(self):
         """Check we can compute opdm-alpha, opdm-beta from dveca, dvecb"""
         norb = 4
-        wfn = numpy.random.randn(36).reshape((6, 6)) + 1j * numpy.random.randn(
-            36).reshape((6, 6))
-        wfn /= numpy.linalg.norm(wfn)
+        sz = 2
+        wfn = fqe.Wavefunction([[norb, sz, norb]])
+        wfn.set_wfn(strategy='random')
 
-        work = fqe_data.FqeData(2, 2, norb)
-        work.coeff = numpy.copy(wfn)
+        work = wfn.sector((norb, sz))
         dveca, dvecb = work.calculate_dvec_spin()
         alpha_opdm = numpy.einsum('ijkl,kl->ij', dveca, work.coeff.conj())
         beta_opdm = numpy.einsum('ijkl,kl->ij', dvecb, work.coeff.conj())
+        aopdm, bopdm = work.get_spin_opdm()
+        assert numpy.allclose(aopdm, alpha_opdm)
+        assert numpy.allclose(bopdm, beta_opdm)
 
         state = numpy.zeros(2 ** (2 * norb), dtype=numpy.complex128)
         for alpha_string, beta_string in product(work._core._astr,
@@ -1335,6 +1338,7 @@ class FqeDataTest(unittest.TestCase):
         assert numpy.allclose(test_spin_summed_opdm, spin_summed_opdm)
 
         tpdm_ab = numpy.einsum('liab,jkab->ijkl', dveca.conj(), dvecb)
+        tpdm_ab_fqedata = work.get_ab_tpdm()
         test_tpdm_ab = numpy.zeros((norb, norb, norb, norb), dtype=numpy.complex128)
         for i, j, k, l in product(range(norb), repeat=4):
             op = of.get_sparse_operator(of.FermionOperator(
@@ -1342,3 +1346,47 @@ class FqeDataTest(unittest.TestCase):
                                         n_qubits=2 * norb)
             test_tpdm_ab[i, j, k, l] = state.conj().T @ op @ state
         assert numpy.allclose(tpdm_ab, test_tpdm_ab)
+        assert numpy.allclose(tpdm_ab, tpdm_ab_fqedata)
+
+        alpha_opdm_2, tpdm_aa = work.get_aa_tpdm()
+        assert numpy.allclose(alpha_opdm_2, alpha_opdm)
+        test_tpdm_aa = numpy.zeros((norb, norb, norb, norb),
+                                   dtype=numpy.complex128)
+        for i, j, k, l in product(range(norb), repeat=4):
+            op = of.get_sparse_operator(
+                of.FermionOperator(((i, 1), (j, 1), (k, 0), (l, 0))),
+                n_qubits=2 * norb)
+            test_tpdm_aa[i, j, k, l] = state.conj().T @ op @ state
+            assert numpy.isclose(test_tpdm_aa[i, j, k, l], tpdm_aa[i, j, k, l])
+
+        beta_opdm_2, tpdm_bb = work.get_bb_tpdm()
+        assert numpy.allclose(beta_opdm_2, beta_opdm)
+        test_tpdm_bb = numpy.zeros((norb, norb, norb, norb),
+                                   dtype=numpy.complex128)
+        for i, j, k, l in product(range(norb), repeat=4):
+            op = of.get_sparse_operator(
+                of.FermionOperator(((i + norb, 1), (j + norb, 1), (k + norb, 0),
+                                    (l + norb, 0))),
+                n_qubits=2 * norb)
+            test_tpdm_bb[i, j, k, l] = state.conj().T @ op @ state
+            assert numpy.isclose(test_tpdm_bb[i, j, k, l], tpdm_bb[i, j, k, l])
+
+        cirq_wf = fqe.to_cirq(wfn).reshape((-1, 1))
+        test_of_tpdm = numpy.zeros(tuple([2 * norb] * 4),
+                                   dtype=numpy.complex128)
+        of_opdm, of_tpdm = work.get_openfermion_rdms()
+        for i, j, k, l in product(range(2 * norb), repeat=4):
+            op = of.get_sparse_operator(
+                of.FermionOperator(((i, 1), (j, 1), (k, 0), (l, 0))),
+                n_qubits=2 * norb)
+            test_of_tpdm[i, j, k, l] = cirq_wf.conj().T @ op @ cirq_wf
+            assert numpy.isclose(of_tpdm[i, j, k, l], test_of_tpdm[i, j, k, l])
+
+        test_of_opdm = numpy.zeros_like(of_opdm)
+        for i, j in product(range(2 * norb), repeat=2):
+            op = of.get_sparse_operator(
+                of.FermionOperator(((i, 1), (j, 0))),
+                n_qubits=2 * norb)
+            test_of_opdm[i, j] = cirq_wf.conj().T @ op @ cirq_wf
+            assert numpy.isclose(test_of_opdm[i, j], of_opdm[i, j])
+
