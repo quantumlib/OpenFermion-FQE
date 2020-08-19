@@ -169,7 +169,6 @@ class FqeData:
                          inplace: bool = False) -> 'Nparray':
         """Iterate over each element and return the scaled wavefunction.
         """
-        import numpy as np
         if inplace:
             data = self.coeff
         else:
@@ -995,6 +994,17 @@ class FqeData:
                 out.coeff[targeta, targetb_vec] = \
                     coeff * paritya * numpy.multiply(
                         self.coeff[sourcea, sourceb_vec], parityb_vec)
+            # # TODO: THIS SHOULD BE CHECKED THOROUGHLY
+            # # NOTE: Apparently the meshgrid construction overhead
+            # # slows down this line so it is a little slower than the previous
+            # sourcea_vec = numpy.array([xx[0] for xx in alphamap])
+            # targeta_vec = numpy.array([xx[1] for xx in alphamap])
+            # paritya_vec = numpy.array([xx[2] for xx in alphamap])
+            # target_xi, target_yj = numpy.meshgrid(targeta_vec, targetb_vec)
+            # source_xi, source_yj = numpy.meshgrid(sourcea_vec, sourceb_vec)
+            # parity_xi, parity_yj = numpy.meshgrid(paritya_vec, parityb_vec)
+            # out.coeff[target_xi, target_yj] = coeff * \
+            #         (self.coeff[source_xi, source_yj] * parity_xi * parity_yj)
 
             return out
 

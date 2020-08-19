@@ -144,6 +144,7 @@ def davidsonliu_fqe(hmat: Hamiltonian, nroots: int,
             diagonal_ham[graph.index_alpha(ia), graph.index_beta(ib)] = \
                 comp_basis.expectationValue(hmat).real
 
+
     old_thetas = np.array([np.infty] * nroots)
     while len(guess_vecs) <= graph.lena() * graph.lenb() / 2:
         if verbose:
@@ -233,6 +234,7 @@ if __name__ == "__main__":
     norb = 6
     nalpha = 2
     nbeta = 2
+    sz = nalpha - nbeta
     nele = nalpha + nbeta
     h1e, h2e, lih_ground = build_lih_data('energy')
     h2e_zeros = np.zeros_like(h2e)
@@ -262,7 +264,7 @@ if __name__ == "__main__":
     guess_wfn2.set_wfn(strategy='from_data',
                        raw_data={(nele, nalpha - nbeta): guess_vec2_coeffs})
     guess_vecs = [guess_wfn1, guess_wfn2]
-    dl_w, dl_v = davidsonliu_fqe(elec_hamil, 1, guess_vecs)
+    dl_w, dl_v = davidsonliu_fqe(elec_hamil, 1, guess_vecs, nele=nele, sz=sz, norb=norb)
 
     # dummy geometry
     geometry = [['Li', [0, 0, 0], ['H', [0, 0, 1.4]]]]
