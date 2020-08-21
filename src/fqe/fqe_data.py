@@ -177,32 +177,37 @@ class FqeData:
         alpha_occ = []
         alpha_diag = []
         for alp_cnf in range(self.lena()):
-            occ = numpy.array(integer_index(self._core.string_alpha(alp_cnf)))
+            occ = integer_index(self._core.string_alpha(alp_cnf))
             alpha_occ.append(occ)
-            diag_ele = numpy.sum(diag[occ])
+            diag_ele = 0.0
             for ind in occ:
-                diag_ele += numpy.sum(array[ind, occ])
+                diag_ele += diag[ind]
+                for jnd in occ:
+                    diag_ele += array[ind, jnd]
             alpha_diag.append(diag_ele)
 
         beta_occ = []
         beta_diag = []
         for bet_cnf in range(self.lenb()):
-            occ = numpy.array(integer_index(self._core.string_beta(bet_cnf)))
+            occ = integer_index(self._core.string_beta(bet_cnf))
             beta_occ.append(occ)
-            diag_ele = numpy.sum(diag[occ])
+            diag_ele = 0.0
             for ind in occ:
-                diag_ele += numpy.sum(array[ind, occ])
+                diag_ele += diag[ind]
+                for jnd in occ:
+                    diag_ele += array[ind, jnd]
             beta_diag.append(diag_ele)
 
+        aarrays = numpy.empty((array.shape[1],), dtype=array.dtype)
         for alp_cnf in range(self.lena()):
-            aarrays = []
+            aarrays[:] = 0.0
             for ind in alpha_occ[alp_cnf]:
-                aarrays.append(array[ind, :])
+                aarrays[:] += array[ind, :]
             for bet_cnf in range(self.lenb()):
-                diag_ele = alpha_diag[alp_cnf] + beta_diag[bet_cnf]
-                cbeta = beta_occ[bet_cnf]
-                for aarray in aarrays: 
-                    diag_ele += 2.0 * numpy.sum(aarray[cbeta])
+                diag_ele = 0.0
+                for ind in beta_occ[bet_cnf]:
+                    diag_ele += aarrays[ind]
+                diag_ele = diag_ele * 2.0 + alpha_diag[alp_cnf] + beta_diag[bet_cnf]
                 data[alp_cnf, bet_cnf] *= numpy.exp(diag_ele)
 
         return data
