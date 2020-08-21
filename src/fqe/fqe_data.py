@@ -195,10 +195,14 @@ class FqeData:
             beta_diag.append(diag_ele)
 
         for alp_cnf in range(self.lena()):
+            aarrays = []
+            for ind in alpha_occ[alp_cnf]:
+                aarrays.append(array[ind, :])
             for bet_cnf in range(self.lenb()):
                 diag_ele = alpha_diag[alp_cnf] + beta_diag[bet_cnf]
-                for ind in alpha_occ[alp_cnf]:
-                    diag_ele += 2.0 * numpy.sum(array[ind, beta_occ[bet_cnf]])
+                cbeta = beta_occ[bet_cnf]
+                for aarray in aarrays: 
+                    diag_ele += 2.0 * numpy.sum(aarray[cbeta])
                 data[alp_cnf, bet_cnf] *= numpy.exp(diag_ele)
 
         return data
