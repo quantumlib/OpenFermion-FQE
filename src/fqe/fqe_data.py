@@ -177,34 +177,28 @@ class FqeData:
         alpha_occ = []
         alpha_diag = []
         for alp_cnf in range(self.lena()):
-            occ = integer_index(self._core.string_alpha(alp_cnf))
+            occ = numpy.array(integer_index(self._core.string_alpha(alp_cnf)))
             alpha_occ.append(occ)
-            diag_ele = 0.0
+            diag_ele = numpy.sum(diag[occ])
             for ind in occ:
-                diag_ele += diag[ind]
-                for jnd in occ:
-                    diag_ele += array[ind, jnd]
+                diag_ele += numpy.sum(array[ind, occ])
             alpha_diag.append(diag_ele)
 
         beta_occ = []
         beta_diag = []
         for bet_cnf in range(self.lenb()):
-            occ = integer_index(self._core.string_beta(bet_cnf))
+            occ = numpy.array(integer_index(self._core.string_beta(bet_cnf)))
             beta_occ.append(occ)
-            diag_ele = 0.0
+            diag_ele = numpy.sum(diag[occ])
             for ind in occ:
-                diag_ele += diag[ind]
-                for jnd in occ:
-                    diag_ele += array[ind, jnd]
+                diag_ele += numpy.sum(array[ind, occ])
             beta_diag.append(diag_ele)
 
         for alp_cnf in range(self.lena()):
             for bet_cnf in range(self.lenb()):
                 diag_ele = alpha_diag[alp_cnf] + beta_diag[bet_cnf]
                 for ind in alpha_occ[alp_cnf]:
-                    for jnd in beta_occ[bet_cnf]:
-                        diag_ele += 2.0 * array[ind, jnd]
-
+                    diag_ele += 2.0 * numpy.sum(array[ind, beta_occ[bet_cnf]])
                 data[alp_cnf, bet_cnf] *= numpy.exp(diag_ele)
 
         return data
