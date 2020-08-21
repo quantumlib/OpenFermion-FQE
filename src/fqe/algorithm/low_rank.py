@@ -52,7 +52,6 @@ def evolve_fqe_givens(wfn: fqe.Wavefunction, u: np.ndarray) -> np.ndarray:
     return wfn
 
 
-
 def evolve_fqe_diagaonal_coulomb(wfn: fqe.Wavefunction, vij_mat: np.ndarray,
                                  time=1) -> fqe.Wavefunction:
     """

@@ -47,6 +47,17 @@ def time_fqe_hamiltonian(initial_wf: fqe.Wavefunction,
     return times
 
 
+def time_fqe_diagonal_coulmb(initial_wf: fqe.Wavefunction,
+                              diagonal_coulomb: fqe.diagonal_coulomb.DiagonalCoulomb,
+                              trials=1):
+    times = []
+    for i in range(trials):
+        start_time = time.time()
+        _ = initial_wf.time_evolve(1., diagonal_coulomb)
+        times.append(time.time() - start_time)
+    return times
+
+
 if __name__ == "__main__":
     import cProfile
     import numpy as np
@@ -58,7 +69,7 @@ if __name__ == "__main__":
     import fqe
     from fqe.algorithm.low_rank import evolve_fqe_givens
     import time
-    norbs = 12
+    norbs = 10
     sz = 0
     nelec = norbs
     start_time = time.time()
@@ -77,6 +88,7 @@ if __name__ == "__main__":
     ikappa = random_quadratic_hamiltonian(norbs, conserves_particle_number=True,
                                           real=True, expand_spin=False, seed=5)
     ikappa_matrix = ikappa.n_body_tensors[1, 0]
+    diagonal_coulomb = fqe.diagonal_coulomb.DiagonalCoulomb(ikappa_matrix)
 
     # Evolution time and unitaries
     dt = 0.275
@@ -87,10 +99,14 @@ if __name__ == "__main__":
     # evolve_fqe_givens(initial_wfn, u)
     # evolve_fqe_of_givens(initial_wfn, u)
     # cProfile.run('evolve_cirq_givens(cirq_wf, np.kron(u, np.eye(2)))', 'fqe_givens_profile')
-    cProfile.run('evolve_fqe_givens(initial_wfn, u)', 'fqe_givens_profile')
+    # cProfile.run('evolve_fqe_givens(initial_wfn, u)', 'fqe_givens_profile')
     # cProfile.run('initial_wfn.time_evolve(1., fqe_ham)', 'fqe_givens_profile')
+    cProfile.run('initial_wfn.time_evolve(1., diagonal_coulomb)', 'fqe_givens_profile')
+
 
     import pstats
     profile = pstats.Stats('fqe_givens_profile')
     profile.sort_stats('cumtime')
     profile.print_stats(30)
+
+    initial_wfn.time_evolve(1., diagonal_coulomb)

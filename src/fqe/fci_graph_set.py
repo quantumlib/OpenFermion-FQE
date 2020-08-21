@@ -71,11 +71,9 @@ class FciGraphSet:
         """
         for ikey, isec in self._dataset.items():
             for jkey, jsec in self._dataset.items():
-                print("ikey, jkey ", ikey, jkey)
                 if ikey < jkey and not (ikey, jkey) in self._linked:
                     delta_na = jkey[0] - ikey[0]
                     delta_nb = jkey[1] - ikey[1]
-                    print("Delta_na, Delta_nb", delta_na, delta_nb)
                     if abs(delta_na + delta_nb) <= self._maxparticle and \
                         max(abs(delta_na), abs(delta_nb)) <= self._maxspin:
                         self._sectors_link(isec, jsec)
