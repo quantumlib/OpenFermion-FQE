@@ -174,34 +174,40 @@ class FqeData:
         else:
             data = numpy.copy(self.coeff)
 
-        # position of orbital occupation in each bitstring
-        beta_occ = []
-        for bet_cnf in range(self.lenb()):
-            # print(np.binary_repr(self._core.string_beta(bet_cnf), width=self._core.norb()))
-            beta_occ.append(integer_index(self._core.string_beta(bet_cnf)))
-
-        # print("Positions of occupations in betastrings")
-        # print(beta_occ)
-
+        alpha_occ = []
+        alpha_diag = []
         for alp_cnf in range(self.lena()):
-            alpha_occ = integer_index(self._core.string_alpha(alp_cnf))
-            for bet_cnf in range(self._core.lenb()):
-                # print("alpha|beta", end='\t')
-                # print(np.binary_repr(self._core.string_alpha(alp_cnf),
-                #                      width=self._core.norb()), end='\t')
-                # print(np.binary_repr(self._core.string_beta(bet_cnf),
-                #                      width=self._core.norb()), end='\t')
-                occ = alpha_occ + beta_occ[bet_cnf]
-                # print("occ ", occ)
-                diag_ele = 0.0
-                for ind in occ:
-                    # sum_{i, sigma}n_{i, \sigma} where sigma in [alpha, beta]
-                    diag_ele += diag[ind]
-                    for jnd in occ:
-                        # \sum_{i,j, sigma, tau} n_{i, sigma}n_{j,tau}
-                        # sigma, tau in [alpha, beta]
-                        diag_ele += array[ind, jnd]
+            occ = integer_index(self._core.string_alpha(alp_cnf))
+            alpha_occ.append(occ)
+            diag_ele = 0.0
+            for ind in occ:
+                diag_ele += diag[ind]
+                for jnd in occ:
+                    diag_ele += array[ind, jnd]
+            alpha_diag.append(diag_ele)
 
+        beta_occ = []
+        beta_diag = []
+        for bet_cnf in range(self.lenb()):
+            occ = integer_index(self._core.string_beta(bet_cnf))
+            beta_occ.append(occ)
+            diag_ele = 0.0
+            for ind in occ:
+                diag_ele += diag[ind]
+                for jnd in occ:
+                    diag_ele += array[ind, jnd]
+            beta_diag.append(diag_ele)
+
+        aarrays = numpy.empty((array.shape[1],), dtype=array.dtype)
+        for alp_cnf in range(self.lena()):
+            aarrays[:] = 0.0
+            for ind in alpha_occ[alp_cnf]:
+                aarrays[:] += array[ind, :]
+            for bet_cnf in range(self.lenb()):
+                diag_ele = 0.0
+                for ind in beta_occ[bet_cnf]:
+                    diag_ele += aarrays[ind]
+                diag_ele = diag_ele * 2.0 + alpha_diag[alp_cnf] + beta_diag[bet_cnf]
                 data[alp_cnf, bet_cnf] *= numpy.exp(diag_ele)
 
         return data
