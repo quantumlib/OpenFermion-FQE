@@ -16,11 +16,18 @@
 
 import unittest
 
+import copy
+
 import numpy
+
+import scipy
+
+from itertools import product
 
 from openfermion.utils import hermitian_conjugated
 from openfermion.transforms import normal_ordered
-from openfermion import FermionOperator
+from openfermion import (FermionOperator, hermitian_conjugated,
+                         get_sparse_operator)
 from fqe.hamiltonians import general_hamiltonian
 from fqe.hamiltonians import restricted_hamiltonian
 from fqe.hamiltonians import sparse_hamiltonian
@@ -35,6 +42,10 @@ from fqe.fqe_decorators import transform_to_spin_broken
 from fqe.fqe_decorators import fermionops_tomatrix
 from fqe.fqe_decorators import process_rank2_matrix
 from fqe.fqe_decorators import check_diagonal_coulomb
+
+from fqe.wavefunction import Wavefunction
+
+from fqe import to_cirq, from_cirq
 
 
 class TestFqedecorators(unittest.TestCase):
@@ -180,3 +191,59 @@ class TestFqedecorators(unittest.TestCase):
                     opstring = str(i) + '^ ' + str(j) + '^ ' + str(i) + ' ' + str(j)
                     ops += FermionOperator(opstring, 0.001*(i + 1)*(j + 1))
             self.assertIsInstance(build_hamiltonian(ops), diagonal_coulomb.DiagonalCoulomb)
+
+    def test_evolve_spinful_fermionop(self):
+        """
+        Make sure the spin-orbital reordering is working by comparing
+        time evolution
+        """
+        wfn = Wavefunction([[2, 0, 2]])
+        wfn.set_wfn(strategy='random')
+        wfn.normalize()
+        cirq_wf = to_cirq(wfn).reshape((-1, 1))
+
+        op_to_apply = FermionOperator()
+        for p, q, r, s in product(range(2), repeat=4):
+            op = FermionOperator(((2 * p, 1), (2 * q + 1, 1), (2 * r + 1, 0),
+                                  (2 * s, 0)), coefficient=numpy.random.randn())
+            op_to_apply += op + hermitian_conjugated(op)
+
+        opmat = get_sparse_operator(op_to_apply, n_qubits=4).toarray()
+        dt = 0.765
+        new_state_cirq = scipy.linalg.expm(-1j * dt * opmat) @ cirq_wf
+        new_state_wfn = from_cirq(new_state_cirq.flatten(), thresh=1.0E-12)
+        test_state = wfn.time_evolve(dt, op_to_apply)
+        self.assertTrue(numpy.allclose(test_state.get_coeff((2, 0)),
+                                       new_state_wfn.get_coeff((2, 0))))
+
+    def test_apply_spinful_fermionop(self):
+        """
+        Make sure the spin-orbital reordering is working by comparing
+        apply operation
+        """
+        wfn = Wavefunction([[2, 0, 2]])
+        wfn.set_wfn(strategy='random')
+        wfn.normalize()
+        cirq_wf = to_cirq(wfn).reshape((-1, 1))
+
+        op_to_apply = FermionOperator()
+        test_state = copy.deepcopy(wfn)
+        test_state.set_wfn('zero')
+        for p, q, r, s in product(range(2), repeat=4):
+            op = FermionOperator(((2 * p, 1), (2 * q + 1, 1), (2 * r + 1, 0),
+                                  (2 * s, 0)), coefficient=numpy.random.randn())
+            op_to_apply += op + hermitian_conjugated(op)
+            test_state += wfn.apply(op + hermitian_conjugated(op))
+
+        opmat = get_sparse_operator(op_to_apply, n_qubits=4).toarray()
+        new_state_cirq = opmat @ cirq_wf
+
+        # this part is because we need to pass a normalized wavefunction
+        norm_constant = new_state_cirq.conj().T @ new_state_cirq
+        new_state_cirq /= numpy.sqrt(norm_constant)
+        new_state_wfn = from_cirq(new_state_cirq.flatten(), thresh=1.0E-12)
+        new_state_wfn.scale(numpy.sqrt(norm_constant))
+
+        self.assertTrue(numpy.allclose(test_state.get_coeff((2, 0)),
+                                       new_state_wfn.get_coeff((2, 0))))
+
