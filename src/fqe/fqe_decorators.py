@@ -98,7 +98,6 @@ def build_hamiltonian(ops: Union[FermionOperator, hamiltonian.Hamiltonian],
             ops_mat[index] = fermionops_tomatrix(term, norb)
             maxrank = max(index, maxrank)
 
-
         if len(ops_mat) == 1 and (0 in ops_mat):
             out = process_rank2_matrix(ops_mat[0],
                                        norb=norb,
@@ -109,10 +108,15 @@ def build_hamiltonian(ops: Union[FermionOperator, hamiltonian.Hamiltonian],
             out = diagonal_coulomb.DiagonalCoulomb(ops_mat[1], e_0=e_0)
 
         else:
+            dtypes = [xx.dtype for xx in ops_mat.values()]
+            dtypes = numpy.unique(dtypes)
+            if len(dtypes) != 1:
+                raise TypeError("Non-unique coefficient types for input operator")
+
             for i in range(maxrank + 1):
                 if i not in ops_mat:
                     mat_dim = tuple([2*norb for _ in range((i + 1)*2)])
-                    ops_mat[i] = numpy.zeros(mat_dim, dtype=numpy.complex128)
+                    ops_mat[i] = numpy.zeros(mat_dim, dtype=dtypes[0])
 
             ops_mat2 = []
             for i in range(maxrank + 1):

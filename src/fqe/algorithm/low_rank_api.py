@@ -31,9 +31,9 @@ class LowRankTrotter:
         self.oei = oei
         self.tei = tei
         self.icut = integral_cutoff
-        self.lmax = np.infty
+        self.lmax = None
         self.mcut = basis_cutoff
-        self.mmax = np.infty
+        self.mmax = None
 
         # if only molecule is provided get the spatial-MO matrices
         if molecule is not None and oei is None and tei is None:
@@ -59,6 +59,7 @@ class LowRankTrotter:
         eigenvalues, one_body_squares, one_body_correction, _ = \
             low_rank_two_body_decomposition(0.5 * self.tei,
                                             truncation_threshold=threshold,
+                                            final_rank=self.lmax,
                                             spin_basis=False)
         return eigenvalues, one_body_squares, one_body_correction
 
