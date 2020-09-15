@@ -212,12 +212,13 @@ def fermionops_tomatrix(ops: 'FermionOperator', norb: int) -> numpy.ndarray:
     tensor_dim = [norb * 2 for _ in range(rank)]
     index_mask = [0 for _ in range(rank)]
 
+    index_dict_dagger = [[0, 0] for _ in range(rank//2)]
+    index_dict_nondagger = [[0, 0] for _ in range(rank//2)]
+
     tensor = numpy.zeros(tensor_dim, dtype=numpy.complex128)
 
     for term in ops.terms:
 
-        index_dict_dagger = []
-        index_dict_nondagger = []
 
         for i in range(rank):
             index = term[i][0]
@@ -238,9 +239,11 @@ def fermionops_tomatrix(ops: 'FermionOperator', norb: int) -> numpy.ndarray:
                 ind = index // 2
 
             if i < rank // 2:
-                index_dict_dagger.append([spin, ind])
+                index_dict_dagger[i][0] = spin
+                index_dict_dagger[i][1] = ind
             else:
-                index_dict_nondagger.append([spin, ind])
+                index_dict_nondagger[i - rank // 2][0] = spin
+                index_dict_nondagger[i - rank // 2][1] = ind
 
         parity = reverse_bubble_list(index_dict_dagger)
         parity += reverse_bubble_list(index_dict_nondagger)
