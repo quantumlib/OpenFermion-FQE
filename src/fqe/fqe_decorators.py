@@ -37,7 +37,7 @@ from fqe.hamiltonians import restricted_hamiltonian
 from fqe.hamiltonians import sparse_hamiltonian
 from fqe.hamiltonians import sso_hamiltonian
 from fqe.openfermion_utils import largest_operator_index
-from fqe.util import validate_tuple
+from fqe.util import validate_tuple, reverse_bubble_list
 from fqe.fqe_ops import fqe_ops_utils
 
 
@@ -98,7 +98,6 @@ def build_hamiltonian(ops: Union[FermionOperator, hamiltonian.Hamiltonian],
             ops_mat[index] = fermionops_tomatrix(term, norb)
             maxrank = max(index, maxrank)
 
-
         if len(ops_mat) == 1 and (0 in ops_mat):
             out = process_rank2_matrix(ops_mat[0],
                                        norb=norb,
@@ -109,10 +108,15 @@ def build_hamiltonian(ops: Union[FermionOperator, hamiltonian.Hamiltonian],
             out = diagonal_coulomb.DiagonalCoulomb(ops_mat[1], e_0=e_0)
 
         else:
+            dtypes = [xx.dtype for xx in ops_mat.values()]
+            dtypes = numpy.unique(dtypes)
+            if len(dtypes) != 1:
+                raise TypeError("Non-unique coefficient types for input operator")
+
             for i in range(maxrank + 1):
                 if i not in ops_mat:
                     mat_dim = tuple([2*norb for _ in range((i + 1)*2)])
-                    ops_mat[i] = numpy.zeros(mat_dim)
+                    ops_mat[i] = numpy.zeros(mat_dim, dtype=dtypes[0])
 
             ops_mat2 = []
             for i in range(maxrank + 1):
@@ -212,12 +216,15 @@ def fermionops_tomatrix(ops: 'FermionOperator', norb: int) -> numpy.ndarray:
     tensor_dim = [norb * 2 for _ in range(rank)]
     index_mask = [0 for _ in range(rank)]
 
+    index_dict_dagger = [[0, 0] for _ in range(rank//2)]
+    index_dict_nondagger = [[0, 0] for _ in range(rank//2)]
+
     tensor = numpy.zeros(tensor_dim, dtype=numpy.complex128)
 
     for term in ops.terms:
 
-        for i in range(rank):
 
+        for i in range(rank):
             index = term[i][0]
 
             if i < rank // 2:
@@ -228,14 +235,30 @@ def fermionops_tomatrix(ops: 'FermionOperator', norb: int) -> numpy.ndarray:
                 raise ValueError('Found creattion operator where' \
                                  'annihilation is expected')
 
-            if index % 2:
+            spin = index % 2
+
+            if spin == 1:
                 ind = (index - 1) // 2 + norb
             else:
                 ind = index // 2
 
-            index_mask[i] = ind
+            if i < rank // 2:
+                index_dict_dagger[i][0] = spin
+                index_dict_dagger[i][1] = ind
+            else:
+                index_dict_nondagger[i - rank // 2][0] = spin
+                index_dict_nondagger[i - rank // 2][1] = ind
 
-        tensor[tuple(index_mask)] += ops.terms[term]
+        parity = reverse_bubble_list(index_dict_dagger)
+        parity += reverse_bubble_list(index_dict_nondagger)
+
+        for i in range(rank):
+            if i < rank // 2:
+                index_mask[i] = index_dict_dagger[i][1]
+            else:
+                index_mask[i] = index_dict_nondagger[i - rank // 2][1]
+
+        tensor[tuple(index_mask)] += (-1) ** parity * ops.terms[term]
 
     return tensor
 
