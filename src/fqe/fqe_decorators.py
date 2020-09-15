@@ -112,7 +112,7 @@ def build_hamiltonian(ops: Union[FermionOperator, hamiltonian.Hamiltonian],
             for i in range(maxrank + 1):
                 if i not in ops_mat:
                     mat_dim = tuple([2*norb for _ in range((i + 1)*2)])
-                    ops_mat[i] = numpy.zeros(mat_dim)
+                    ops_mat[i] = numpy.zeros(mat_dim, dtype=numpy.complex128)
 
             ops_mat2 = []
             for i in range(maxrank + 1):
