@@ -17,6 +17,7 @@
 import os
 import sys
 import copy
+import pytest
 
 from itertools import product
 
@@ -1390,7 +1391,10 @@ class FqeDataTest(unittest.TestCase):
             test_of_opdm[i, j] = cirq_wf.conj().T @ op @ cirq_wf
             assert numpy.isclose(test_of_opdm[i, j], of_opdm[i, j])
 
+    @pytest.mark.skipped(reason='Logic check. Not code check')
     def test_lih_spin_block_three_rdm(self):
+        """This test checks the logic of the 3-RDM code but not the code itself
+        """
         unit_test_path = fud.__path__[0]
         three_pdm = numpy.load(os.path.join(unit_test_path, "lih_three_pdm.npy"))
         three_ccc_pdm = numpy.load(os.path.join(unit_test_path, "lih_ccc_pdm.npy"))
@@ -1422,11 +1426,9 @@ class FqeDataTest(unittest.TestCase):
         ccckkk_aab = numpy.einsum('pqrstu->prtusq', ckckck_aab)
         ccckkk_aab += numpy.einsum('qr,ptsu->prtusq', krond,
                                    tpdm[::2, 1::2, ::2, 1::2])
-        true_ccckkk_aab = three_pdm[::2, ::2, 1::2, 1::2, ::2, ::2]
         ccckkk_abb = numpy.einsum('pqrstu->prtusq', ckckck_abb)
         ccckkk_abb += numpy.einsum('st,prqu->prtusq', krond,
                                    tpdm[::2, 1::2, ::2, 1::2])
-        true_ccckkk_abb = three_pdm[::2, 1::2, 1::2, 1::2, 1::2, ::2]
 
         ccckkk_bbb = numpy.einsum('pqrstu->prtusq', ckckck_bbb)
         ccckkk_bbb += numpy.einsum('qr,ptsu->prtusq', krond,
@@ -1437,7 +1439,6 @@ class FqeDataTest(unittest.TestCase):
                                    tpdm[1::2, 1::2, 1::2, 1::2])
         ccckkk_bbb -= numpy.einsum('qr,st,pu->prtusq', krond, krond,
                                    opdm[1::2, 1::2])
-        true_ccckkk_bbb = three_pdm[1::2, 1::2, 1::2, 1::2, 1::2, 1::2]
 
         test_ccckkk = numpy.zeros_like(three_pdm)
         # same spin

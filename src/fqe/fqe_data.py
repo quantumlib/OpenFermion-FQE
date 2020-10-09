@@ -1802,6 +1802,8 @@ class FqeData:
 
     def get_three_spin_blocks_rdm(self):
         """
+        WARNING THIS IS UNTESTED FOR NOW.
+
         Generate 3-RDM in the spin-orbital basis.
 
         3-RDM has Sz spin-blocks (aaa, aab, abb, bbb).  The strategy is to
