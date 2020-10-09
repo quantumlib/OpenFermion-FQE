@@ -14,9 +14,10 @@
 
 """Unittesting for the fqe_data module
 """
-
+import os
 import sys
 import copy
+import pytest
 
 from itertools import product
 
@@ -28,6 +29,7 @@ import numpy
 
 from fqe import fqe_data
 from fqe import fci_graph
+import fqe.unittest_data as fud
 import fqe
 
 import openfermion as of
@@ -1266,7 +1268,6 @@ class FqeDataTest(unittest.TestCase):
                                                       [1.75+0.j, 0.75+0.j, 0.75+0.j]],
                                                      dtype=numpy.complex128)))
 
-
     def test_data_print(self):
         """Check that data is printed correctly
         """
@@ -1389,4 +1390,149 @@ class FqeDataTest(unittest.TestCase):
                 n_qubits=2 * norb)
             test_of_opdm[i, j] = cirq_wf.conj().T @ op @ cirq_wf
             assert numpy.isclose(test_of_opdm[i, j], of_opdm[i, j])
+
+    @pytest.mark.skipped(reason='Logic check. Not code check')
+    def test_lih_spin_block_three_rdm(self):
+        """This test checks the logic of the 3-RDM code but not the code itself
+        """
+        unit_test_path = fud.__path__[0]
+        three_pdm = numpy.load(os.path.join(unit_test_path, "lih_three_pdm.npy"))
+        three_ccc_pdm = numpy.load(os.path.join(unit_test_path, "lih_ccc_pdm.npy"))
+        opdm = numpy.load(os.path.join(unit_test_path, "lih_opdm.npy"))
+        tpdm = numpy.load(os.path.join(unit_test_path, "lih_tpdm.npy"))
+        krond = numpy.eye(three_pdm.shape[0] // 2)
+
+        # extract spin-blocks
+        ckckck_aaa = three_ccc_pdm[::2, ::2, ::2, ::2, ::2, ::2]
+        ckckck_aab = three_ccc_pdm[::2, ::2, ::2, ::2, 1::2, 1::2]
+        ckckck_abb = three_ccc_pdm[::2, ::2, 1::2, 1::2, 1::2, 1::2]
+        ckckck_bbb = three_ccc_pdm[1::2, 1::2, 1::2, 1::2, 1::2, 1::2]
+
+
+        # p^ r^ t^ u s q = p^ q r^ s t^ u + d(q, r) p^ t^ s u - d(q, t)p^ r^ s u
+        #                 + d(s, t)p^ r^ q u - d(q,r)d(s,t)p^ u
+        ccckkk_aaa = numpy.einsum('pqrstu->prtusq', ckckck_aaa)
+        ccckkk_aaa += numpy.einsum('qr,ptsu->prtusq', krond,
+                                   tpdm[::2, ::2, ::2, ::2])
+        ccckkk_aaa -= numpy.einsum('qt,prsu->prtusq', krond,
+                                   tpdm[::2, ::2, ::2, ::2])
+        ccckkk_aaa += numpy.einsum('st,prqu->prtusq', krond,
+                                   tpdm[::2, ::2, ::2, ::2])
+        ccckkk_aaa -= numpy.einsum('qr,st,pu->prtusq', krond, krond,
+                                   opdm[::2, ::2])
+        assert numpy.allclose(ccckkk_aaa,
+                              three_pdm[::2, ::2, ::2, ::2, ::2, ::2])
+
+        ccckkk_aab = numpy.einsum('pqrstu->prtusq', ckckck_aab)
+        ccckkk_aab += numpy.einsum('qr,ptsu->prtusq', krond,
+                                   tpdm[::2, 1::2, ::2, 1::2])
+        ccckkk_abb = numpy.einsum('pqrstu->prtusq', ckckck_abb)
+        ccckkk_abb += numpy.einsum('st,prqu->prtusq', krond,
+                                   tpdm[::2, 1::2, ::2, 1::2])
+
+        ccckkk_bbb = numpy.einsum('pqrstu->prtusq', ckckck_bbb)
+        ccckkk_bbb += numpy.einsum('qr,ptsu->prtusq', krond,
+                                   tpdm[1::2, 1::2, 1::2, 1::2])
+        ccckkk_bbb -= numpy.einsum('qt,prsu->prtusq', krond,
+                                   tpdm[1::2, 1::2, 1::2, 1::2])
+        ccckkk_bbb += numpy.einsum('st,prqu->prtusq', krond,
+                                   tpdm[1::2, 1::2, 1::2, 1::2])
+        ccckkk_bbb -= numpy.einsum('qr,st,pu->prtusq', krond, krond,
+                                   opdm[1::2, 1::2])
+
+        test_ccckkk = numpy.zeros_like(three_pdm)
+        # same spin
+        test_ccckkk[::2, ::2, ::2, ::2, ::2, ::2] = ccckkk_aaa
+        test_ccckkk[1::2, 1::2, 1::2, 1::2, 1::2, 1::2] = ccckkk_bbb
+
+        # different spin-aab
+        # (aab,baa), (aab,aba), (aab,aab)
+        # (aba,baa), (aba,aba), (aba,aab)
+        # (baa,baa), (baa,aba), (baa,aab)
+        test_ccckkk[::2, ::2, 1::2, 1::2, ::2, ::2] = ccckkk_aab
+        test_ccckkk[::2, ::2, 1::2, ::2, 1::2, ::2] = numpy.einsum(
+            'pqrstu->pqrtsu', -ccckkk_aab)
+        test_ccckkk[::2, ::2, 1::2, ::2, ::2, 1::2] = numpy.einsum(
+            'pqrstu->pqrtus', ccckkk_aab)
+
+        test_ccckkk[::2, 1::2, ::2, 1::2, ::2, ::2] = numpy.einsum(
+            'pqrstu->prqstu', -ccckkk_aab)
+        test_ccckkk[::2, 1::2, ::2, ::2, 1::2, ::2] = numpy.einsum(
+            'pqrstu->prqtsu', ccckkk_aab)
+        test_ccckkk[::2, 1::2, ::2, ::2, ::2, 1::2] = numpy.einsum(
+            'pqrstu->prqtus', -ccckkk_aab)
+
+        test_ccckkk[1::2, ::2, ::2, 1::2, ::2, ::2] = numpy.einsum(
+            'pqrstu->rpqstu', ccckkk_aab)
+        test_ccckkk[1::2, ::2, ::2, ::2, 1::2, ::2] = numpy.einsum(
+            'pqrstu->rpqtsu', -ccckkk_aab)
+        test_ccckkk[1::2, ::2, ::2, ::2, ::2, 1::2] = numpy.einsum(
+            'pqrstu->rpqtus', ccckkk_aab)
+
+        # different spin-abb
+        # (abb,bba), (abb,bab), (abb,abb)
+        # (bab,bba), (bab,bab), (bab,abb)
+        # (abb,bba), (abb,bab), (abb,abb)
+        test_ccckkk[::2, 1::2, 1::2, 1::2, 1::2, ::2] = ccckkk_abb
+        test_ccckkk[::2, 1::2, 1::2, 1::2, ::2, 1::2] = numpy.einsum(
+            'pqrstu->pqrsut', -ccckkk_abb)
+        test_ccckkk[::2, 1::2, 1::2, ::2, 1::2, 1::2] = numpy.einsum(
+            'pqrstu->pqrust', ccckkk_abb)
+
+        test_ccckkk[1::2, ::2, 1::2, 1::2, 1::2, ::2] = numpy.einsum(
+            'pqrstu->qprstu', -ccckkk_abb)
+        test_ccckkk[1::2, ::2, 1::2, 1::2, ::2, 1::2] = numpy.einsum(
+            'pqrstu->qprsut', ccckkk_abb)
+        test_ccckkk[1::2, ::2, 1::2, ::2, 1::2, 1::2] = numpy.einsum(
+            'pqrstu->qprust', -ccckkk_abb)
+
+        test_ccckkk[1::2, 1::2, ::2, 1::2, 1::2, ::2] = numpy.einsum(
+            'pqrstu->qrpstu', ccckkk_abb)
+        test_ccckkk[1::2, 1::2, ::2, 1::2, ::2, 1::2] = numpy.einsum(
+            'pqrstu->qrpsut', -ccckkk_abb)
+        test_ccckkk[1::2, 1::2, ::2, ::2, 1::2, 1::2] = numpy.einsum(
+            'pqrstu->qrpust', ccckkk_abb)
+
+        assert numpy.allclose(three_pdm[::2, ::2, 1::2, 1::2, ::2, ::2],
+                           ccckkk_aab)
+        assert numpy.allclose(three_pdm[::2, 1::2, 1::2, 1::2, 1::2, ::2],
+                           ccckkk_abb)
+        assert numpy.allclose(three_pdm[::2, ::2, 1::2, ::2, 1::2, ::2],
+                           test_ccckkk[::2, ::2, 1::2, ::2, 1::2, ::2])
+        assert numpy.allclose(three_pdm[::2, ::2, 1::2, ::2, ::2, 1::2],
+                           test_ccckkk[::2, ::2, 1::2, ::2, ::2, 1::2])
+
+        assert numpy.allclose(three_pdm[::2, 1::2, ::2, 1::2, ::2, ::2],
+                           test_ccckkk[::2, 1::2, ::2, 1::2, ::2, ::2])
+        assert numpy.allclose(three_pdm[::2, 1::2, ::2, ::2, 1::2, ::2],
+                           test_ccckkk[::2, 1::2, ::2, ::2, 1::2, ::2])
+        assert numpy.allclose(three_pdm[::2, 1::2, ::2, ::2, ::2, 1::2],
+                           test_ccckkk[::2, 1::2, ::2, ::2, ::2, 1::2])
+        assert numpy.allclose(three_pdm[1::2, ::2, ::2, 1::2, ::2, ::2],
+                           test_ccckkk[1::2, ::2, ::2, 1::2, ::2, ::2])
+        assert numpy.allclose(three_pdm[1::2, ::2, ::2, ::2, 1::2, ::2],
+                           test_ccckkk[1::2, ::2, ::2, ::2, 1::2, ::2])
+        assert numpy.allclose(three_pdm[1::2, ::2, ::2, ::2, ::2, 1::2],
+                           test_ccckkk[1::2, ::2, ::2, ::2, ::2, 1::2])
+
+        assert numpy.allclose(test_ccckkk[::2, 1::2, 1::2, 1::2, 1::2, ::2],
+                           three_pdm[::2, 1::2, 1::2, 1::2, 1::2, ::2])
+        assert numpy.allclose(test_ccckkk[::2, 1::2, 1::2, 1::2, ::2, 1::2],
+                           three_pdm[::2, 1::2, 1::2, 1::2, ::2, 1::2])
+        assert numpy.allclose(test_ccckkk[::2, 1::2, 1::2, ::2, 1::2, 1::2],
+                           three_pdm[::2, 1::2, 1::2, ::2, 1::2, 1::2])
+        assert numpy.allclose(test_ccckkk[1::2, ::2, 1::2, 1::2, 1::2, ::2],
+                           three_pdm[1::2, ::2, 1::2, 1::2, 1::2, ::2])
+        assert numpy.allclose(test_ccckkk[1::2, ::2, 1::2, 1::2, ::2, 1::2],
+                           three_pdm[1::2, ::2, 1::2, 1::2, ::2, 1::2])
+        assert numpy.allclose(test_ccckkk[1::2, ::2, 1::2, ::2, 1::2, 1::2],
+                           three_pdm[1::2, ::2, 1::2, ::2, 1::2, 1::2])
+        assert numpy.allclose(test_ccckkk[1::2, 1::2, ::2, 1::2, 1::2, ::2],
+                           three_pdm[1::2, 1::2, ::2, 1::2, 1::2, ::2])
+        assert numpy.allclose(test_ccckkk[1::2, 1::2, ::2, 1::2, ::2, 1::2],
+                           three_pdm[1::2, 1::2, ::2, 1::2, ::2, 1::2])
+        assert numpy.allclose(test_ccckkk[1::2, 1::2, ::2, ::2, 1::2, 1::2],
+                           three_pdm[1::2, 1::2, ::2, ::2, 1::2, 1::2])
+
+        assert numpy.allclose(test_ccckkk, three_pdm)
 

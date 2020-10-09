@@ -26,7 +26,8 @@ class LowRankTrotter:
                  oei: Optional[np.ndarray] = None,
                  tei: Optional[np.ndarray] = None,
                  integral_cutoff: Optional[float] = 1.0E-8,
-                 basis_cutoff: Optional[float] = 1.0E-8):
+                 basis_cutoff: Optional[float] = 1.0E-8,
+                 spin_basis: Optional[bool] = False):
         self.molecule = molecule
         self.oei = oei
         self.tei = tei
@@ -34,6 +35,7 @@ class LowRankTrotter:
         self.lmax = None
         self.mcut = basis_cutoff
         self.mmax = None
+        self.spin_basis = spin_basis
 
         # if only molecule is provided get the spatial-MO matrices
         if molecule is not None and oei is None and tei is None:
@@ -56,11 +58,18 @@ class LowRankTrotter:
 
         # convert physics notation integrals into chemist notation
         # and determine the first low-rank fractorization
-        eigenvalues, one_body_squares, one_body_correction, _ = \
-            low_rank_two_body_decomposition(0.5 * self.tei,
-                                            truncation_threshold=threshold,
-                                            final_rank=self.lmax,
-                                            spin_basis=False)
+        if self.spin_basis:
+            eigenvalues, one_body_squares, one_body_correction, _ = \
+                low_rank_two_body_decomposition(self.tei,
+                                                truncation_threshold=threshold,
+                                                final_rank=self.lmax,
+                                                spin_basis=self.spin_basis)
+        else:
+            eigenvalues, one_body_squares, one_body_correction, _ = \
+                low_rank_two_body_decomposition(0.5 * self.tei,
+                                                truncation_threshold=threshold,
+                                                final_rank=self.lmax,
+                                                spin_basis=self.spin_basis)
         return eigenvalues, one_body_squares, one_body_correction
 
     def second_factorization(self, eigenvalues: np.ndarray,
