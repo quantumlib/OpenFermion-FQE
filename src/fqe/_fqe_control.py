@@ -25,6 +25,7 @@ import numpy
 
 from openfermion.transforms.opconversions import jordan_wigner
 from openfermion.ops import FermionOperator
+from openfermion import normal_ordered
 
 from fqe.util import qubit_particle_number_index_spin
 from fqe import util
@@ -214,6 +215,16 @@ def to_cirq(wfn: 'wavefunction.Wavefunction') -> numpy.ndarray:
     ops = jordan_wigner(fqe_to_fermion_operator(wfn))
     qid = cirq.LineQubit.range(nqubit)
     return qubit_wavefunction_from_vacuum(ops, qid)
+
+
+def to_cirq_ncr(wfn: 'wavefunction.Wavefunction') -> numpy.ndarray:
+    nqubit = wfn.norb()*2
+    ops = normal_ordered(fqe_to_fermion_operator(wfn))
+    wf = numpy.zeros(2**nqubit, dtype=numpy.complex128)
+    for term, coeff in ops.terms.items():
+        occ_idx = sum([2**(nqubit - oo[0] - 1) for oo in term])
+        wf[occ_idx] = coeff
+    return wf
 
 
 def from_cirq(state: numpy.ndarray, thresh: float) -> 'wavefunction.Wavefunction':
