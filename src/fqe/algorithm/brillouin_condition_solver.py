@@ -41,7 +41,7 @@ class BrillouinCondition:
 
     def bc_solve(self, initial_wf):
         """
-        Propogate BC differential eq. until convergence
+        Propagate BC differential eq. until convergence
 
         :param initial_wf: Initial wavefunction to evolve
         """
