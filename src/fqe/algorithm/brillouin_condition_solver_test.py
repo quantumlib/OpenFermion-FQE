@@ -1,3 +1,4 @@
+import pytest
 import numpy as np
 from fqe.algorithm.brillouin_condition_solver import BrillouinCondition
 
@@ -8,6 +9,7 @@ from fqe.unittest_data.generate_openfermion_molecule import (
     build_lih_moleculardata)
 
 
+@pytest.mark.skip(reason='slow-test')
 def test_solver():
     molecule = build_lih_moleculardata()
     n_electrons = molecule.n_electrons
@@ -26,7 +28,7 @@ def test_solver():
     fqe_wf.set_wfn(strategy='from_data',
                    raw_data={(n_electrons, sz): fci_coeffs})
 
-    bcsolve = BrillouinCondition(molecule, run_parallel=True)
+    bcsolve = BrillouinCondition(molecule, run_parallel=False)
     assert bcsolve.reduced_ham == reduced_ham
     for pp, qq in zip(elec_hamil.tensors(), bcsolve.elec_hamil.tensors()):
         assert np.allclose(pp, qq)
