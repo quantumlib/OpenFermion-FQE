@@ -41,8 +41,8 @@ class CirqUtilsTest(unittest.TestCase):
         circuit = cirq.Circuit([cirq.Moment(gates)])
         result = qpu.simulate(circuit, qubit_order=qubit,
                               initial_state=eigenstate)
-        self.assertNotEqual(result.final_state[0], eigenstate[0])
-        self.assertNotEqual(result.final_state[1], eigenstate[1])
+        self.assertNotEqual(result.final_state_vector[0], eigenstate[0])
+        self.assertNotEqual(result.final_state_vector[1], eigenstate[1])
 
 
     def test_pauli_x(self):
@@ -56,7 +56,7 @@ class CirqUtilsTest(unittest.TestCase):
         circuit = cirq.Circuit([cirq.Moment(gates)])
         result = qpu.simulate(circuit, qubit_order=qubit,
                               initial_state=eigenstate)
-        self.assertListEqual(list(result.final_state), list(eigenstate))
+        self.assertListEqual(list(result.final_state_vector), list(eigenstate))
 
 
     def test_pauli_y(self):
@@ -71,7 +71,7 @@ class CirqUtilsTest(unittest.TestCase):
         circuit = cirq.Circuit([cirq.Moment(gates)])
         result = qpu.simulate(circuit, qubit_order=qubit,
                               initial_state=eigenstate)
-        self.assertListEqual(list(result.final_state), list(eigenstate))
+        self.assertListEqual(list(result.final_state_vector), list(eigenstate))
 
 
     def test_pauli_z(self):
@@ -86,7 +86,7 @@ class CirqUtilsTest(unittest.TestCase):
         circuit = cirq.Circuit([cirq.Moment(_gates)])
         result = qpu.simulate(circuit, qubit_order=qubit,
                               initial_state=eigenstate)
-        self.assertListEqual(list(result.final_state), list(eigenstate))
+        self.assertListEqual(list(result.final_state_vector), list(eigenstate))
 
 
     def test_build_ops_error(self):
@@ -113,7 +113,7 @@ class CirqUtilsTest(unittest.TestCase):
                               initial_state=init_state)
         final_state = numpy.zeros(2**4, dtype=numpy.complex128)
         final_state[-1] = 1.0 + 0.0j
-        self.assertListEqual(list(result.final_state), list(final_state))
+        self.assertListEqual(list(result.final_state_vector), list(final_state))
 
 
     def test_single_mode_projection(self):
