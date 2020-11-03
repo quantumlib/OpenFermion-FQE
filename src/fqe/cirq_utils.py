@@ -102,7 +102,7 @@ def qubit_projection(ops: QubitOperator,
         work_state = state.copy()
         result = qpu.simulate(circuit, qubit_order=qubits,
                               initial_state=work_state)
-        coeff[indx] = result.final_state[0]
+        coeff[indx] = result.final_state_vector[0]
 
 
 def qubit_wavefunction_from_vacuum(ops: 'QubitOperator',
@@ -128,5 +128,5 @@ def qubit_wavefunction_from_vacuum(ops: 'QubitOperator',
         circuit = qubit_ops_to_circuit(term, qubits)
         state = vacuum.copy()
         result = qpu.simulate(circuit, qubit_order=qubits, initial_state=state)
-        final_state += result.final_state*ops.terms[term]
+        final_state += result.final_state_vector * ops.terms[term]
     return final_state
