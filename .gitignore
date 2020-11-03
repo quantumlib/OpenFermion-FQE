@@ -1,4 +1,4 @@
-# Byte-compiled / optimized / DLL files
+#  Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
@@ -115,3 +115,6 @@ dmypy.json
 
 # mac DS_STore
 *.DS_Store
+
+# ignore profiling files
+*.profile
