@@ -2,6 +2,7 @@ import pytest
 from itertools import product
 import copy
 import numpy as np
+import scipy as sp
 import openfermion as of
 from openfermion import givens_decomposition_square
 from openfermion.testing.testing_utils import (random_quadratic_hamiltonian,
@@ -39,7 +40,7 @@ def evolve_wf_givens(wfn: np.ndarray, u: np.ndarray) -> np.ndarray:
             op += of.FermionOperator(((2 * j + 1, 1), (2 * j + 1, 0)),
                                      coefficient=-phi)
             wfn = expm(
-                -1j * of.get_sparse_operator(op, n_qubits=n_qubits).toarray()) @ wfn
+                -1j * of.get_sparse_operator(op, n_qubits=n_qubits)) @ wfn
 
             op = of.FermionOperator(((2 * i, 1), (2 * j, 0)),
                                     coefficient=-1j * theta) + of.FermionOperator(
@@ -48,7 +49,7 @@ def evolve_wf_givens(wfn: np.ndarray, u: np.ndarray) -> np.ndarray:
                                      coefficient=-1j * theta) + of.FermionOperator(
                 ((2 * j + 1, 1), (2 * i + 1, 0)), coefficient=1j * theta)
             wfn = expm(
-                -1j * of.get_sparse_operator(op, n_qubits=n_qubits).toarray()) @ wfn
+                -1j * of.get_sparse_operator(op, n_qubits=n_qubits)) @ wfn
 
     # evolve the last diagonal phases
     for idx, final_phase in enumerate(diagonal):
@@ -58,7 +59,7 @@ def evolve_wf_givens(wfn: np.ndarray, u: np.ndarray) -> np.ndarray:
             op += of.FermionOperator(((2 * idx + 1, 1), (2 * idx + 1, 0)),
                                      -np.angle(final_phase))
             wfn = expm(
-                -1j * of.get_sparse_operator(op, n_qubits=n_qubits).toarray()) @ wfn
+                -1j * of.get_sparse_operator(op, n_qubits=n_qubits)) @ wfn
 
     return wfn
 
@@ -84,7 +85,7 @@ def evolve_wf_diagonal_coulomb(wf: np.ndarray, vij_mat: np.ndarray,
             diagonal_coulomb += of.FermionOperator(
                 ((2 * i + sigma, 1), (2 * i + sigma, 0), (2 * j + tau, 1),
                  (2 * j + tau, 0)), coefficient=vij_mat[i, j])
-    bigU = expm(-1j * time * of.get_sparse_operator(diagonal_coulomb, n_qubits=2 * norbs).toarray())
+    bigU = expm(-1j * time * of.get_sparse_operator(diagonal_coulomb, n_qubits=2 * norbs))
     return bigU @ wf
 
 
@@ -194,14 +195,15 @@ def test_double_factorization_trotter():
     time = 0.126
     fqe_wfn = fqe.Wavefunction([[n_elec, sz, norbs]])
     fqe_wfn.set_wfn(strategy='random')
-    initial_wf = fqe.to_cirq(fqe_wfn).reshape((-1, 1))
+    fqe_wfn.print_wfn()
+    initial_wf = fqe.to_cirq_ncr(fqe_wfn).reshape((-1, 1))
 
     basis_change_unitaries = []
-    for ii in range(4):
+    for ii in range(2):
         basis_change_unitaries.append(random_unitary_matrix(4, real=False,
                                                             seed=ii))
     vij_mats = []
-    for ii in range(3):
+    for ii in range(1):
         vij_mats.append(random_hermitian_matrix(norbs, real=True, seed=ii))
 
     with pytest.raises(ValueError):
@@ -233,4 +235,3 @@ def test_double_factorization_trotter():
     assert np.allclose(final_wfn.rdm('i^ j'), test_final_wfn.rdm('i^ j'))
     assert np.allclose(final_wfn.rdm('i^ j^ k l'),
                        test_final_wfn.rdm('i^ j^ k l'))
-
