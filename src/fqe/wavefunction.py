@@ -760,6 +760,13 @@ class Wavefunction:
         if strategy == 'from_data':
             for key, data in raw_data.items():
                 self._civec[key].set_wfn(strategy='from_data', raw_data=data)
+        elif strategy == 'hartree-fock':
+            # make sure we only have 1 sector
+            if len(self.sectors()) != 1:
+                raise ValueError(("Hartree-Fock wf initialization only works "
+                                  "with single sector wavefunctions"))
+            for sector in self._civec.values():
+                sector.set_wfn(strategy=strategy)
         else:
             for sector in self._civec.values():
                 sector.set_wfn(strategy=strategy)
