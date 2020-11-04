@@ -123,26 +123,6 @@ def bit_to_fermion_creation(string: int,
     return ops
 
 
-#def classify_symmetries(operator: 'FermionOperator') -> Tuple[bool]:
-#    """Given FermionOperators, classify it's effect on the fqe space.
-#
-#    Args:
-#        ops (FermionOperator) - a FermionOperator
-#
-#    Returns:
-#        (bool, bool) - return a pair of boolean values from the routine
-#            indicating if the particle number and spin will change
-#    """
-#    pn_change = 0
-#    spin_change = 0
-#    for cluster in operator.terms:
-#        for ops in cluster:
-#            pn_change += (-1)**(ops[1] + 1)
-#            spin_change += (-1)**(ops[0])
-#
-#    return pn_change, spin_change
-
-
 def fqe_to_fermion_operator(wfn: 'Wavefunction') -> 'FermionOperator':
     """Given an FQE wavefunction, convert it into strings of openfermion
     operators with appropriate coefficients for weights.

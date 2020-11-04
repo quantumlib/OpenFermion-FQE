@@ -24,6 +24,7 @@ from io import StringIO
 import unittest
 
 import numpy
+from scipy.special import binom
 
 from openfermion import FermionOperator
 
@@ -36,6 +37,7 @@ from fqe.hamiltonians import diagonal_hamiltonian
 from fqe import get_restricted_hamiltonian
 
 from fqe.unittest_data import build_wfn, build_hamiltonian
+from fqe.unittest_data.build_lih_data import build_lih_data
 
 
 class WavefunctionTest(unittest.TestCase):
@@ -319,3 +321,22 @@ class WavefunctionTest(unittest.TestCase):
         sys.stdout = save_stdout
         outstring = chkprint.getvalue()
         self.assertEqual(outstring, ref_string)
+
+    def test_hartree_fock_init(self):
+        h1e, h2e, lih_ground = build_lih_data('energy')
+        elec_hamil = get_restricted_hamiltonian((h1e, h2e))
+        norb = 6
+        nalpha = 2
+        nbeta = 2
+        wfn = Wavefunction([[nalpha + nbeta, nalpha - nbeta, norb]])
+        wfn.print_wfn()
+        wfn.set_wfn(strategy='hartree-fock')
+        wfn.print_wfn()
+        self.assertEqual(wfn.expectationValue(elec_hamil), -8.857341498221992)
+        hf_wf = numpy.zeros((int(binom(norb, 2)), int(binom(norb, 2))))
+        hf_wf[0, 0] = 1.
+        self.assertTrue(numpy.allclose(wfn.get_coeff((4, 0)), hf_wf))
+
+        wfn = Wavefunction([[nalpha + nbeta, nalpha - nbeta, norb],
+                            [nalpha + nbeta, 2, norb]])
+        self.assertRaises(ValueError, wfn.set_wfn, strategy='hartree-fock')

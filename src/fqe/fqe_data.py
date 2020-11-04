@@ -1675,7 +1675,8 @@ class FqeData:
             'ones',
             'zero',
             'random',
-            'from_data'
+            'from_data',
+            'hartree-fock'
         ]
 
         if strategy is None and raw_data.shape == (0,):
@@ -1709,6 +1710,9 @@ class FqeData:
             self.coeff[:, :] = rand_wfn(self.lena(), self.lenb())
         elif strategy == 'from_data':
             self.coeff = numpy.copy(raw_data)
+        elif strategy == 'hartree-fock':
+            self.coeff.fill(0 + .0j)
+            self.coeff[0, 0] = 1.
 
     def __copy__(self):
         # FCIGraph is passed as by reference
