@@ -210,7 +210,7 @@ class WavefunctionTest(unittest.TestCase):
         self.assertAlmostEqual(expval, energy)
 
 
-    def test_expectatoin_value_type_error(self):
+    def test_expectation_value_type_error(self):
         wfn = Wavefunction([[4, 0, 4]])
         self.assertRaises(TypeError, wfn.expectationValue, 1)
 

@@ -1299,6 +1299,11 @@ class FqeDataTest(unittest.TestCase):
         wfn = fqe.Wavefunction([[norb, sz, norb]])
         wfn.set_wfn(strategy='random')
 
+        ladder_up = [of.get_sparse_operator(of.FermionOperator(((i, 1))),
+                                             n_qubits=2 * norb) for i in
+                     range(2 * norb)]
+        ladder_dwn = [op.conj().T for op in ladder_up]
+
         work = wfn.sector((norb, sz))
         dveca, dvecb = work.calculate_dvec_spin()
         alpha_opdm = numpy.einsum('ijkl,kl->ij', dveca, work.coeff.conj())
@@ -1321,15 +1326,12 @@ class FqeDataTest(unittest.TestCase):
 
         test_alpha_opdm = numpy.zeros((norb, norb), dtype=numpy.complex128)
         for i, j in product(range(4), repeat=2):
-            op = of.get_sparse_operator(of.FermionOperator(((i, 1), (j, 0))),
-                                        n_qubits=2 * norb)
+            op = ladder_up[i] @ ladder_dwn[j]
             test_alpha_opdm[i, j] = state.conj().T @ op @ state
         assert numpy.allclose(test_alpha_opdm, alpha_opdm)
         test_beta_opdm = numpy.zeros((norb, norb), dtype=numpy.complex128)
         for i, j in product(range(4), repeat=2):
-            op = of.get_sparse_operator(
-                of.FermionOperator(((i + norb, 1), (j + norb, 0))),
-                n_qubits=2 * norb)
+            op = ladder_up[i + norb] @ ladder_dwn[j + norb]
             test_beta_opdm[i, j] = state.conj().T @ op @ state
 
         assert numpy.allclose(test_beta_opdm, beta_opdm)
@@ -1342,9 +1344,8 @@ class FqeDataTest(unittest.TestCase):
         tpdm_ab_fqedata = work.get_ab_tpdm()
         test_tpdm_ab = numpy.zeros((norb, norb, norb, norb), dtype=numpy.complex128)
         for i, j, k, l in product(range(norb), repeat=4):
-            op = of.get_sparse_operator(of.FermionOperator(
-                ((i, 1), (l, 0), (j + norb, 1), (k + norb, 0))),
-                                        n_qubits=2 * norb)
+            op = ladder_up[i] @ ladder_dwn[l] @ ladder_up[j + norb] @ \
+                 ladder_dwn[k + norb]
             test_tpdm_ab[i, j, k, l] = state.conj().T @ op @ state
         assert numpy.allclose(tpdm_ab, test_tpdm_ab)
         assert numpy.allclose(tpdm_ab, tpdm_ab_fqedata)
@@ -1354,9 +1355,7 @@ class FqeDataTest(unittest.TestCase):
         test_tpdm_aa = numpy.zeros((norb, norb, norb, norb),
                                    dtype=numpy.complex128)
         for i, j, k, l in product(range(norb), repeat=4):
-            op = of.get_sparse_operator(
-                of.FermionOperator(((i, 1), (j, 1), (k, 0), (l, 0))),
-                n_qubits=2 * norb)
+            op = ladder_up[i] @ ladder_up[j] @ ladder_dwn[k] @ ladder_dwn[l]
             test_tpdm_aa[i, j, k, l] = state.conj().T @ op @ state
             assert numpy.isclose(test_tpdm_aa[i, j, k, l], tpdm_aa[i, j, k, l])
 
@@ -1365,29 +1364,23 @@ class FqeDataTest(unittest.TestCase):
         test_tpdm_bb = numpy.zeros((norb, norb, norb, norb),
                                    dtype=numpy.complex128)
         for i, j, k, l in product(range(norb), repeat=4):
-            op = of.get_sparse_operator(
-                of.FermionOperator(((i + norb, 1), (j + norb, 1), (k + norb, 0),
-                                    (l + norb, 0))),
-                n_qubits=2 * norb)
+            op = ladder_up[i + norb] @ ladder_up[j + norb] @  \
+                 ladder_dwn[k + norb] @ ladder_dwn[l + norb]
             test_tpdm_bb[i, j, k, l] = state.conj().T @ op @ state
             assert numpy.isclose(test_tpdm_bb[i, j, k, l], tpdm_bb[i, j, k, l])
 
-        cirq_wf = fqe.to_cirq(wfn).reshape((-1, 1))
+        cirq_wf = fqe.to_cirq_ncr(wfn).reshape((-1, 1))
         test_of_tpdm = numpy.zeros(tuple([2 * norb] * 4),
                                    dtype=numpy.complex128)
         of_opdm, of_tpdm = work.get_openfermion_rdms()
         for i, j, k, l in product(range(2 * norb), repeat=4):
-            op = of.get_sparse_operator(
-                of.FermionOperator(((i, 1), (j, 1), (k, 0), (l, 0))),
-                n_qubits=2 * norb)
+            op = ladder_up[i] @ ladder_up[j] @ ladder_dwn[k] @ ladder_dwn[l]
             test_of_tpdm[i, j, k, l] = cirq_wf.conj().T @ op @ cirq_wf
             assert numpy.isclose(of_tpdm[i, j, k, l], test_of_tpdm[i, j, k, l])
 
         test_of_opdm = numpy.zeros_like(of_opdm)
         for i, j in product(range(2 * norb), repeat=2):
-            op = of.get_sparse_operator(
-                of.FermionOperator(((i, 1), (j, 0))),
-                n_qubits=2 * norb)
+            op = ladder_up[i] @ ladder_dwn[j]
             test_of_opdm[i, j] = cirq_wf.conj().T @ op @ cirq_wf
             assert numpy.isclose(test_of_opdm[i, j], of_opdm[i, j])
 
@@ -1407,7 +1400,6 @@ class FqeDataTest(unittest.TestCase):
         ckckck_aab = three_ccc_pdm[::2, ::2, ::2, ::2, 1::2, 1::2]
         ckckck_abb = three_ccc_pdm[::2, ::2, 1::2, 1::2, 1::2, 1::2]
         ckckck_bbb = three_ccc_pdm[1::2, 1::2, 1::2, 1::2, 1::2, 1::2]
-
 
         # p^ r^ t^ u s q = p^ q r^ s t^ u + d(q, r) p^ t^ s u - d(q, t)p^ r^ s u
         #                 + d(s, t)p^ r^ q u - d(q,r)d(s,t)p^ u
@@ -1535,4 +1527,3 @@ class FqeDataTest(unittest.TestCase):
                            three_pdm[1::2, 1::2, ::2, ::2, 1::2, 1::2])
 
         assert numpy.allclose(test_ccckkk, three_pdm)
-

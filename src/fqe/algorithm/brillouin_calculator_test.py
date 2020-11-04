@@ -27,9 +27,10 @@ def get_acse_residual(wf, hammat, nso):
     """Testing utilities"""
     adag = [of.get_sparse_operator(of.FermionOperator(((x, 1))), n_qubits=nso)
             for x in range(nso)]
+    alow = [op.conj().T for op in adag]
     acse_residual = np.zeros((nso, nso, nso, nso), dtype=np.complex128)
     for p, q, r, s in product(range(nso), repeat=4):
-        rdo = adag[p] @ adag[q] @ adag[r].conj().T @ adag[s].conj().T
+        rdo = adag[p] @ adag[q] @ alow[r] @ alow[s]
         acse_residual[p, q, r, s] = wf.conj().T @ (
                     rdo @ hammat - hammat @ rdo) @ wf
     return acse_residual
@@ -39,9 +40,10 @@ def get_tpdm_grad(wf, acse_res, nso):
     """Testing utilities"""
     adag = [of.get_sparse_operator(of.FermionOperator(((x, 1))), n_qubits=nso)
             for x in range(nso)]
+    alow = [op.conj().T for op in adag]
     acse_residual = np.zeros((nso, nso, nso, nso), dtype=np.complex128)
     for p, q, r, s in product(range(nso), repeat=4):
-        rdo = adag[p] @ adag[q] @ adag[r].conj().T @ adag[s].conj().T
+        rdo = adag[p] @ adag[q] @ alow[r] @ alow[s]
         acse_residual[p, q, r, s] = wf.conj().T @ (
                     rdo @ acse_res - acse_res @ rdo) @ wf
     return acse_residual
@@ -85,7 +87,7 @@ def test_get_acse_residual_fqe():
         assert np.allclose(true_acse_residual, test_acse_residual)
 
 
-@pytest.mark.skipped(reason="slow test")
+@pytest.mark.skip(reason="slow test")
 def test_get_acse_residual_fqe_lih():
     molecule = build_lih_moleculardata()
     sdim = molecule.n_orbitals
@@ -148,7 +150,7 @@ def test_get_tpdm_grad_residual_fqe_lih():
 
 
 def test_to_cirq_fast():
-    for norbs in range(4, 7):
+    for norbs in range(4, 6):
         for nn in range(norbs // 2, norbs):
             fqe_wf = fqe.get_number_conserving_wavefunction(nn, norbs)
             fqe_wf.set_wfn('random')
