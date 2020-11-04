@@ -12,4 +12,4 @@ condensed matter physics, and nuclear physics.
 
 The initial version of OpenFermion-FQE has been developed in collaboration between `QSimulate <https://qsimulate.com>`_ and
 `Google AI Quantum <https://research.google/teams/applied-science/quantum/>`_.
-The source code is found in the `GitHub repository <https://github.com/qsimulate/OpenFermion-FQE>`_.
+The source code is found in the `GitHub repository <https://github.com/quantumlib/OpenFermion-FQE>`_.
