@@ -1,3 +1,5 @@
+#   Copyright 2020 Google LLC
+
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
 #   You may obtain a copy of the License at
@@ -9,7 +11,7 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
-"""TODO: Add module description."""
+"""Functions for time-evolving a wavefunction."""
 
 import numpy as np
 
@@ -24,11 +26,11 @@ def evolve_fqe_givens(wfn: fqe.Wavefunction, u: np.ndarray) -> np.ndarray:
     """Evolve a wavefunction by u generated from a 1-body Hamiltonian.
 
     Args:
-        wfn: np.ndarray: 2^{n} x 1 vector
-        u: (n//2 x n//2) unitary matrix
+        wfn: 2^{n} x 1 vector.
+        u: (n//2 x n//2) unitary matrix.
 
     Returns:
-        New evolved wfn object
+        New evolved wfn object.
     """
     rotations, diagonal = givens_decomposition_square(u.copy())
     # Iterate through each layer and time evolve by the appropriate
