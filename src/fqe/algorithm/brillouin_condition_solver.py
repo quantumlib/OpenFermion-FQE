@@ -1,3 +1,15 @@
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at
+#
+#       http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+"""TODO: Add description of module."""
 import copy
 
 import numpy as np
@@ -12,13 +24,14 @@ from fqe.algorithm.brillouin_calculator import (get_fermion_op,
                                                 get_tpdm_grad_fqe_parallel, )
 
 try:
-    from joblib import Parallel, delayed
+    from joblib import Parallel
     PARALLELIZABLE = True
 except ImportError:
     PARALLELIZABLE = False
 
 
 class BrillouinCondition:
+    """TODO: Add docstring."""
     def __init__(self, molecule=MolecularData, iter_max=30,
                  run_parallel=False, verbose=True):
         oei, tei = molecule.get_integrals()
@@ -40,18 +53,18 @@ class BrillouinCondition:
         self.acse_energy = []
 
     def bc_solve(self, initial_wf):
-        """
-        Propagate BC differential eq. until convergence
+        """Propagate BC differential equation until convergence.
 
-        :param initial_wf: Initial wavefunction to evolve
+        Args:
+            initial_wf: Initial wavefunction to evolve.
         """
         fqe_wf = copy.deepcopy(initial_wf)
         sdim = self.sdim
         iter_max = self.iter_max
-        iter = 0
+        iteration = 0
         h = 1.0E-4
         self.acse_energy = [fqe_wf.expectationValue(self.elec_hamil).real]
-        while iter < iter_max:
+        while iteration < iter_max:
             if self.parallel:
                 acse_residual = get_acse_residual_fqe_parallel(fqe_wf,
                                                                self.elec_hamil,
@@ -86,14 +99,14 @@ class BrillouinCondition:
             self.acse_energy.append(current_energy.real)
 
             print_string = "Iter {: 5f}\tcurrent energy {: 5.10f}\t".format(
-                iter, current_energy)
+                iteration, current_energy)
             print_string += "|dE| {: 5.10f}\tStep size {: 5.10f}".format(
                 np.abs(self.acse_energy[-2] - self.acse_energy[-1]), epsilon)
 
             if self.verbose:
                 print(print_string)
 
-            if (iter >= 1 and
+            if (iteration >= 1 and
                np.abs(self.acse_energy[-2] - self.acse_energy[-1]) < 0.5E-4):
                 break
-            iter += 1
+            iteration += 1
