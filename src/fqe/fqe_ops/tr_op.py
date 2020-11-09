@@ -11,8 +11,7 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
-"""Implements the time-reversal operator
-"""
+"""Defines the time-reversal operator."""
 
 import copy
 from typing import TYPE_CHECKING
@@ -32,45 +31,45 @@ class TimeReversalOp(fqe_operator.FqeOperator):
     The program assumes the Kramers-paired storage for the wave function.
     """
 
-
-    def contract(self,
-                 brastate: 'Wavefunction',
-                 ketstate: 'Wavefunction') -> complex:
+    def contract(
+        self, brastate: "Wavefunction", ketstate: "Wavefunction"
+    ) -> complex:
         """Given two wavefunctions, generate the expectation value of the
         operator according to its representation.
 
         Args:
-            brastate (Wavefunction) - wave function on the bra side
-
-            ketstate (Wavefunction) - wave function on the ket side
+            brastate: Wavefunction on the bra side.
+            ketstate: Wavefunction on the ket side.
         """
         out = copy.deepcopy(ketstate)
         for (nele, nab), sector in out._civec.items():
             nalpha, nbeta = alpha_beta_electrons(nele, nab)
             if nalpha < nbeta:
-                if not (nele, nbeta-nalpha) in out._civec.keys():
-                    raise ValueError('The wave function space is not closed under time reversal')
-                sector2 = out._civec[(nele, nbeta-nalpha)]
+                if not (nele, nbeta - nalpha) in out._civec.keys():
+                    raise ValueError(
+                        "The wave function space is not closed under "
+                        "time reversal."
+                    )
+                sector2 = out._civec[(nele, nbeta - nalpha)]
                 tmp = numpy.copy(sector.coeff)
-                phase = (-1)**(nbeta*(nalpha+1))
-                phase2 = (-1)**(nalpha*(nbeta+1))
+                phase = (-1) ** (nbeta * (nalpha + 1))
+                phase2 = (-1) ** (nalpha * (nbeta + 1))
                 sector.coeff = sector2.coeff.T.conj() * phase2
                 sector2.coeff = tmp.T.conj() * phase
-            elif nalpha > nbeta: 
-                if not (nele, nbeta-nalpha) in out._civec.keys():
-                    raise ValueError('The wave function space is not closed under time reversal')
+            elif nalpha > nbeta:
+                if not (nele, nbeta - nalpha) in out._civec.keys():
+                    raise ValueError(
+                        "The wave function space is not closed under "
+                        "time reversal."
+                    )
             elif nalpha == nbeta:
                 sector.coeff = sector.coeff.T.conj()
         return vdot(brastate, out)
 
-
     def representation(self):
-        """Return the representation of the operator
-        """
-        return 'T'
-
+        """Returns the representation of the operator."""
+        return "T"
 
     def rank(self):
-        """The rank of the operator
-        """
+        """Returns the rank of the operator."""
         return 2

@@ -11,11 +11,9 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
-"""Implements the S^2 operator
-"""
+"""Defines the S^2 operator."""
 
 import copy
-
 from typing import TYPE_CHECKING
 
 from fqe.util import vdot
@@ -26,33 +24,27 @@ if TYPE_CHECKING:
 
 
 class S2Operator(fqe_operator.FqeOperator):
-    """:math:`S^2` operator as a specialization of FqeOperator
-    """
+    r""":math:`S^2` operator as a specialization of FqeOperator."""
 
-    def contract(self,
-                 brastate: 'Wavefunction',
-                 ketstate: 'Wavefunction') -> complex:
+    def contract(
+        self, brastate: "Wavefunction", ketstate: "Wavefunction"
+    ) -> complex:
         """Given two wavefunctions, generate the expectation value of the
         operator according to its representation.
 
         Args:
-            brastate (Wavefunction) - wave function on the bra side
-
-            ketstate (Wavefunction) - wave function on the ket side
+            brastate: Wavefunction on the bra side.
+            ketstate: Wavefunction on the ket side.
         """
         out = copy.deepcopy(ketstate)
         for _, sector in out._civec.items():
             sector.apply_inplace_s2()
         return vdot(brastate, out)
 
-
     def representation(self):
-        """Return the representation of the operator
-        """
-        return 's_2'
-
+        """Returns the representation of the operator."""
+        return "s_2"
 
     def rank(self):
-        """The rank of the operator
-        """
+        """Returns rank of the operator."""
         return 2

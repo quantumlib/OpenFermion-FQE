@@ -11,13 +11,11 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
-
-"""Implements the number operator
-"""
+"""Defines the number operator."""
 
 import copy
-
 from typing import TYPE_CHECKING
+
 from fqe.util import vdot
 from fqe.fqe_ops import fqe_operator
 
@@ -26,34 +24,27 @@ if TYPE_CHECKING:
 
 
 class NumberOperator(fqe_operator.FqeOperator):
-    """This class is a specialization of the FqeOperator for the
-       number operator
-    """
+    """An instance of FqeOperator for the number operator."""
 
-    def contract(self,
-                 brastate: 'Wavefunction',
-                 ketstate: 'Wavefunction') -> complex:
+    def contract(
+        self, brastate: "Wavefunction", ketstate: "Wavefunction"
+    ) -> complex:
         """Given two wavefunctions, generate the expectation value of the
         operator according to its representation.
 
         Args:
-            brastate (Wavefunction) - wave function on the bra side
-
-            ketstate (Wavefunction) - wave function on the ket side
+            brastate: Wavefunction on the bra side.
+            ketstate: Wavefunction on the ket side.
         """
         out = copy.deepcopy(ketstate)
         for _, sector in out._civec.items():
             sector.scale(sector.nalpha() + sector.nbeta())
         return vdot(brastate, out)
 
-
     def representation(self):
-        """Returns the representation of the number operator, which is 'N'
-        """
-        return 'N'
-
+        """Returns the representation of the number operator, which is 'N'."""
+        return "N"
 
     def rank(self):
-        """Returns the rank of the number operator, which is 2
-        """
+        """Returns the rank of the number operator."""
         return 2

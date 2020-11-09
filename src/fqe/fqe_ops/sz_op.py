@@ -11,12 +11,9 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
-
-"""Implements the Sz operator
-"""
+"""Defines the Sz operator."""
 
 import copy
-
 from typing import TYPE_CHECKING
 
 from fqe.util import vdot
@@ -27,33 +24,27 @@ if TYPE_CHECKING:
 
 
 class SzOperator(fqe_operator.FqeOperator):
-    """:math:`S_z` operator as a specialization of FqeOperator
-    """
+    r""":math:`S_z` operator as a specialization of FqeOperator."""
 
-    def contract(self,
-                 brastate: 'Wavefunction',
-                 ketstate: 'Wavefunction') -> complex:
+    def contract(
+        self, brastate: "Wavefunction", ketstate: "Wavefunction"
+    ) -> complex:
         """Given two wavefunctions, generate the expectation value of the
         operator according to its representation.
 
         Args:
-            brastate (Wavefunction) - wave function on the bra side
-
-            ketstate (Wavefunction) - wave function on the ket side
+            brastate: Wavefunction on the bra side.
+            ketstate: Wavefunction on the ket side.
         """
         out = copy.deepcopy(ketstate)
         for _, sector in out._civec.items():
             sector.scale((sector.nalpha() - sector.nbeta()) * 0.5)
         return vdot(brastate, out)
 
-
     def representation(self):
-        """Representation of the Sz operator
-        """
-        return 's_z'
-
+        """Returns the representation of the Sz operator."""
+        return "s_z"
 
     def rank(self):
-        """Rank of the Sz operator, which is 2
-        """
+        """Returns the rank of the Sz operator."""
         return 2
