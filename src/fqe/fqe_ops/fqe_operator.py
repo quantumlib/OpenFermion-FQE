@@ -11,45 +11,37 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
-"""Base class for fqe operators
-"""
+"""Base class for fqe operators."""
 
+from abc import ABC, abstractmethod
 from typing import Optional, TYPE_CHECKING
-
-from abc import ABC, abstractmethod, abstractproperty
 
 if TYPE_CHECKING:
     from fqe.wavefunction import Wavefunction
 
-class FqeOperator(ABC):
-    """FqeOperator Base class
-    """
 
+class FqeOperator(ABC):
+    """FqeOperator base class."""
 
     @abstractmethod
-    def contract(self,
-                 brastate: 'Wavefunction',
-                 ketstate: Optional['Wavefunction']) -> complex:
+    def contract(
+        self, brastate: "Wavefunction", ketstate: Optional["Wavefunction"]
+    ) -> complex:
         """Given two wavefunctions, generate the expectation value of the
         operator according to its representation.
 
         Args:
-            brastate (Wavefunction) - wave function on the bra side
-
-            ketstate (Wavefunction) - wave function on the ket side
+            brastate: Wavefunction on the bra side.
+            ketstate: Wavefunction on the ket side.
         """
-        return 0. + 0.j
-
+        return 0.0 + 0.0j
 
     @abstractmethod
     def representation(self) -> str:
-        """Return the representation of the operator
-        """
-        return 'fqe-operator'
-
+        """Return the representation of the operator."""
+        return "fqe-operator"
 
     @abstractmethod
     def rank(self) -> int:
-        """ Return the rank of this operator
-        """
+        """Return the rank of this operator."""
         return 0

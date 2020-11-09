@@ -11,11 +11,4 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
-
-"""
-OpenFermion
-
-For more information, examples, or tutorials visit our website:
-
-www.openfermion.org
-"""
+"""Operators in FQE."""
