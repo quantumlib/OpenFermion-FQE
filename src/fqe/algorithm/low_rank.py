@@ -77,9 +77,9 @@ def evolve_fqe_givens(wfn: fqe.Wavefunction, u: np.ndarray) -> np.ndarray:
 def evolve_fqe_diagaonal_coulomb(
     wfn: fqe.Wavefunction, vij_mat: np.ndarray, time=1
 ) -> fqe.Wavefunction:
-    """Utility for testing evolution of a full 2^{n} wavefunction
+    r"""Utility for testing evolution of a full 2^{n} wavefunction via
 
-    exp{-i time * \sum_{i,j, sigma, tau}v_{i, j}n_{i\sigma}n_{j\tau}}
+    :math:`exp{-i time * \sum_{i,j, sigma, tau}v_{i, j}n_{i\sigma}n_{j\tau}}.`
 
     Args:
         wfn: 2^{n} x 1 vector.
@@ -96,24 +96,24 @@ def evolve_fqe_diagaonal_coulomb(
 def double_factor_trotter_evolution(
     initial_wfn: fqe.Wavefunction, basis_change_unitaries, vij_mats, deltat
 ) -> fqe.Wavefunction:
-    """Doubled Factorized Trotter Evolution
+    r"""Doubled Factorized Trotter Evolution
 
     Evolves an initial according to the double factorized algorithm where each
     Trotter step is determined by the strategy in arXiv:1808.02625.
 
     Args:
-        initial_wfn: initial wavefunction to evolve
+        initial_wfn: Initial wavefunction to evolve.
         basis_change_unitaries: List L + 1 unitaries. The first
-            unitary is U1 e^{-iTdt} where T is the one-electron component of
-            the evolution.  The remaining unitaries are U_{i}U_{i-1}^{\dagger}.
-            All unitaries are expressed with respect to the number of spatial
-            basis functions.
+            unitary is U1 :math:`e^{-iTdt}` where T is the one-electron
+            component of the evolution.  he remaining unitaries are
+            :math:`U_{i}U_{i-1}^{\dagger}.` All unitaries are expressed with
+            respect to the number of spatial basis functions.
         vij_mats: list matrices of rho-rho interactions where
-            i, j indices of the matrix index the n_{i}n_{j} integral.  Evolution
-            is performed with respect to n_{i\sigma}n_{j\tau} where sigma and
-            tau are up or down electron spins--a total of 4 Hamiltonian terms
-            per i,j term.
-        deltat: evolution time prefactor for all v_ij Hamiltonians
+            i, j indices of the matrix index the :math:`n_{i} n_{j}` integral.
+            Evolution is performed with respect to :math:`n_{i\sigma} n_{j\tau}`
+            where sigma and tau are up or down electron spins--a total of 4
+            Hamiltonian terms per i, j term.
+        deltat: evolution time prefactor for all v_ij Hamiltonians.
 
     Returns:
         The final wavefunction from a single Trotter evolution.

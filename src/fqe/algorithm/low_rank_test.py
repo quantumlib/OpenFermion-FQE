@@ -92,9 +92,9 @@ def evolve_wf_givens(wfn: np.ndarray, u: np.ndarray) -> np.ndarray:
 def evolve_wf_diagonal_coulomb(
     wf: np.ndarray, vij_mat: np.ndarray, time=1
 ) -> np.ndarray:
-    """Utility for testing evolution of a full 2^{n} wavefunction.
+    r"""Utility for testing evolution of a full 2^{n} wavefunction via
 
-    exp{-i time * \sum_{i,j, sigma, tau}v_{i, j}n_{i\sigma}n_{j\tau}}
+    :math:`exp{-i time * \sum_{i,j, sigma, tau}v_{i, j}n_{i\sigma}n_{j\tau}}.`
 
     Args:
         wf: 2^{n} x 1 vector
@@ -127,24 +127,24 @@ def evolve_wf_diagonal_coulomb(
 def double_factor_trotter_wf_evolution(
     initial_wfn: np.ndarray, basis_change_unitaries, vij_mats, deltat
 ) -> np.ndarray:
-    """Doubled Factorized Trotter Evolution.
+    r"""Doubled Factorized Trotter Evolution.
 
     This is for testing the FQE evolution. Same input except the initial
     wavefunction should be the full 2^{2 * norbs) space column vector.
 
     Args:
-        initial_wfn np.ndarray: initial wavefunction to evolve
-        basis_change_unitaries List[np.ndarray]: List L + 1 unitaries. The first
-            unitary is U1 e^{-iTdt} where T is the one-electron component of
-            the evolution.  The remaining unitaries are U_{i}U_{i-1}^{\dagger}.
-            All unitaries are expressed with respect to the number of spatial
-            basis functions.
-        vij_mats List[np.ndarray]: list matrices of rho-rho interactions where
-            i, j indices of the matrix index the n_{i}n_{j} integral.  Evolution
-            is performed with respect to n_{i\sigma}n_{j\tau} where sigma and
-            tau are up or down electron spins--a total of 4 Hamiltonian terms
-            per i,j term.
-        deltat float: evolution time prefactor for all v_ij Hamiltonians
+        initial_wfn: Initial wavefunction to evolve.
+        basis_change_unitaries: List L + 1 unitaries. The first
+            unitary is U1 :math:`e^{-iTdt}` where T is the one-electron
+            component of the evolution.  he remaining unitaries are
+            :math:`U_{i}U_{i-1}^{\dagger}.` All unitaries are expressed with
+            respect to the number of spatial basis functions.
+        vij_mats: list matrices of rho-rho interactions where
+            i, j indices of the matrix index the :math:`n_{i} n_{j}` integral.
+            Evolution is performed with respect to :math:`n_{i\sigma} n_{j\tau}`
+            where sigma and tau are up or down electron spins--a total of 4
+            Hamiltonian terms per i, j term.
+        deltat: evolution time prefactor for all v_ij Hamiltonians.
 
     Returns:
         The final wavefunction from a single Trotter evolution.
