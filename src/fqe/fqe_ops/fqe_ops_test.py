@@ -15,7 +15,12 @@
 
 import unittest
 
-from fqe.fqe_ops import s2_op, sz_op, tr_op, number_op
+from fqe.fqe_ops.fqe_ops import (
+    NumberOperator,
+    S2Operator,
+    SzOperator,
+    TimeReversalOp,
+)
 from fqe import wavefunction
 
 
@@ -24,20 +29,20 @@ class TestFqeOps(unittest.TestCase):
 
     def test_ops_general(self):
         """Check general properties of the fqe_ops."""
-        s_2 = s2_op.S2Operator()
-        self.assertEqual(s_2.representation(), 's_2')
+        s_2 = S2Operator()
+        self.assertEqual(s_2.representation(), "s_2")
         self.assertEqual(s_2.rank(), 2)
 
-        s_z = sz_op.SzOperator()
-        self.assertEqual(s_z.representation(), 's_z')
+        s_z = SzOperator()
+        self.assertEqual(s_z.representation(), "s_z")
         self.assertEqual(s_z.rank(), 2)
 
-        t_r = tr_op.TimeReversalOp()
-        self.assertEqual(t_r.representation(), 'T')
+        t_r = TimeReversalOp()
+        self.assertEqual(t_r.representation(), "T")
         self.assertEqual(t_r.rank(), 2)
 
-        num = number_op.NumberOperator()
-        self.assertEqual(num.representation(), 'N')
+        num = NumberOperator()
+        self.assertEqual(num.representation(), "N")
         self.assertEqual(num.rank(), 2)
 
         wfn = wavefunction.Wavefunction([[4, 2, 4], [4, 0, 4]])
