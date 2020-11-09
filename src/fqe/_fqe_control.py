@@ -33,7 +33,12 @@ from fqe.cirq_utils import qubit_wavefunction_from_vacuum
 from fqe import transform
 from fqe import wavefunction
 from fqe.openfermion_utils import fqe_to_fermion_operator
-from fqe.fqe_ops import s2_op, sz_op, tr_op, number_op
+from fqe.fqe_ops.fqe_ops import (
+    NumberOperator,
+    S2Operator,
+    SzOperator,
+    TimeReversalOp,
+)
 from fqe.fqe_decorators import build_hamiltonian
 from fqe.hamiltonians import diagonal_coulomb
 from fqe.hamiltonians import diagonal_hamiltonian
@@ -298,25 +303,25 @@ def expectationValue(wfn: 'wavefunction.Wavefunction',
 def get_s2_operator() -> 's2_op.S2Operator':
     """Return an S^2 operator.
     """
-    return s2_op.S2Operator()
+    return S2Operator()
 
 
 def get_sz_operator() -> 'sz_op.SzOperator':
     """Return an S_zperator.
     """
-    return sz_op.SzOperator()
+    return SzOperator()
 
 
 def get_time_reversal_operator() -> 'tr_op.TimeReversalOp':
     """Return a Time Reversal Operator
     """
-    return tr_op.TimeReversalOp()
+    return TimeReversalOp()
 
 
 def get_number_operator() -> 'number_op.NumberOperator':
     """Return the particle number operator
     """
-    return number_op.NumberOperator()
+    return NumberOperator()
 
 
 def dot(wfn1: 'wavefunction.Wavefunction',

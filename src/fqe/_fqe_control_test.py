@@ -25,7 +25,12 @@ from openfermion import FermionOperator
 
 from fqe import wavefunction
 from fqe.hamiltonians import general_hamiltonian, hamiltonian_utils
-from fqe.fqe_ops import s2_op, sz_op, tr_op, number_op
+from fqe.fqe_ops.fqe_ops import (
+    NumberOperator,
+    S2Operator,
+    SzOperator,
+    TimeReversalOp,
+)
 
 import fqe
 
@@ -108,7 +113,7 @@ class FqeControlTest(unittest.TestCase):
     def test_operator_constructors(self):
         """Creation of FQE-operators
         """
-        self.assertIsInstance(fqe.get_s2_operator(), s2_op.S2Operator)
-        self.assertIsInstance(fqe.get_sz_operator(), sz_op.SzOperator)
-        self.assertIsInstance(fqe.get_time_reversal_operator(), tr_op.TimeReversalOp)
-        self.assertIsInstance(fqe.get_number_operator(), number_op.NumberOperator)
+        self.assertIsInstance(fqe.get_s2_operator(), S2Operator)
+        self.assertIsInstance(fqe.get_sz_operator(), SzOperator)
+        self.assertIsInstance(fqe.get_time_reversal_operator(), TimeReversalOp)
+        self.assertIsInstance(fqe.get_number_operator(), NumberOperator)
