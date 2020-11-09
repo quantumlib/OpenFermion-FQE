@@ -23,7 +23,12 @@ from scipy.special import binom
 import fqe
 from fqe.wavefunction import Wavefunction
 from fqe.hamiltonians import general_hamiltonian
-from fqe.fqe_ops import s2_op, sz_op, tr_op, number_op
+from fqe.fqe_ops.fqe_ops import (
+    NumberOperator,
+    S2Operator,
+    SzOperator,
+    TimeReversalOp,
+)
 
 from fqe.unittest_data import build_lih_data, build_nh_data
 
@@ -88,13 +93,13 @@ class TestFQE(unittest.TestCase):
         wfn = Wavefunction([[nele, nalpha - nbeta, norb]])
         wfn.set_wfn(strategy='from_data', raw_data={(nele, nalpha - nbeta): lih_ground})
 
-        operator = s2_op.S2Operator()
+        operator = S2Operator()
         self.assertAlmostEqual(wfn.expectationValue(operator), 0. + 0.j)
-        operator = sz_op.SzOperator()
+        operator = SzOperator()
         self.assertAlmostEqual(wfn.expectationValue(operator), 0. + 0.j)
-        operator = tr_op.TimeReversalOp()
+        operator = TimeReversalOp()
         self.assertAlmostEqual(wfn.expectationValue(operator), 1. + 0.j)
-        operator = number_op.NumberOperator()
+        operator = NumberOperator()
         self.assertAlmostEqual(wfn.expectationValue(operator), 4. + 0.j)
         self.assertAlmostEqual(wfn.expectationValue(operator, wfn), 4. + 0.j)
 

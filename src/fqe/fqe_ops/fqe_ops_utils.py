@@ -11,22 +11,19 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
-
-"""Utility functions for FQE operators
-"""
+"""Utility functions for FQE operators."""
 
 import re
 
 
 def validate_rdm_string(ops: str) -> str:
-    """Check that a string for rdms are valid
+    """Check that a string for rdms are valid.
 
     Args:
-        ops (str) - string expression to be computed
-        target (str) - string expression to be computed
+        ops: String expression to be computed.
 
     Returns
-        (str) - either 'element' or 'tensor'
+        Either 'element' or 'tensor'.
     """
 
     qftops = ops.split()
@@ -36,8 +33,8 @@ def validate_rdm_string(ops: str) -> str:
 
     if any(char.isdigit() for char in ops):
 
-        creation = re.compile(r'^[0-9]+\^$')
-        annihilation = re.compile(r'^[0-9]+$')
+        creation = re.compile(r"^[0-9]+\^$")
+        annihilation = re.compile(r"^[0-9]+$")
 
         ncre = 0
         nani = 0
@@ -48,14 +45,14 @@ def validate_rdm_string(ops: str) -> str:
             elif annihilation.match(opr):
                 nani += 1
             else:
-                raise TypeError('Unsupported behvior for {}'.format(ops))
+                raise TypeError("Unsupported behavior for {}".format(ops))
 
         assert nani == ncre
 
-        return 'element'
+        return "element"
 
-    creation = re.compile(r'^[a-z]\^$')
-    annihilation = re.compile(r'^[a-z]$')
+    creation = re.compile(r"^[a-z]\^$")
+    annihilation = re.compile(r"^[a-z]$")
 
     ncre = 0
     nani = 0
@@ -66,29 +63,29 @@ def validate_rdm_string(ops: str) -> str:
         elif annihilation.match(opr):
             nani += 1
         else:
-            raise TypeError('Unsupported behvior for {}'.format(ops))
+            raise TypeError("Unsupported behvior for {}.".format(ops))
 
     if nani != ncre:
-        raise ValueError('Unequal creation and annihilation operators')
+        raise ValueError("Unequal creation and annihilation operators.")
 
-    return 'tensor'
+    return "tensor"
 
 
 def switch_broken_symmetry(string: str) -> str:
     """Convert the string passed in to the desired symmetry.
 
     Args:
-        string (str) - input string in the original expression
+        string: Input string in the original expression.
 
     Returns:
-        string (str) - output string in the converted format
+        Output string in the converted format.
     """
-    new = ''
+    new = ""
     if any(char.isdigit() for char in string):
 
         work = string.split()
-        creation = re.compile(r'^[0-9]+\^$')
-        annihilation = re.compile(r'^[0-9]+$')
+        creation = re.compile(r"^[0-9]+\^$")
+        annihilation = re.compile(r"^[0-9]+$")
 
         for opr in work:
             if creation.match(opr):
@@ -98,10 +95,10 @@ def switch_broken_symmetry(string: str) -> str:
                     val = opr
             elif annihilation.match(opr):
                 if int(opr) % 2:
-                    val = opr + '^'
+                    val = opr + "^"
                 else:
                     val = opr
-            new += val + ' '
+            new += val + " "
     else:
         new = string
 
