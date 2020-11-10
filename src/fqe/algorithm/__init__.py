@@ -11,4 +11,7 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
-"""TODO: Add description of module."""
+"""The algorithm module implements research tools for simulation of fermionic
+systems using the FQE. This includes things such as Davidson diagonalization
+and canonical transformations.
+"""

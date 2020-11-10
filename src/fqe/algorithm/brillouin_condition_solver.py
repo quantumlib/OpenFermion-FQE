@@ -11,7 +11,10 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
-"""TODO: Add description of module."""
+"""The generalized Brillouin conditions are a series of stationarity conditions
+for a Lie algebraic variational principle. This module implements solving for
+stationarity based on a subset of the these conditions.
+"""
 import copy
 
 import numpy as np
@@ -36,7 +39,9 @@ except ImportError:
 
 
 class BrillouinCondition:
-    """TODO: Add docstring."""
+    """This object provide an interface to solving for stationarity with
+    respect to the 2-particle Brillouin condition.
+    """
 
     def __init__(
         self,
