@@ -333,4 +333,4 @@ class FciGraph:
 
 if __name__ == "__main__":
     fcig = FciGraph(4, 4, 8)
-    print(fcig)
+    print(fcig._alpha_map[(3, 7)])

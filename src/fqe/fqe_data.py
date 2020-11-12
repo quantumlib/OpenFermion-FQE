@@ -1843,25 +1843,27 @@ class FqeData:
         ckckck_bbb = numpy.zeros((norb, norb, norb, norb, norb, norb), dtype=self._dtype)
 
         dveca, dvecb = self.calculate_dvec_spin()
+        dveca_conj, dvecb_conj = dveca.conj().copy(), dvecb.conj().copy()
         opdm, tpdm = self.get_openfermion_rdms()
         krond = numpy.eye(opdm.shape[0] // 2)
         # alpha-alpha-alpha
-        for r, s, t, u in itertools.product(range(self.norb()), repeat=4):
+        for t, u in itertools.product(range(self.norb()), repeat=2):
             tdveca_a, tdvecb_a = self._calculate_dvec_spin_with_coeff(dveca[t, u, :, :])
             tdveca_b, tdvecb_b = self._calculate_dvec_spin_with_coeff(dvecb[t, u, :, :])
-            # p(:)^ q(:) r^ s t^ u
-            # a-a-a
-            pq_rdm = numpy.einsum('liab,ab->il', dveca.conj(), tdveca_a[r, s, :, :])
-            ckckck_aaa[:, :, r, s, r, u] = pq_rdm
-            # a-a-b
-            pq_rdm = numpy.einsum('liab,ab->il', dveca.conj(), tdveca_b[r, s, :, :])
-            ckckck_aab[:, :, r, s, r, u] = pq_rdm
-            # a-b-b
-            pq_rdm = numpy.einsum('liab,ab->il', dveca.conj(), tdvecb_b[r, s, :, :])
-            ckckck_abb[:, :, r, s, r, u] = pq_rdm
-            # b-b-b
-            pq_rdm = numpy.einsum('liab,ab->il', dvecb.conj(), tdvecb_b[r, s, :, :])
-            ckckck_bbb[:, :, r, s, r, u] = pq_rdm
+            for r, s in itertools.product(range(self.norb()), repeat=2):
+                # p(:)^ q(:) r^ s t^ u
+                # a-a-a
+                pq_rdm = numpy.einsum('liab,ab->il', dveca_conj, tdveca_a[r, s, :, :], optimize=True)
+                ckckck_aaa[:, :, r, s, t, u] = pq_rdm
+                # a-a-b
+                pq_rdm = numpy.einsum('liab,ab->il', dveca_conj, tdveca_b[r, s, :, :], optimize=True)
+                ckckck_aab[:, :, r, s, t, u] = pq_rdm
+                # a-b-b
+                pq_rdm = numpy.einsum('liab,ab->il', dvecb_conj, tdvecb_a[r, s, :, :], optimize=True)
+                ckckck_abb[:, :, r, s, t, u] = pq_rdm
+                # b-b-b
+                pq_rdm = numpy.einsum('liab,ab->il', dvecb_conj, tdvecb_b[r, s, :, :], optimize=True)
+                ckckck_bbb[:, :, r, s, t, u] = pq_rdm
 
         # p^ r^ t^ u s q = p^ q r^ s t^ u + d(q, r) p^ t^ s u - d(q, t)p^ r^ s u
         #                 + d(s, t)p^ r^ q u - d(q,r)d(s,t)p^ u
@@ -1946,6 +1948,7 @@ class FqeData:
 
 
 
+
 if __name__ == "__main__":
     import numpy as np
     from itertools import product
@@ -1984,6 +1987,17 @@ if __name__ == "__main__":
     ckckck_aab = three_ccc_pdm[::2, ::2, ::2, ::2, 1::2, 1::2]
     ckckck_abb = three_ccc_pdm[::2, ::2, 1::2, 1::2, 1::2, 1::2]
     ckckck_bbb = three_ccc_pdm[1::2, 1::2, 1::2, 1::2, 1::2, 1::2]
+
+
+    # fqe_data.get_three_spin_blocks_rdm()
+    import cProfile
+    cProfile.run('fqe_data.get_three_spin_blocks_rdm()', 'fqe_three_rdm_profile.profile')
+    # cProfile.run('fqe_data.rdm123()', 'fqe_three_rdm_profile.profile')
+    import pstats
+    profile = pstats.Stats('fqe_three_rdm_profile.profile')
+    profile.sort_stats('cumtime')
+    profile.print_stats(30)
+    exit()
 
     # p^ r^ t^ u s q = p^ q r^ s t^ u + d(q, r) p^ t^ s u - d(q, t)p^ r^ s u
     #                 + d(s, t)p^ r^ q u - d(q,r)d(s,t)p^ u
