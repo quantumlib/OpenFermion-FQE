@@ -237,7 +237,14 @@ def davidsonliu_fqe(
                         ]
                     )
                 )
-            return w[:nroots], eigenvectors
+            eigfuncs = []
+            for eg in eigenvectors:
+                new_wfn = copy.deepcopy(guess_vecs[0])
+                new_wfn.set_wfn(strategy='from_data',
+                                raw_data={gv_sector: eg})
+                eigfuncs.append(new_wfn)
+
+            return w[:nroots], eigfuncs
 
         # else set new roots to the old roots
         old_thetas = w[:nroots]
@@ -299,6 +306,45 @@ def davidsonliu_fqe(
     raise ConvergenceError("Maximal number of steps exceeded")
 
 
+def davidson_diagonalization(hamiltonian: fqe.restricted_hamiltonian.RestrictedHamiltonian,
+                             n_alpha: int, n_beta: int, nroots=1, guess_vecs=None):
+    norb = hamiltonian.dim()  # this should be the num_orbitals
+    nele = n_alpha + n_beta
+    sz = n_alpha - n_beta
+    wfn = fqe.Wavefunction([[nele, sz, norb]])
+    graph = wfn.sector((nele, sz)).get_fcigraph()
+
+    # Generate Guess Vecs for Davidson-Liu
+    if guess_vecs is None:
+        guess_vec1_coeffs = np.zeros((graph.lena(), graph.lenb()))
+        guess_vec2_coeffs = np.zeros((graph.lena(), graph.lenb()))
+        alpha_hf = fqe.util.init_bitstring_groundstate(n_alpha)
+        beta_hf = fqe.util.init_bitstring_groundstate(n_beta)
+        guess_vec1_coeffs[
+            graph.index_alpha(alpha_hf), graph.index_beta(beta_hf)
+        ] = 1.0
+        guess_vec2_coeffs[
+            graph.index_alpha(alpha_hf << 1), graph.index_beta(beta_hf << 1)
+        ] = 1.0
+
+        guess_wfn1 = copy.deepcopy(wfn)
+        guess_wfn2 = copy.deepcopy(wfn)
+        guess_wfn1.set_wfn(
+            strategy="from_data",
+            raw_data={(nele, sz): guess_vec1_coeffs},
+        )
+        guess_wfn2.set_wfn(
+            strategy="from_data",
+            raw_data={(nele, sz): guess_vec2_coeffs},
+        )
+        guess_vecs = [guess_wfn1, guess_wfn2]
+
+    # run FQE-DL
+    dl_w, dl_v = davidsonliu_fqe(
+        hamiltonian, nroots, guess_vecs, nele=nele, sz=sz, norb=norb
+    )
+    return dl_w, dl_v
+
 # TODO: Make this a unit test?
 if __name__ == "__main__":
     eref = -8.877719570384043
@@ -311,9 +357,8 @@ if __name__ == "__main__":
     h2e_zeros = np.zeros_like(h2e)
     elec_hamil = fqe.restricted_hamiltonian.RestrictedHamiltonian((h1e, h2e))
     wfn = fqe.Wavefunction([[nele, nalpha - nbeta, norb]])
-    wfn.set_wfn(
-        strategy="from_data", raw_data={(nele, nalpha - nbeta): lih_ground}
-    )
+    wfn.set_wfn(strategy="from_data",
+                raw_data={(nele, nalpha - nbeta): lih_ground})
     graph = wfn.sector((4, 0)).get_fcigraph()
     ecalc = wfn.expectationValue(elec_hamil)
 
@@ -381,3 +426,6 @@ if __name__ == "__main__":
     print("full mat DL ", ww.real - 1)
     print("GS Energy ", ecalc.real)
     print("DL-FQE ", dl_w.real)
+
+    dl_w, dl_v = davidson_diagonalization(hamiltonian=elec_hamil, n_alpha=nalpha, n_beta=nbeta)
+    print("API : ", dl_w.real)

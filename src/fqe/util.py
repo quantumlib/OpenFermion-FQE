@@ -397,7 +397,7 @@ def qubit_particle_number_index_spin(nqubits: int,
             totspn += curspn
         else:
             index = 0
-        orbocc = orbocc>>1
+        orbocc = orbocc >> 1
         veclen = 2
         for _ in range(nqubits-1):
             curspn *= -1
