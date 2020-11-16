@@ -391,7 +391,7 @@ def qubit_particle_number_index_spin(nqubits: int,
     pn_set = lexicographic_bitstring_generator(seed, nqubits)
     for orbocc in pn_set:
         totspn = 0
-        curspn = 1
+        curspn = -1
         if orbocc & 1:
             index = 1
             totspn += curspn

@@ -89,7 +89,7 @@ def build_hamiltonian(ops: Union[FermionOperator, hamiltonian.Hamiltonian],
         norb = 0
         for term in ops_rank.values():
             ablk, bblk = largest_operator_index(term)
-            norb = max(norb + 1, ablk // 2 + 1, bblk // 2 + 1)
+            norb = max(norb, ablk // 2 + 1, bblk // 2 + 1)
 
         ops_mat = {}
         maxrank = 0
