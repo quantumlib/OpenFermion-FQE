@@ -180,7 +180,7 @@ class UnitTest(unittest.TestCase):
         """Find the indexes which point to the correct coefficients in a qubit
         particle number sector and return the total spin.
         """
-        ref = [(3, 0), (5, 2), (6, 0), (9, 0), (10, -2), (12, 0)]
+        ref = [(3, 0), (5, -2), (6, 0), (9, 0), (10, 2), (12, 0)]
         test = util.qubit_particle_number_index_spin(4, 2)
         self.assertListEqual(ref, test)
 
