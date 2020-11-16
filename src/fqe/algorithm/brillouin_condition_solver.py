@@ -103,14 +103,14 @@ class BrillouinCondition:
                     fqe_wf, self.elec_hamil, sdim
                 )
                 acse_res_op = get_fermion_op(acse_residual)
-                tpdm_grad = get_tpdm_grad_fqe(fqe_wf, acse_residual, sdim)
+                tpdm_grad = get_tpdm_grad_fqe_parallel(fqe_wf, acse_residual, sdim)
 
             else:
                 acse_residual = get_acse_residual_fqe(
                     fqe_wf, self.elec_hamil, sdim
                 )
                 acse_res_op = get_fermion_op(acse_residual)
-                tpdm_grad = get_tpdm_grad_fqe_parallel(
+                tpdm_grad = get_tpdm_grad_fqe(
                     fqe_wf, acse_residual, sdim
                 )
 
