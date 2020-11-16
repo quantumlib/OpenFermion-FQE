@@ -19,7 +19,9 @@ import copy
 
 import numpy as np
 
-from openfermion import MolecularData, make_reduced_hamiltonian
+from openfermion import (MolecularData, make_reduced_hamiltonian,
+                         InteractionOperator, )
+from openfermion.chem.molecular_data import spinorb_from_spatial
 
 from fqe.hamiltonians.restricted_hamiltonian import RestrictedHamiltonian
 from fqe.algorithm.brillouin_calculator import (
@@ -28,6 +30,8 @@ from fqe.algorithm.brillouin_calculator import (
     get_acse_residual_fqe_parallel,
     get_tpdm_grad_fqe,
     get_tpdm_grad_fqe_parallel,
+    two_rdo_commutator_antisymm,
+    two_rdo_commutator_symm
 )
 
 try:
@@ -54,13 +58,24 @@ class BrillouinCondition:
         elec_hamil = RestrictedHamiltonian(
             (oei, np.einsum("ijlk", -0.5 * tei))
         )
-        moleham = molecule.get_molecular_hamiltonian()
-        reduced_ham = make_reduced_hamiltonian(moleham, molecule.n_electrons)
+        oei, tei = molecule.get_integrals()
+        soei, stei = spinorb_from_spatial(oei, tei)
+        astei = np.einsum('ijkl', stei) - np.einsum('ijlk', stei)
+        molecular_hamiltonian = InteractionOperator(
+            0, soei, 0.25 * astei)
+
+        # moleham = molecule.get_molecular_hamiltonian()
+        reduced_ham = make_reduced_hamiltonian(molecular_hamiltonian,
+                                               molecule.n_electrons)
         self.molecule = molecule
         self.reduced_ham = reduced_ham
         self.elec_hamil = elec_hamil
         self.iter_max = iter_max
         self.sdim = elec_hamil.dim()
+        # change to use multiplicity to derive this for open shell
+        self.nalpha = molecule.n_electrons // 2
+        self.nbeta = molecule.n_electrons // 2
+        self.sz = self.nalpha - self.nbeta
         if PARALLELIZABLE and run_parallel:
             self.parallel = True
         else:
@@ -138,3 +153,76 @@ class BrillouinCondition:
             ):
                 break
             iteration += 1
+
+    def bc_solve_rdms(self, initial_wf):
+        """Propagate BC differential equation until convergence.
+
+        State is evolved and then 3-RDM is measured.  This information is
+        used to construct a new state
+
+        Args:
+            initial_wf: Initial wavefunction to evolve.
+        """
+        fqe_wf = copy.deepcopy(initial_wf)
+        iter_max = self.iter_max
+        iteration = 0
+        sector = (self.nalpha + self.nbeta, self.sz)
+        h = 1.0e-4
+        self.acse_energy = [fqe_wf.expectationValue(self.elec_hamil).real]
+        while iteration < iter_max:
+            # extract FqeData object each iteration in case fqe_wf is copied
+            fqe_data = fqe_wf.sector(sector)
+            # get RDMs from FqeData
+            d3 = fqe_data.get_three_pdm()
+            opdm, tpdm = fqe_data.get_openfermion_rdms()
+
+            # get ACSE Residual and 2-RDM gradient
+            acse_residual = two_rdo_commutator_symm(
+                self.reduced_ham.two_body_tensor, tpdm,
+                d3)
+            tpdm_grad = two_rdo_commutator_antisymm(acse_residual, tpdm, d3)
+            acse_res_op = get_fermion_op(acse_residual)
+
+            # epsilon_opt = - Tr[K, D'(lambda)] / Tr[K, D''(lambda)]
+            # K is reduced Hamiltonian
+            # get approximate D'' by short propagation
+            # TODO: do this with cumulant reconstruction instead of wf prop.
+            fqe_wfh = fqe_wf.time_evolve(h, 1j * acse_res_op)
+            fqe_datah = fqe_wfh.sector(sector)
+            d3h = fqe_datah.get_three_pdm()
+            opdmh, tpdmh = fqe_datah.get_openfermion_rdms()
+            acse_residualh = two_rdo_commutator_symm(
+                self.reduced_ham.two_body_tensor, tpdmh, d3h)
+            tpdm_gradh = two_rdo_commutator_antisymm(acse_residualh, tpdmh, d3h)
+
+            tpdm_gradgrad = (1 / h) * (tpdm_gradh - tpdm_grad)
+            epsilon = -np.einsum(
+                "ijkl,ijkl", self.reduced_ham.two_body_tensor, tpdm_grad
+            )
+            epsilon /= np.einsum(
+                "ijkl,ijkl", self.reduced_ham.two_body_tensor, tpdm_gradgrad
+            )
+            epsilon = epsilon.real
+
+            fqe_wf = fqe_wf.time_evolve(epsilon, 1j * acse_res_op)
+            current_energy = fqe_wf.expectationValue(self.elec_hamil).real
+            self.acse_energy.append(current_energy.real)
+
+            print_string = "Iter {: 5f}\tcurrent energy {: 5.10f}\t".format(
+                iteration, current_energy
+            )
+            print_string += "|dE| {: 5.10f}\tStep size {: 5.10f}".format(
+                np.abs(self.acse_energy[-2] - self.acse_energy[-1]), epsilon
+            )
+
+            if self.verbose:
+                print(print_string)
+
+            if (
+                iteration >= 1
+                and np.abs(self.acse_energy[-2] - self.acse_energy[-1])
+                < 0.5e-4
+            ):
+                break
+            iteration += 1
+

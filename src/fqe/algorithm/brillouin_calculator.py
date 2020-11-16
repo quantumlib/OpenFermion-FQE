@@ -11,7 +11,8 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
-"""TODO: Add description of module."""
+"""Infrastructure for compute [rdo, A] with FQE. RDO is a 2-body operator
+and A is a 2-body operator."""
 
 import copy
 from itertools import product
@@ -20,6 +21,7 @@ import numpy as np
 
 import openfermion as of
 import fqe
+from fqe.hamiltonians.restricted_hamiltonian import RestrictedHamiltonian
 
 try:
     from joblib import Parallel, delayed
@@ -29,11 +31,16 @@ except ImportError:
     PARALLELIZABLE = False
 
 
-def get_fermion_op(coeff_tensor):
+def get_fermion_op(coeff_tensor) -> of.FermionOperator:
     """Returns an openfermion.FermionOperator from the given coeff_tensor.
 
+    Given A[i, j, k, l] of A = \sum_{ijkl}A[i, j, k, l]i^ j^ k^ l
+    return the FermionOperator A.
+
     Args:
-        coeff_tensor: TODO: Add description.
+        coeff_tensor: Coefficients for 4-mode operator
+    Returns:
+        A FermionOperator object
     """
     if len(coeff_tensor.shape) not in (2, 4):
         raise ValueError(
@@ -60,9 +67,13 @@ def get_fermion_op(coeff_tensor):
         return fermion_op
 
 
-def get_acse_residual_fqe(fqe_wf, fqe_ham, norbs):
+def get_acse_residual_fqe(fqe_wf: fqe.Wavefunction,
+                          fqe_ham: RestrictedHamiltonian,
+                          norbs: int) -> np.ndarray:
     """Get the ACSE block by using reduced density operators that are Sz spin
     adapted
+
+    R^{ij}_{lk} = <psi | [i^ j^ k l, A] | psi>
 
     alpha-alpha, beta-beta, alpha-beta, and beta-alpha blocks
 
@@ -70,14 +81,14 @@ def get_acse_residual_fqe(fqe_wf, fqe_ham, norbs):
     norbs**2 in linear dimension. In other words, we do computation on
     elements we know should be zero. This is for simplicity in the code.
 
-    TODO: Document args and return value.
     Args:
-        fqe_wf:
-        fqe_ham:
-        norbs: Number of orbitals.
+        fqe_wf:  fqe.Wavefunction object to calculate expectation value with
+        fqe_ham: fqe.RestrictedHamiltonian operator corresponding to a chemical
+                 Hamiltonian
+        norbs: Number of orbitals. Number of spatial orbitals
 
     Returns:
-
+        Gradient of the i^ j^ k l operator
     """
     acse_aa = np.zeros((norbs, norbs, norbs, norbs), dtype=np.complex128)
     acse_bb = np.zeros((norbs, norbs, norbs, norbs), dtype=np.complex128)
@@ -175,18 +186,16 @@ def get_tpdm_grad_fqe(fqe_wf, acse_res_tensor, norbs):
 
     alpha-alpha, beta-beta, alpha-beta, and beta-alpha blocks
 
-    we do not compression over alpha-alpha or beta-beta so these are still
-    norbs**2 in linear dimension. In other words, we do computation on elements
-    we know should be zero. This is for simplicity in the code.
+    d D^{pq}_{rs} / d \lambda = <psi(lamba)|[p^ q^ s r, A]| psi(lambda)>
 
-    TODO: Document args and return value.
     Args:
-        fqe_wf:
-        acse_res_tensor:
-        norbs: Number of orbitals.
+        fqe_wf:  fqe.Wavefunction object to calculate expectation value with
+        fqe_ham: fqe.RestrictedHamiltonian operator corresponding to a chemical
+                 Hamiltonian
+        norbs: Number of orbitals. Number of spatial orbitals
 
     Returns:
-
+        Gradient of the i^ j^ k l operator
     """
     four_tensor_counter = np.zeros_like(acse_res_tensor)
     s_ops = []
@@ -309,8 +318,8 @@ def get_tpdm_grad_fqe(fqe_wf, acse_res_tensor, norbs):
     return acse_residual
 
 
-def acse_residual_atomic(p, q, r, s, fqe_appA, fqe_wf):
-    """TODO: Add docstring."""
+def _acse_residual_atomic(p, q, r, s, fqe_appA, fqe_wf):
+    """Internal function for comuting the residual"""
     rdo = ((2 * p, 1), (2 * q, 1), (2 * r, 0), (2 * s, 0))
     rdo = 1j * (
         of.FermionOperator(rdo)
@@ -384,15 +393,26 @@ def get_acse_residual_fqe_parallel(fqe_wf, fqe_ham, norbs):
     """Get the ACSE block by using reduced density operators that are Sz spin
     adapted
 
+    R^{ij}_{lk} = <psi | [i^ j^ k l, A] | psi>
+
     alpha-alpha, beta-beta, alpha-beta, and beta-alpha blocks
 
     we do not compression over alpha-alpha or beta-beta so these are still
-    norbs**2 in linear dimension. In other words, we do computation on elements
-    we know should be zero. This is for simplicity in the code.
+    norbs**2 in linear dimension. In other words, we do computation on
+    elements we know should be zero. This is for simplicity in the code.
+
+    Args:
+        fqe_wf:  fqe.Wavefunction object to calculate expectation value with
+        fqe_ham: fqe.RestrictedHamiltonian operator corresponding to a chemical
+                 Hamiltonian
+        norbs: Number of orbitals. Number of spatial orbitals
+
+    Returns:
+        Gradient of the i^ j^ k l operator
     """
-    # TODO: Check if parallel has been imported? e.g.
-    #  if not PARALLELIZABLE:
-    #      raise SomeError
+    if not PARALLELIZABLE:
+        raise ImportError("Joblib is not available")
+
     acse_aa = np.zeros((norbs, norbs, norbs, norbs), dtype=np.complex128)
     acse_bb = np.zeros((norbs, norbs, norbs, norbs), dtype=np.complex128)
     acse_ab = np.zeros((norbs, norbs, norbs, norbs), dtype=np.complex128)
@@ -401,7 +421,7 @@ def get_acse_residual_fqe_parallel(fqe_wf, fqe_ham, norbs):
 
     with Parallel(n_jobs=11, batch_size=norbs) as parallel:
         result = parallel(
-            delayed(acse_residual_atomic)(p, q, r, s, fqe_appA, fqe_wf)
+            delayed(_acse_residual_atomic)(p, q, r, s, fqe_appA, fqe_wf)
             for p, q, r, s in product(range(norbs), repeat=4)
         )
 
@@ -428,8 +448,8 @@ def get_acse_residual_fqe_parallel(fqe_wf, fqe_ham, norbs):
     return acse_residual
 
 
-def get_tpdm_grad_fqe_atomic(p, q, r, s, fqe_appS, fqe_wf):
-    """TODO: Add docstring."""
+def _get_tpdm_grad_fqe_atomic(p, q, r, s, fqe_appS, fqe_wf):
+    """Internal function for 2-RDM grad parallel"""
     # alpha-beta block real
     rdo = ((2 * p, 1), (2 * q + 1, 1), (2 * r + 1, 0), (2 * s, 0))
     rdo = of.FermionOperator(rdo) + of.hermitian_conjugated(
@@ -510,15 +530,19 @@ def get_tpdm_grad_fqe_atomic(p, q, r, s, fqe_appS, fqe_wf):
 def get_tpdm_grad_fqe_parallel(fqe_wf, acse_res_tensor, norbs):
     """Compute the acse gradient  <psi [rdo, A] psi>
 
-    alpha-alpha, beta-beta, alpha-beta, and beta-alpha blocks
+    d D^{pq}_{rs} / d \lambda = <psi(lamba)|[p^ q^ s r, A]| psi(lambda)>
 
-    we do not compression over alpha-alpha or beta-beta so these are still
-    norbs**2 in linear dimension. In other words, we do computation on elements
-    we know should be zero. This is for simplicity in the code.
+    Args:
+        fqe_wf:  fqe.Wavefunction object to calculate expectation value with
+        fqe_ham: fqe.RestrictedHamiltonian operator corresponding to a chemical
+                 Hamiltonian
+        norbs: Number of orbitals. Number of spatial orbitals
+
+    Returns:
+        Gradient of the i^ j^ k l operator
     """
-    # TODO: Check if parallel has been imported? e.g.
-    #  if not PARALLELIZABLE:
-    #      raise SomeError
+    if not PARALLELIZABLE:
+        raise ImportError("Joblib was not imported")
     four_tensor_counter = np.zeros_like(acse_res_tensor)
     s_ops = []
     # s_op_total = of.FermionOperator()
@@ -561,7 +585,7 @@ def get_tpdm_grad_fqe_parallel(fqe_wf, acse_res_tensor, norbs):
     acse_ab = np.zeros((norbs, norbs, norbs, norbs), dtype=np.complex128)
     with Parallel(n_jobs=-1) as parallel:
         result = parallel(
-            delayed(get_tpdm_grad_fqe_atomic)(p, q, r, s, fqe_appS, fqe_wf)
+            delayed(_get_tpdm_grad_fqe_atomic)(p, q, r, s, fqe_appS, fqe_wf)
             for p, q, r, s in product(range(norbs), repeat=4)
         )
 
@@ -586,3 +610,191 @@ def get_tpdm_grad_fqe_parallel(fqe_wf, acse_res_tensor, norbs):
     )
 
     return acse_residual
+
+
+def two_rdo_commutator(two_body_tensor: np.ndarray, tpdm: np.ndarray,
+                       d3: np.ndarray) -> np.ndarray:
+    """
+    Calculate <psi | [p^ q^ r s, A] | psi>  where A two-body operator
+
+    A = \sum_{ijkl}A^{ij}_{lk}i^ j^ k l
+
+    where A^{ij}_{lk} is a 4-index tensor.  There is no restriction on the
+    structure of A.
+
+    Args:
+        two_body_tensor: 4-tensor for the coefficients of A
+        tpdm: spin-orbital two-RDM p^ q^ r s corresponding to (1'2'2 1)
+        d3: spin-orbital three-RDM p^ q^ r^ s t u corresponding to (1'2'3'32 1)
+    """
+    dim = tpdm.shape[0]
+    tensor_of_expectation = np.zeros(tuple([dim] * 4), dtype=tpdm.dtype)
+    for p, q, r, s in product(range(dim), repeat=4):
+        commutator_expectation = 0.
+        #   (  -1.00000) kdelta(i,r) kdelta(j,s) cre(p) cre(q) des(k) des(l)
+        commutator_expectation += -1.0 * np.einsum('kl,kl',
+                                                   two_body_tensor[r, s, :, :],
+                                                   tpdm[p, q, :, :],
+                                                   optimize=True)
+
+        #   (   1.00000) kdelta(i,s) kdelta(j,r) cre(p) cre(q) des(k) des(l)
+        commutator_expectation += 1.0 * np.einsum('kl,kl',
+                                                  two_body_tensor[s, r, :, :],
+                                                  tpdm[p, q, :, :],
+                                                  optimize=True)
+
+        #   (   1.00000) kdelta(k,p) kdelta(l,q) cre(i) cre(j) des(r) des(s)
+        commutator_expectation += 1.0 * np.einsum('ij,ij',
+                                                  two_body_tensor[:, :, p, q],
+                                                  tpdm[:, :, r, s],
+                                                  optimize=True)
+
+        #   (  -1.00000) kdelta(k,q) kdelta(l,p) cre(i) cre(j) des(r) des(s)
+        commutator_expectation += -1.0 * np.einsum('ij,ij',
+                                                   two_body_tensor[:, :, q, p],
+                                                   tpdm[:, :, r, s],
+                                                   optimize=True)
+
+        #   (   1.00000) kdelta(i,r) cre(j) cre(p) cre(q) des(k) des(l) des(s)
+        commutator_expectation += 1.0 * np.einsum('jkl,jkl',
+                                                  two_body_tensor[r, :, :, :],
+                                                  d3[:, p, q, :, :, s],
+                                                  optimize=True)
+
+        #   (  -1.00000) kdelta(i,s) cre(j) cre(p) cre(q) des(k) des(l) des(r)
+        commutator_expectation += -1.0 * np.einsum('jkl,jkl',
+                                                   two_body_tensor[s, :, :, :],
+                                                   d3[:, p, q, :, :, r],
+                                                   optimize=True)
+
+        #   (  -1.00000) kdelta(j,r) cre(i) cre(p) cre(q) des(k) des(l) des(s)
+        commutator_expectation += -1.0 * np.einsum('ikl,ikl',
+                                                   two_body_tensor[:, r, :, :],
+                                                   d3[:, p, q, :, :, s],
+                                                   optimize=True)
+
+        #   (   1.00000) kdelta(j,s) cre(i) cre(p) cre(q) des(k) des(l) des(r)
+        commutator_expectation += 1.0 * np.einsum('ikl,ikl',
+                                                  two_body_tensor[:, s, :, :],
+                                                  d3[:, p, q, :, :, r],
+                                                  optimize=True)
+
+        #   (  -1.00000) kdelta(k,p) cre(i) cre(j) cre(q) des(l) des(r) des(s)
+        commutator_expectation += -1.0 * np.einsum('ijl,ijl',
+                                                   two_body_tensor[:, :, p, :],
+                                                   d3[:, :, q, :, r, s],
+                                                   optimize=True)
+
+        #   (   1.00000) kdelta(k,q) cre(i) cre(j) cre(p) des(l) des(r) des(s)
+        commutator_expectation += 1.0 * np.einsum('ijl,ijl',
+                                                  two_body_tensor[:, :, q, :],
+                                                  d3[:, :, p, :, r, s],
+                                                  optimize=True)
+
+        #   (   1.00000) kdelta(l,p) cre(i) cre(j) cre(q) des(k) des(r) des(s)
+        commutator_expectation += 1.0 * np.einsum('ijk,ijk',
+                                                  two_body_tensor[:, :, :, p],
+                                                  d3[:, :, q, :, r, s],
+                                                  optimize=True)
+
+        #   (  -1.00000) kdelta(l,q) cre(i) cre(j) cre(p) des(k) des(r) des(s)
+        commutator_expectation += -1.0 * np.einsum('ijk,ijk',
+                                                   two_body_tensor[:, :, :, q],
+                                                   d3[:, :, p, :, r, s],
+                                                   optimize=True)
+        tensor_of_expectation[p, q, r, s] = commutator_expectation
+
+    return tensor_of_expectation
+
+
+def two_rdo_commutator_symm(two_body_tensor: np.ndarray, tpdm: np.ndarray,
+                            d3: np.ndarray) -> np.ndarray:
+    """
+    Calculate <psi | [p^ q^ r s, A] | psi>  where A two-body operator
+
+    A = \sum_{ijkl}A^{ij}_{lk}i^ j^ k l
+
+    where A^{ij}_{lk} is antisymmetric and hermitian
+
+    Args:
+        two_body_tensor: 4-tensor for the coefficients of A
+        tpdm: spin-orbital two-RDM p^ q^ r s corresponding to (1'2'2 1)
+        d3: spin-orbital three-RDM p^ q^ r^ s t u corresponding to (1'2'3'32 1)
+    """
+    dim = tpdm.shape[0]
+    tensor_of_expectation = np.zeros(tuple([dim] * 4), dtype=tpdm.dtype)
+    k2 = two_body_tensor.transpose(0, 1, 3, 2)
+    for p, q, r, s in product(range(dim), repeat=4):
+        commutator_expectation = 0.
+        #   (  -2.00000) k2(p,q,a,b) cre(a) cre(b) des(r) des(s)
+        commutator_expectation += -2. * np.einsum('ab,ab', k2[p, q, :, :],
+                                                  tpdm[:, :, r, s])
+
+        #   (   2.00000) k2(r,s,a,b) cre(p) cre(q) des(a) des(b)
+        commutator_expectation += 2. * np.einsum('ab,ab', k2[r, s, :, :],
+                                                 tpdm[p, q, :, :])
+
+        #   (   2.00000) k2(p,a,b,c) cre(q) cre(b) cre(c) des(r) des(s) des(a)
+        commutator_expectation += 2. * np.einsum('abc,bca', k2[p, :, :, :],
+                                                 d3[q, :, :, r, s, :])
+
+        #   (  -2.00000) k2(q,a,b,c) cre(p) cre(b) cre(c) des(r) des(s) des(a)
+        commutator_expectation += -2. * np.einsum('abc,bca', k2[q, :, :, :],
+                                                  d3[p, :, :, r, s, :])
+
+        #   (  -2.00000) k2(r,a,b,c) cre(p) cre(q) cre(a) des(s) des(b) des(c)
+        commutator_expectation += -2. * np.einsum('abc,abc', k2[r, :, :, :],
+                                                  d3[p, q, :, s, :, :])
+
+        #   (   2.00000) k2(s,a,b,c) cre(p) cre(q) cre(a) des(r) des(b) des(c)
+        commutator_expectation += 2. * np.einsum('abc,abc', k2[s, :, :, :],
+                                                 d3[p, q, :, r, :, :])
+
+        tensor_of_expectation[p, q, r, s] = commutator_expectation
+    return tensor_of_expectation
+
+
+def two_rdo_commutator_antisymm(two_body_tensor: np.ndarray, tpdm: np.ndarray,
+                                d3: np.ndarray) -> np.ndarray:
+    """
+    Calculate <psi | [p^ q^ r s, A] | psi>  where A two-body operator
+
+    A = \sum_{ijkl}A^{ij}_{lk}i^ j^ k l
+
+    where A^{ij}_{lk} is antisymmetric and antihermitian
+
+    Args:
+        two_body_tensor: 4-tensor for the coefficients of A
+        tpdm: spin-orbital two-RDM p^ q^ r s corresponding to (1'2'2 1)
+        d3: spin-orbital three-RDM p^ q^ r^ s t u corresponding to (1'2'3'32 1)
+    """
+    dim = tpdm.shape[0]
+    tensor_of_expectation = np.zeros(tuple([dim] * 4), dtype=tpdm.dtype)
+    k2 = two_body_tensor.transpose(0, 1, 3, 2)
+    for p, q, r, s in product(range(dim), repeat=4):
+        commutator_expectation = 0.
+        #   (  2.00000) k2(p,q,a,b) cre(a) cre(b) des(r) des(s)
+        commutator_expectation += 2. * np.einsum('ab,ab', k2[p, q, :, :],
+                                                 tpdm[:, :, r, s])
+
+        #   (   2.00000) k2(r,s,a,b) cre(p) cre(q) des(a) des(b)
+        commutator_expectation += 2. * np.einsum('ab,ab', k2[r, s, :, :],
+                                                 tpdm[p, q, :, :])
+
+        #   (  -2.00000) k2(p,a,b,c) cre(q) cre(b) cre(c) des(r) des(s) des(a)
+        commutator_expectation += -2. * np.einsum('abc,bca', k2[p, :, :, :],
+                                                  d3[q, :, :, r, s, :])
+
+        #   (  2.00000) k2(q,a,b,c) cre(p) cre(b) cre(c) des(r) des(s) des(a)
+        commutator_expectation += 2. * np.einsum('abc,bca', k2[q, :, :, :],
+                                                 d3[p, :, :, r, s, :])
+
+        #   (  -2.00000) k2(r,a,b,c) cre(p) cre(q) cre(a) des(s) des(b) des(c)
+        commutator_expectation += -2. * np.einsum('abc,abc', k2[r, :, :, :],
+                                                  d3[p, q, :, s, :, :])
+
+        #   (   2.00000) k2(s,a,b,c) cre(p) cre(q) cre(a) des(r) des(b) des(c)
+        commutator_expectation += 2. * np.einsum('abc,abc', k2[s, :, :, :],
+                                                 d3[p, q, :, r, :, :])
+        tensor_of_expectation[p, q, r, s] = commutator_expectation
+    return tensor_of_expectation

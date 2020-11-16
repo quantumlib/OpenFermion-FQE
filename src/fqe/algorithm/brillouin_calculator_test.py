@@ -16,6 +16,7 @@ import pytest
 from itertools import product
 import numpy as np
 import openfermion as of
+from openfermion.chem.molecular_data import spinorb_from_spatial
 import fqe
 from fqe.unittest_data.generate_openfermion_molecule import (
     build_lih_moleculardata, build_h4square_moleculardata)
@@ -24,7 +25,10 @@ from fqe.algorithm.brillouin_calculator import (get_tpdm_grad_fqe_parallel,
                                                 get_tpdm_grad_fqe,
                                                 get_acse_residual_fqe_parallel,
                                                 get_acse_residual_fqe,
-                                                get_fermion_op)
+                                                get_fermion_op,
+                                                two_rdo_commutator,
+                                                two_rdo_commutator_symm,
+                                                two_rdo_commutator_antisymm)
 
 try:
     from joblib import Parallel, delayed
@@ -169,3 +173,61 @@ def test_to_cirq_fast():
             cirq_wf = fqe.to_cirq_ncr(fqe_wf).reshape((-1, 1))
             true_cirq_wf = fqe.to_cirq(fqe_wf).reshape((-1, 1))
             assert np.isclose(abs(cirq_wf.conj().T @ true_cirq_wf), 1)
+
+
+def test_get_acse_residual_rdm():
+    # Set up
+    np.random.seed(10)
+
+    # get molecule and reduced Ham
+    molecule = build_lih_moleculardata()
+    sdim = molecule.n_orbitals
+    molehammat = of.get_sparse_operator(molecule.get_molecular_hamiltonian())
+    oei, tei = molecule.get_integrals()
+    soei, stei = spinorb_from_spatial(oei, tei)
+    astei = np.einsum('ijkl', stei) - np.einsum('ijlk', stei)
+    molecular_hamiltonian = of.InteractionOperator(
+        0, soei, 0.25 * astei)
+    reduced_ham = of.make_reduced_hamiltonian(molecular_hamiltonian,
+                                              molecule.n_electrons)
+
+    # Initialize a random wavefunction
+    nalpha, nbeta = molecule.n_electrons // 2, molecule.n_electrons // 2
+    sz = nalpha - nbeta
+    fqe_wf = fqe.Wavefunction([[nalpha + nbeta, sz, sdim]])
+    fqe_wf.set_wfn('random')
+    # make the wavefunction real
+    coeffs = fqe_wf.get_coeff((nalpha + nbeta, sz)).real
+    fqe_wf.set_wfn(strategy='from_data',
+                   raw_data={(nalpha + nbeta, sz): coeffs})
+    fqe_wf.normalize()
+    cirq_wf = fqe.to_cirq_ncr(fqe_wf).reshape((-1, 1))
+
+    # check that the Reduced Hamiltonian is antisymmetric
+    for p, q, r, s in product(range(2 * sdim), repeat=4):
+        assert np.isclose(reduced_ham.two_body_tensor[p, q, r, s],
+                          -reduced_ham.two_body_tensor[q, p, r, s])
+        assert np.isclose(reduced_ham.two_body_tensor[p, q, r, s],
+                          -reduced_ham.two_body_tensor[p, q, s, r])
+        assert np.isclose(reduced_ham.two_body_tensor[p, q, r, s],
+                          reduced_ham.two_body_tensor[q, p, s, r])
+
+    # get the fqe_data object and produce RDMs
+    fqe_data = fqe_wf.sector((nalpha + nbeta, sz))
+    d3 = fqe_data.get_three_pdm()
+    opdm, tpdm = fqe_data.get_openfermion_rdms()
+
+    # compare acse residual expressions from RDMs
+    test_acse_residual = two_rdo_commutator(reduced_ham.two_body_tensor, tpdm,
+                                            d3)
+    test2_acse_residual = two_rdo_commutator_symm(reduced_ham.two_body_tensor,
+                                                  tpdm, d3)
+    true_acse_residual = get_acse_residual(cirq_wf, molehammat, 2 * sdim)
+    assert np.allclose(true_acse_residual, test_acse_residual)
+    assert np.allclose(true_acse_residual, test2_acse_residual)
+
+    acse_res_op = get_fermion_op(true_acse_residual)
+    acse_res_op_mat = of.get_sparse_operator(acse_res_op, n_qubits=2 * sdim)
+    true_tpdm_grad = get_tpdm_grad(cirq_wf, acse_res_op_mat, 2 * sdim)
+    test_tpdm_grad = two_rdo_commutator_antisymm(true_acse_residual, tpdm, d3)
+    assert np.allclose(test_tpdm_grad, true_tpdm_grad)
