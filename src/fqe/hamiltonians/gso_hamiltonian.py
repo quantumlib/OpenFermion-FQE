@@ -11,7 +11,7 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
-"""Hamiltonian class for the Generalized Spin Orbital Hamiltonian."""
+"""Defines the GSOHamiltonain (Generalized Spin Orbital Hamiltonian) object."""
 
 from typing import Dict, Tuple
 
