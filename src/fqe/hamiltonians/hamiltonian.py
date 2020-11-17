@@ -42,11 +42,7 @@ class Hamiltonian(metaclass=ABCMeta):
         """All hamiltonians share two basic types of information.
 
         Args:
-            e_0 (complex) - the scalar part of the Hamiltonian
-
-        Members:
-            self._conserve_number (bool) - whether the Hamiltonian conserves \
-                the number symmetry
+            e_0: The scalar part of the Hamiltonian
         """
         self._conserve_number = True
         self._e_0 = e_0
@@ -57,8 +53,8 @@ class Hamiltonian(metaclass=ABCMeta):
         return 0
 
     def calc_diag_transform(self) -> np.ndarray:
-        """Perform a unitary digaonlizing transformation of the one body term
-        and return that transformation.
+        """Performs a unitary digaonlizing transformation of the one body term
+        and returns that transformation.
         """
         return np.empty(0)
 

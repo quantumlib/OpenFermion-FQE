@@ -20,7 +20,7 @@ from fqe.hamiltonians import hamiltonian
 
 
 class DiagonalCoulomb(hamiltonian.Hamiltonian):
-    """The diagonal coulomb hamiltonian is characterized as being a two body
+    """The diagonal coulomb Hamiltonian is characterized as being a two-body
     operator with a specific structure such that it is the product of two
     number operators.
     """
