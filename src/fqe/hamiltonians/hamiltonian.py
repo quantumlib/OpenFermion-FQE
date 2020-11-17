@@ -53,7 +53,7 @@ class Hamiltonian(metaclass=ABCMeta):
         return 0
 
     def calc_diag_transform(self) -> np.ndarray:
-        """Performs a unitary digaonlizing transformation of the one body term
+        """Performs a unitary digaonlizing transformation of the one-body term
         and returns that transformation.
         """
         return np.empty(0)

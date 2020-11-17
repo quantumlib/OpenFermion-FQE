@@ -29,7 +29,8 @@ class GSOHamiltonian(hamiltonian.Hamiltonian):
     def __init__(
         self, tensors: Tuple[np.ndarray, ...], e_0: complex = 0.0 + 0.0j
     ) -> None:
-        """
+        """Initializes a GSOHamiltonian.
+
         Arguments:
             tensors: Variable length tuple containg between one and four
                 numpy.arrays of increasing rank. The tensors contain the n-body
