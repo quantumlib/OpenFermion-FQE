@@ -49,7 +49,7 @@ class Hamiltonian(metaclass=ABCMeta):
 
     @abstractmethod
     def dim(self) -> int:
-        """Return the dimension of the hamiltonian"""
+        """Returns the orbital dimension of the Hamiltonian arrays."""
         return 0
 
     def calc_diag_transform(self) -> np.ndarray:
@@ -58,10 +58,9 @@ class Hamiltonian(metaclass=ABCMeta):
         """
         return np.empty(0)
 
-    # TODO: Is this identical to self.dim?
     @abstractmethod
     def rank(self) -> int:
-        """Returns the dimension of the Hamiltonian."""
+        """Returns the rank of the largest tensor."""
         return 0
 
     def quadratic(self) -> bool:

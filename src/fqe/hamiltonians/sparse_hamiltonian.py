@@ -39,7 +39,8 @@ class SparseHamiltonian(hamiltonian.Hamiltonian):
         conserve_spin: bool = True,
         e_0: complex = 0.0 + 0.0j,
     ) -> None:
-        """
+        """Initializes a SparseHamiltonian.
+
         Args:
             operators: Operator with a coefficient in the FermionOperator
                 format.

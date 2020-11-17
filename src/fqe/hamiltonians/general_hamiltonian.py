@@ -43,8 +43,11 @@ class General(hamiltonian.Hamiltonian):
         self._tensor: Dict[int, np.ndarray] = {}
 
         for rank, matrix in enumerate(tensors):
-            if not (isinstance(rank, int) and isinstance(matrix, np.ndarray)):
-                raise TypeError("tensors should be a tuple of numpy.ndarray")
+            if not isinstance(matrix, np.ndarray):
+                raise TypeError(
+                    "Arg tensors should be a tuple of numpy.ndarray, but "
+                    f"tensors[{rank}] = {type(tensors[rank])}."
+                )
             assert (matrix.ndim % 2) == 0
 
             self._tensor[2 * (rank + 1)] = matrix
