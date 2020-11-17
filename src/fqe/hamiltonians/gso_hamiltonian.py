@@ -11,12 +11,11 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
-"""Hamiltonian class for the Generalized Spin Orbital Hamiltonian.
-"""
+"""Hamiltonian class for the Generalized Spin Orbital Hamiltonian."""
+
 from typing import Dict, Tuple
 
-import numpy
-from numpy import linalg
+import numpy as np
 
 from fqe.hamiltonians import hamiltonian
 
@@ -27,35 +26,36 @@ class GSOHamiltonian(hamiltonian.Hamiltonian):
     molecular Hamiltonian.
     """
 
-
-    def __init__(self,
-                 tensors: Tuple[numpy.ndarray, ...],
-                 e_0: complex = 0. + 0.j) -> None:
+    def __init__(
+        self, tensors: Tuple[np.ndarray, ...], e_0: complex = 0.0 + 0.0j
+    ) -> None:
         """
         Arguments:
-            tensors (numpy.array) - a variable length tuple containg between \
-                one and four numpy.arrays of increasing rank.  The tensors \
-                contain the n-body hamiltonian elements.  Tensors up to the \
-                highest order must be included even if the lower terms are full \
-                of zeros.
-
-            e_0 (complex) - this is a scalar potential associated with the \
-                Hamiltonian.
+            tensors: Variable length tuple containg between one and four
+                numpy.arrays of increasing rank. The tensors contain the n-body
+                hamiltonian elements. Tensors up to the highest order must be
+                included even if the lower terms are full of zeros.
+            e_0: Scalar potential associated with the Hamiltonian.
         """
 
         super().__init__(e_0=e_0)
 
-        self._tensor: Dict[int, numpy.ndarray] = {}
+        self._tensor: Dict[int, np.ndarray] = {}
 
         for rank, matrix in enumerate(tensors):
-            if not (isinstance(rank, int) and isinstance(matrix, numpy.ndarray)):
-                raise TypeError("tensors should be a tuple of numpy.ndarray")
+            if not isinstance(matrix, np.ndarray):
+                raise TypeError(
+                    "Arg tensors should be a tuple of numpy.ndarray, but "
+                    f"tensors[{rank}] = {type(tensors[rank])}."
+                )
+            # TODO: Raise an error instead of assert clause.
             assert (matrix.ndim % 2) == 0
 
-            self._tensor[2*(rank + 1)] = matrix
+            self._tensor[2 * (rank + 1)] = matrix
 
-        assert self._tensor, 'No matrix elements passed into the' \
-                             + ' SSOHamiltonian'
+        assert self._tensor, (
+            "No matrix elements passed into the GSOHamiltonian."
+        )
 
         self._quadratic = False
         if len(self._tensor) == 1:
@@ -64,65 +64,56 @@ class GSOHamiltonian(hamiltonian.Hamiltonian):
 
         self._dim = list(self._tensor.values())[0].shape[0]
 
-
-    def iht(self, time: float) -> Tuple[numpy.ndarray, ...]:
-        """Return the matrices of the Hamiltonian prepared for time evolution.
+    def iht(self, time: float) -> Tuple[np.ndarray, ...]:
+        """Returns the matrices of the Hamiltonian prepared for time evolution.
         """
         iht_mat = []
         for rank in range(len(self._tensor)):
-            iht_mat.append(-1.j*time*self._tensor[2*(rank + 1)])
+            iht_mat.append(-1.0j * time * self._tensor[2 * (rank + 1)])
 
         return tuple(iht_mat)
 
-
     def dim(self) -> int:
-        """Dim is the orbital dimension of the Hamiltonian arrays.
-        """
+        """Returns the orbital dimension of the Hamiltonian arrays."""
         return self._dim
 
-
     def rank(self) -> int:
-        """This returns the rank of the largest tensor.
-        """
-        return 2*len(self._tensor)
+        """This returns the rank of the largest tensor."""
+        return 2 * len(self._tensor)
 
+    def tensor(self, rank: int) -> np.ndarray:
+        """Returns a single nbody tensor based on its rank.
 
-    def tensor(self, rank: int) -> numpy.ndarray:
-        """Access a single nbody tensor based on its rank.
+        Args:
+            rank: Indexes the single nbody tensor to return.
         """
         return self._tensor[rank]
 
-
-    def tensors(self) -> Tuple[numpy.ndarray, ...]:
-        """All tensors are returned in order of their rank.
-        """
+    def tensors(self) -> Tuple[np.ndarray, ...]:
+        """Returns all tensors in order of their rank."""
         out = []
         for rank in range(len(self._tensor)):
-            out.append(self._tensor[2*(rank + 1)])
+            out.append(self._tensor[2 * (rank + 1)])
         return tuple(out)
 
-
     def quadratic(self) -> bool:
-        """Indicates if the Hamiltonian is quadratic
-        """
+        """Returns whether or not the Hamiltonian is quadratic."""
         return self._quadratic
 
-
-    def calc_diag_transform(self) -> numpy.ndarray:
-        """Perform a unitary digaonlizing transformation of the one body term
-        and return that transformation.
+    def calc_diag_transform(self) -> np.ndarray:
+        """Performs a unitary digaonlizing transformation of the one body term
+        and returns that transformation.
         """
-        _, trans = linalg.eigh(self._tensor[2])
+        _, trans = np.linalg.eigh(self._tensor[2])
         return trans
 
-
-    def transform(self, trans: numpy.ndarray) -> numpy.ndarray:
-        """Tranform the one body term using the passed in matrix.
+    def transform(self, trans: np.ndarray) -> np.ndarray:
+        """Tranforms the one body term using the provided matrix.
 
         Args:
-            trans (numpy.ndarray) - unitary transformation
+            trans: Unitary transformation.
 
         Returns:
-            (numpy.ndarray) - transformed one-body Hamiltonian
+            Transformed one-body Hamiltonian as a numpy.ndarray.
         """
         return trans.conj().T @ self._tensor[2] @ trans

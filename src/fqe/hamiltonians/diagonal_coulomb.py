@@ -29,7 +29,7 @@ class DiagonalCoulomb(hamiltonian.Hamiltonian):
         """Initialize a DiagonalCoulomb Hamiltonian.
 
         Args:
-            h2e: Dense two-body tensor that contains Diagonal Coulomb elements.
+            h2e: Dense two-body tensor that contains DiagonalCoulomb elements.
             e_0: Scalar potential associated with the Hamiltonian.
         """
 

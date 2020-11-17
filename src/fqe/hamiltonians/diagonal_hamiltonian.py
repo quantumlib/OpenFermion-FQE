@@ -27,7 +27,7 @@ class Diagonal(hamiltonian.Hamiltonian):
     def __init__(self, hdiag: np.array, e_0: complex = 0.0 + 0.0j) -> None:
         """
         Args:
-            hdiag: A variable length tuple containg between one and four
+            hdiag: A variable length tuple containing between one and four
             numpy.arrays of increasing rank. The tensors contain the n-body
             Hamiltonian elements. Tensors up to the highest order must be
             included even if the lower terms are full of zeros.

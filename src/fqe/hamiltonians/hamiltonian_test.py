@@ -11,10 +11,7 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
-"""Base class for Hamiltonians in the fqe
-"""
-#the Test class is just to make sure the Hamiltonian class is tested
-#pylint: disable=useless-super-delegation
+"""Unit tests for the base Hamiltonian class."""
 
 import unittest
 
@@ -32,6 +29,7 @@ from fqe.hamiltonians import restricted_hamiltonian
 from fqe.hamiltonians import sparse_hamiltonian
 from fqe.hamiltonians import general_hamiltonian
 
+# pylint: disable=useless-super-delegation
 class TestHamiltonian(unittest.TestCase):
     """Test class for the base Hamiltonian
     """
