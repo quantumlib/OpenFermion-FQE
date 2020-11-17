@@ -103,6 +103,9 @@ class General(hamiltonian.Hamiltonian):
 
     def iht(self, time: float) -> Tuple[np.ndarray, ...]:
         """Return the matrices of the Hamiltonian prepared for time evolution.
+
+        Args:
+            time: The time step.
         """
         iht_mat = []
         for rank in range(len(self._tensor)):

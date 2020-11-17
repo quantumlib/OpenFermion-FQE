@@ -70,7 +70,7 @@ class DiagonalCoulomb(hamiltonian.Hamiltonian):
         """Returns the matrices of the Hamiltonian prepared for time evolution.
 
         Args:
-            time:
+            time: The time step.
         """
         iht_mat = []
         for rank in range(len(self._tensor)):

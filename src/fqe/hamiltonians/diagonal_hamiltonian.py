@@ -66,6 +66,9 @@ class Diagonal(hamiltonian.Hamiltonian):
 
     def iht(self, time: float) -> Tuple[np.ndarray, ...]:
         """Returns the matrices of the Hamiltonian prepared for time evolution.
+
+        Args:
+            time: The time step.
         """
         out = copy.deepcopy(self)
         out._hdiag *= -1.0j * time
