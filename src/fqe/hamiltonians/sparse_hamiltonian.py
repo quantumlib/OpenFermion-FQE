@@ -16,6 +16,7 @@
 # The protected member access does not
 # mutate passed in data and so can be exposed.
 # pylint: disable=protected-access
+# pylint: disable=too-many-locals
 
 import copy
 from typing import List, Union, Tuple
