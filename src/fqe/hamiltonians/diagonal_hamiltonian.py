@@ -16,7 +16,7 @@
 import copy
 from typing import Tuple
 
-import numpy
+import numpy as np
 
 from fqe.hamiltonians import hamiltonian
 
@@ -24,7 +24,7 @@ from fqe.hamiltonians import hamiltonian
 class Diagonal(hamiltonian.Hamiltonian):
     """Diagonal Hamiltonian class."""
 
-    def __init__(self, hdiag: numpy.array, e_0: complex = 0.0 + 0.0j) -> None:
+    def __init__(self, hdiag: np.array, e_0: complex = 0.0 + 0.0j) -> None:
         """
         Args:
             hdiag: A variable length tuple containg between one and four
@@ -60,11 +60,11 @@ class Diagonal(hamiltonian.Hamiltonian):
         """Returns whether or not the Hamiltonian is quadratic."""
         return True
 
-    def diag_values(self) -> numpy.ndarray:
+    def diag_values(self) -> np.ndarray:
         """Returns the diagonal values packed into a single dimension."""
         return self._hdiag
 
-    def iht(self, time: float) -> Tuple[numpy.ndarray, ...]:
+    def iht(self, time: float) -> Tuple[np.ndarray, ...]:
         """Returns the matrices of the Hamiltonian prepared for time evolution.
         """
         out = copy.deepcopy(self)
