@@ -11,4 +11,16 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
-"""Defines Hamiltonian objects."""
+"""Unit tests for the DiagonalCoulombHamiltonian class."""
+
+import numpy as np
+
+from fqe.hamiltonians import diagonal_coulomb
+
+
+def test_diagonal_coulomb():
+    """Test some of the functions in DiagonalCoulomb."""
+    diag = np.zeros((5, 5), dtype=np.complex128)
+    test = diagonal_coulomb.DiagonalCoulomb(diag)
+    assert test.dim() == 5
+    assert test.rank() == 4

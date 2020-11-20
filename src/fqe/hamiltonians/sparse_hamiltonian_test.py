@@ -11,4 +11,18 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
-"""Defines Hamiltonian objects."""
+"""Unit tests for the SparseHamiltonian class."""
+
+from openfermion import FermionOperator
+
+from fqe.hamiltonians import sparse_hamiltonian
+
+
+def test_sparse():
+    """Test some of the functions in SparseHamiltonian."""
+    oper = FermionOperator('0 0^')
+    oper += FermionOperator('1 1^')
+    test = sparse_hamiltonian.SparseHamiltonian(oper)
+    assert test.rank() == 2
+    test = sparse_hamiltonian.SparseHamiltonian(oper, False)
+    assert not test.is_individual()

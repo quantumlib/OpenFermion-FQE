@@ -11,4 +11,21 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
-"""Defines Hamiltonian objects."""
+"""Unit tests for the DiagonalHamiltonian class."""
+
+import pytest
+
+import numpy as np
+
+from fqe.hamiltonians import diagonal_hamiltonian
+
+
+def test_diagonal():
+    """Test some of the functions in Diagonal."""
+    bad_diag = np.zeros((5, 5), dtype=np.complex128)
+    with pytest.raises(ValueError):
+        diagonal_hamiltonian.Diagonal(bad_diag)
+    diag = np.zeros((5, ), dtype=np.complex128)
+    test = diagonal_hamiltonian.Diagonal(diag)
+    assert test.dim() == 5
+    assert test.rank() == 2
