@@ -11,7 +11,7 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
-"""Tensor utitlies to evaluate symmetry and eventually create dense storage."""
+"""Tensor utilities to evaluate symmetry and eventually create dense storage."""
 
 from collections import deque
 from typing import Any, Deque, List, Tuple
@@ -24,7 +24,7 @@ def build_symmetry_operations(symmetry: List[Any]) -> None:
     allowed for the operation, modifying `symmetry` in place.
 
     Args:
-        symmetry: A list containing all the allowed permuations.
+        symmetry: A list containing all the allowed permutations.
     """
     dim = len(symmetry[0][0])
     unit = np.identity(dim, dtype=int)
@@ -40,7 +40,7 @@ def confirm_symmetry(mat: np.ndarray, symmetry: List[Any]) -> None:
         mat: Matrix to confirm symmetry in.
         symmetry: A list containing all the information regarding symmetry of
             the matrix. The first element can be an identity element with the
-            indices in order, a partiy of 1.0 and no complex conjugation.
+            indices in order, a parity of 1.0 and no complex conjugation.
             Each entry should specify the action of the symmetry on the
             indexes, a parity associated with the permutation and whether the
             term should be conjugated. The first term should be the unity
@@ -61,7 +61,7 @@ def index_queue(dim: int, highest_index: int) -> Deque[Tuple[int, ...]]:
         highest_index: The maximum value allowable in the matrix.
 
     Returns:
-        queue: A queue containing all possbile pointers into the matrix.
+        queue: A queue containing all possible pointers into the matrix.
     """
     i_queue: List[Tuple[int, ...]] = []
     if dim == 1:
@@ -87,7 +87,7 @@ def validate_matrix_symmetry(
     matrix: np.ndarray, symmetry: List[Any], threshold: float = 1.0e-8
 ) -> None:
     """Go through every element of the matrix and check that the symmetry
-    operations are valid up to a threshhold.
+    operations are valid up to a threshold.
 
     Args:
         matrix: A matrix of interest.

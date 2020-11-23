@@ -118,8 +118,8 @@ def test_confirm_anti_symmetric():
     assert tensor_utils.confirm_symmetry(matrix, symmetry) is None
 
 
-def test_confirm_hermetian():
-    """Check Hermetian cases."""
+def test_confirm_hermitian():
+    """Check Hermitian cases."""
     symmetry = [
         [[1, 2], 1.0, False],
         [[2, 1], 1.0, True],
@@ -132,7 +132,7 @@ def test_confirm_hermetian():
 
 
 def test_confirm_failure():
-    """Check failure cases"""
+    """Check failure cases."""
     symmetry = [
         [[1, 2], 1.0, False],
         [[2, 1], 1.0, True],
@@ -147,7 +147,7 @@ def test_confirm_failure():
 
 
 def test_index_queue():
-    """Generate tuples as pointers into all elements of an arbitray sized
+    """Generate tuples as pointers into all elements of an arbitrary-sized
     matrix to confirm the symmetry operations.
     """
     test = deque([tuple([i]) for i in range(10)])
