@@ -21,7 +21,7 @@ import numpy as np
 
 def build_symmetry_operations(symmetry: List[Any]) -> None:
     """Take the list of allowed permutations and build the symmetry operations
-    allowed for the operation.
+    allowed for the operation, modifying `symmetry` in place.
 
     Args:
         symmetry: A list containing all the allowed permuations.
@@ -37,7 +37,7 @@ def confirm_symmetry(mat: np.ndarray, symmetry: List[Any]) -> None:
     """Digest the allowed permutations to validate the underlying structure.
 
     Args:
-        mat: TODO: Add parameter to docstring.
+        mat: Matrix to confirm symmetry in.
         symmetry: A list containing all the information regarding symmetry of
             the matrix. The first element can be an identity element with the
             indices in order, a partiy of 1.0 and no complex conjugation.
@@ -93,6 +93,9 @@ def validate_matrix_symmetry(
         matrix: A matrix of interest.
         symmetry: Symmetry that should be validated.
         threshold: The limit at which a symmetry operation is valid.
+
+    Raises:
+        ValueError: If there is an error with a symmetry in a permutation.
     """
     all_index = index_queue(len(matrix.shape), matrix.shape[0])
     while all_index:
@@ -122,14 +125,16 @@ def validate_matrix_symmetry(
 
 
 def validate_unity(unity_permutation: List[Any]) -> bool:
-    """Check that the initial permutation passed in is the unity operation and
-    return data useful for validating the remaining permutations
+    """Checks that the permutation passed in is the unity operation.
 
     Args:
-        unity_permutation (list[int], complex, bool)
+        unity_permutation: TODO: Add description.
 
     Returns:
-        bool - raises errors if the unit permutation is false
+        True if the input permutation is the unity permutation, else False.
+
+    Raises:
+        ValueError: If the input permutation is invalid.
     """
     if unity_permutation[1] != 1.0:
         raise ValueError("The unity permutation does not have a phase of 1.0")
