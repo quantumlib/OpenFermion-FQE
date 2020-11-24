@@ -13,6 +13,8 @@
 #   limitations under the License.
 """Tests for NH data."""
 
+# pylint: disable=too-many-locals
+
 import numpy as np
 from scipy.special import binom
 
