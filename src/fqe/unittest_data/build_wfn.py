@@ -11,19 +11,21 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
+"""TODO: Add docstring."""
 
-import numpy
+# pylint: disable=line-too-long
+
+import numpy as np
 
 
 def restricted_wfn_energy():
-    wfn = numpy.asarray([[0.9926601546004487+0.j,
-                          0.0039419143188713+0.j,
-                          -0.0595640503923702+0.j],
-                         [0.0039419143188715+0.j,
-                          0.0329080041876743+0.j,
-                          -0.0507255530900899+0.j],
-                         [-0.0595640503923703+0.j,
-                          -0.0507255530900902+0.j,
-                          0.0356354834557056+0.j]],
-                          dtype=numpy.complex128)
+    """TODO: Add docstring."""
+    wfn = np.asarray(
+        [
+            [0.9926601546004487 + 0.0j, 0.0039419143188713 + 0.0j, -0.0595640503923702 + 0.0j],
+            [0.0039419143188715 + 0.0j, 0.0329080041876743 + 0.0j, -0.0507255530900899 + 0.0j],
+            [-0.0595640503923703 + 0.0j, -0.0507255530900902 + 0.0j, 0.0356354834557056 + 0.0j],
+        ],
+        dtype=np.complex128,
+    )
     return wfn, 4.011381385952467
