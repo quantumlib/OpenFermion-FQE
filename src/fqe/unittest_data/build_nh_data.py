@@ -11,88 +11,23 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
+"""Defines function to get NH data for unit tests."""
 
-"""Convenience module for initializer unittest data
-"""
-#pylint: disable=bad-continuation
-#pylint: disable=bad-whitespace
-#pylint: disable=inconsistent-return-statements
-import unittest
+# pylint: disable=bad-continuation
+# pylint: disable=bad-whitespace
+# pylint: disable=inconsistent-return-statements
 
-import numpy
-from numpy import linalg
-from scipy.special import binom
-
-import fqe
-from fqe.hamiltonians import general_hamiltonian
-
-class TestRelFCI(unittest.TestCase):
-    """Test class for properties
-    """
-
-    def test_nh_energy(self):
-        """Checking total relativistic energy with NH
-        """
-        eref = -57.681266930627
-        norb = 6
-        nele, h1e, h2e = build_nh_data()
-
-        elec_hamil = general_hamiltonian.General((h1e, h2e))
-        maxb = min(norb, nele)
-        minb = nele - maxb
-        ndim = int(binom(norb*2, nele))
-        hci = numpy.zeros((ndim, ndim), dtype=numpy.complex128)
-
-        for i in range(0, ndim):
-            wfn = fqe.get_number_conserving_wavefunction(nele, norb)
-            cnt = 0
-            for nbeta in range(minb, maxb+1):
-                coeff = wfn.get_coeff((nele, nele-2*nbeta))
-                size = coeff.size
-                if cnt <= i < cnt + size:
-                    coeff.flat[i-cnt] = 1.0
-                cnt += size
-
-            result = wfn.apply(elec_hamil)
-
-            cnt = 0
-            for nbeta in range(minb, maxb+1):
-                coeff = result.get_coeff((nele, nele-2*nbeta))
-                for j in range(coeff.size):
-                    hci[cnt+j, i] = coeff.flat[j]
-                cnt += coeff.size
-
-        assert numpy.std(hci - hci.T.conj()) < 1.0e-8
-
-        eigenvals, eigenvecs = linalg.eigh(hci)
-
-        self.assertAlmostEqual(eref, eigenvals[0], places=8)
-
-        orig = eigenvecs[:, 0]
-        wfn = fqe.get_number_conserving_wavefunction(nele, norb)
-        cnt = 0
-        for nbeta in range(minb, maxb+1):
-            nalpha = nele - nbeta
-            vdata = numpy.zeros((int(binom(norb, nalpha)), \
-                                 int(binom(norb, nbeta))), dtype=numpy.complex128)
-            for i in range(vdata.size):
-                vdata.flat[i] = orig[cnt+i]
-            wfn._civec[(nele, nalpha - nbeta)].coeff += vdata
-            cnt += vdata.size
-
-        hwfn = wfn.apply(elec_hamil)
-        ecalc = fqe.vdot(wfn, hwfn).real
-        self.assertAlmostEqual(eref, ecalc, places=8)
+import numpy as np
 
 
 def build_nh_data():
-    """Return the nh data for the unittests
-    """
+    """Returns NH data for unit tests."""
     nele = 8
     norb = 6
-    norb_rel = 2*norb
-    h1e = numpy.zeros((norb_rel, norb_rel), dtype=numpy.complex128)
-    h2e = numpy.zeros((norb_rel, norb_rel, norb_rel, norb_rel), dtype=numpy.complex128)
+    norb_rel = 2 * norb
+    h1e = np.zeros((norb_rel,) * 2, dtype=np.complex128)
+    h2e = np.zeros((norb_rel,) * 4, dtype=np.complex128)
+
     h1e[0, 0] = complex(-24.672897447454, -0.000000000000)
     h1e[2, 0] = complex(-0.070491548734, -0.001166128999)
     h1e[4, 0] = complex(0.019786689912, 0.000017194307)
@@ -10399,12 +10334,12 @@ def build_nh_data():
     h2e[11, 11, 11, 11] = complex(0.666720377766, 0.000000000000)
 
     # Rearrange h1e in spin sectors:
-    h1e_rel = numpy.zeros((norb_rel, norb_rel), dtype=numpy.complex128)
+    h1e_rel = np.zeros((norb_rel, norb_rel), dtype=np.complex128)
     for a in range(2):
         for b in range(2):
-            i1 = a*norb
+            i1 = a * norb
             for i in range(a, norb_rel, 2):
-                j1 = b*norb
+                j1 = b * norb
                 for j in range(b, norb_rel, 2):
                     h1e_rel[i1, j1] = h1e[i, j]
                     j1 += 1
@@ -10423,21 +10358,24 @@ def build_nh_data():
                         h2e[l, k, j, i] = val.conj()
 
     # Rearrange h2e in spin sectors:
-    h2e_rel = numpy.zeros((norb_rel, norb_rel, norb_rel, norb_rel), \
-                           dtype=numpy.complex128)
+    h2e_rel = np.zeros(
+        (norb_rel, norb_rel, norb_rel, norb_rel), dtype=np.complex128
+    )
     for a in range(2):
         for b in range(2):
             for c in range(2):
                 for d in range(2):
-                    i1 = a*norb
+                    i1 = a * norb
                     for i in range(a, norb_rel, 2):
-                        j1 = b*norb
+                        j1 = b * norb
                         for j in range(b, norb_rel, 2):
-                            k1 = c*norb
+                            k1 = c * norb
                             for k in range(c, norb_rel, 2):
-                                l1 = d*norb
+                                l1 = d * norb
                                 for l in range(d, norb_rel, 2):
-                                    h2e_rel[i1, j1, k1, l1] = -0.5*h2e[i, k, j, l]
+                                    h2e_rel[i1, j1, k1, l1] = (
+                                        -0.5 * h2e[i, k, j, l]
+                                    )
                                     l1 += 1
                                 k1 += 1
                             j1 += 1
