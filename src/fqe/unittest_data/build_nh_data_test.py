@@ -14,12 +14,11 @@
 """Tests for NH data."""
 
 import numpy as np
-
 from scipy.special import binom
-from fqe.unittest_data.build_nh_data import build_nh_data
 
 import fqe
 from fqe.hamiltonians import general_hamiltonian
+from fqe.unittest_data.build_nh_data import build_nh_data
 
 
 def test_nh_energy():
