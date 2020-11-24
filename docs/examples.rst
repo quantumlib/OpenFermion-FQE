@@ -16,7 +16,7 @@ note that 'restricted' means that the Hamiltonian conserves both the spin and nu
     from openfermion import FermionOperator
     import numpy
     import fqe
-    from fqe.unittest_data import build_lih_data, build_hamiltonian
+    from fqe.unittest_data import build_lih_data
 
     h1e, h2e, wfn = build_lih_data.build_lih_data('energy')
     lih_hamiltonian = fqe.get_restricted_hamiltonian(tuple([h1e, h2e]))
