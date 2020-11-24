@@ -13,9 +13,9 @@
 #   limitations under the License.
 """Defines function to get NH data for unit tests."""
 
-# pylint: disable=bad-continuation
-# pylint: disable=bad-whitespace
 # pylint: disable=inconsistent-return-statements
+# pylint: disable=too-many-lines
+# pylint: disable=too-many-locals
 
 import numpy as np
 
