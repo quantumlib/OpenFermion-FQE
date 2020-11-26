@@ -525,7 +525,7 @@ class EvolutionTest(unittest.TestCase):
         wfn = Wavefunction([[nele, nalpha - nbeta, norb]])
         wfn._civec[(nele, nalpha - nbeta)].coeff = test
 
-        energy = fqe.expectationValue(wfn, hamil)
+        energy = fqe.expectation_value(wfn, hamil)
 
         self.assertAlmostEqual(energy, fci_eig[0])
 

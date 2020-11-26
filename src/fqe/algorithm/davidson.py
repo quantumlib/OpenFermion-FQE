@@ -204,7 +204,7 @@ def davidsonliu_fqe(
         )
         for i, j in product(range(len(guess_vecs)), repeat=2):
             if i >= j:
-                subspace_mat[i, j] = guess_vecs[j].expectationValue(
+                subspace_mat[i, j] = guess_vecs[j].expectation_value(
                     hmat, brawfn=guess_vecs[i]
                 )
             subspace_mat[j, i] = subspace_mat[i, j]
