@@ -11,10 +11,10 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
-"""Tests for time evolution of various hamiltonians
-"""
-#accessing protected members is convenient for testing
-#pylint: disable=protected-access
+"""Tests for time evolution of various Hamiltonians."""
+
+# Accessing protected members is convenient for testing
+# pylint: disable=protected-access
 
 import unittest
 import copy
@@ -38,8 +38,6 @@ from fqe.unittest_data import build_hamiltonian
 
 
 class EvolutionTest(unittest.TestCase):
-    """Tests for evolving Hamiltonians
-    """
 
 
     def setUp(self):

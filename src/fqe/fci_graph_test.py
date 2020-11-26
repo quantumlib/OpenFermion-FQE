@@ -13,6 +13,8 @@
 #   limitations under the License.
 """Unit tests for FciGraph."""
 
+# pylint: disable=protected-access
+
 import numpy as np
 from scipy import special
 
@@ -172,8 +174,8 @@ def test_fci_graph():
     max_bitstring = (1 << norb) - (1 << (norb - nalpha))
     testgraph = fci_graph.FciGraph(nalpha, nbeta, norb)
 
-    assert testgraph._build_string_address(nalpha, norb, [0, 1, 2, 3]) == 0
-    assert testgraph._build_string_address(nalpha, norb, [1, 2, 3, 7]) == 38
+    assert testgraph.build_string_address(nalpha, norb, [0, 1, 2, 3]) == 0
+    assert testgraph.build_string_address(nalpha, norb, [1, 2, 3, 7]) == 38
 
     test_list, test_dict = testgraph._build_strings(nalpha, lena)
     assert np.allclose(test_list, reflist)

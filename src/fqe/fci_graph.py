@@ -196,7 +196,7 @@ class FciGraph:
             wbit = blist[i]  # integer that is the spin-bitstring
             occ = integer_index(wbit)
             # get the lexicographic address of the bitstring
-            address = self._build_string_address(nele, self._norb, occ)
+            address = self.build_string_address(nele, self._norb, occ)
             string_list[address] = wbit
             index_list[wbit] = address
 
@@ -297,7 +297,7 @@ class FciGraph:
         return int(zar)
 
     @staticmethod
-    def _build_string_address(
+    def build_string_address(
         nele: int, norb: int, occupation: List[int]
     ) -> int:
         """Given a list of occupied orbitals in ascending order, generates the
