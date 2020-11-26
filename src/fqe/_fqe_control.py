@@ -16,6 +16,7 @@ to the emulator."""
 
 # Ungrouped imports are for type hinting
 # pylint: disable=ungrouped-imports
+# pylint: disable=too-many-arguments
 
 from typing import List, Optional, TYPE_CHECKING, Union, Tuple
 
@@ -228,15 +229,15 @@ def to_cirq(wfn: "wavefunction.Wavefunction") -> np.ndarray:
     return qubit_wavefunction_from_vacuum(ops, qid)
 
 
-# TODO: Add docstring.
 def to_cirq_ncr(wfn: "wavefunction.Wavefunction") -> np.ndarray:
+    """TODO: Add docstring."""
     nqubit = wfn.norb() * 2
     ops = normal_ordered(fqe_to_fermion_operator(wfn))
-    wf = np.zeros(2 ** nqubit, dtype=np.complex128)
+    wf_array = np.zeros(2 ** nqubit, dtype=np.complex128)
     for term, coeff in ops.terms.items():
         occ_idx = sum([2 ** (nqubit - oo[0] - 1) for oo in term])
-        wf[occ_idx] = coeff
-    return wf
+        wf_array[occ_idx] = coeff
+    return wf_array
 
 
 def from_cirq(
@@ -261,7 +262,7 @@ def from_cirq(
         for orb in occ:
             if np.absolute(state[orb[0]]) > thresh:
                 param.append([pnum, orb[1], norb])
-    param = set([tuple(p) for p in param])
+    param = set(tuple(p) for p in param)
     param = [list(x) for x in param]
     wfn = wavefunction.Wavefunction(param)
     transform.from_cirq(wfn, state)
