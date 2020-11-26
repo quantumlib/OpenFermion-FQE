@@ -96,7 +96,7 @@ class BrillouinCondition:
         iter_max = self.iter_max
         iteration = 0
         h = 1.0e-4
-        self.acse_energy = [fqe_wf.expectation_value(self.elec_hamil).real]
+        self.acse_energy = [fqe_wf.expectationValue(self.elec_hamil).real]
         while iteration < iter_max:
             if self.parallel:
                 acse_residual = get_acse_residual_fqe_parallel(
@@ -133,7 +133,7 @@ class BrillouinCondition:
             epsilon = epsilon.real
 
             fqe_wf = fqe_wf.time_evolve(epsilon, 1j * acse_res_op)
-            current_energy = fqe_wf.expectation_value(self.elec_hamil).real
+            current_energy = fqe_wf.expectationValue(self.elec_hamil).real
             self.acse_energy.append(current_energy.real)
 
             print_string = "Iter {: 5f}\tcurrent energy {: 5.10f}\t".format(
@@ -168,7 +168,7 @@ class BrillouinCondition:
         iteration = 0
         sector = (self.nalpha + self.nbeta, self.sz)
         h = 1.0e-4
-        self.acse_energy = [fqe_wf.expectation_value(self.elec_hamil).real]
+        self.acse_energy = [fqe_wf.expectationValue(self.elec_hamil).real]
         while iteration < iter_max:
             # extract FqeData object each iteration in case fqe_wf is copied
             fqe_data = fqe_wf.sector(sector)
@@ -205,7 +205,7 @@ class BrillouinCondition:
             epsilon = epsilon.real
 
             fqe_wf = fqe_wf.time_evolve(epsilon, 1j * acse_res_op)
-            current_energy = fqe_wf.expectation_value(self.elec_hamil).real
+            current_energy = fqe_wf.expectationValue(self.elec_hamil).real
             self.acse_energy.append(current_energy.real)
 
             print_string = "Iter {: 5f}\tcurrent energy {: 5.10f}\t".format(
