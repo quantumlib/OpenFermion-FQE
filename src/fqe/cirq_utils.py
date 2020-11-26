@@ -16,7 +16,7 @@
 # Type checking splits the imports
 # pylint: disable=ungrouped-imports
 
-from typing import List, TYPE_CHECKING
+from typing import List, Union, TYPE_CHECKING
 
 import numpy as np
 
@@ -51,7 +51,7 @@ def qubit_ops_to_circuit(
 
 
 def qubit_op_to_gate(
-    operation: "QubitOperator", qubit: Qid
+    operation: Union[str, "QubitOperator"], qubit: Qid
 ) -> "SingleQubitPauliStringGateOperation":
     """Converts a qubit operation into a gate operations that can be digested
     by a Cirq simulator.
