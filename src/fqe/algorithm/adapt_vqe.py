@@ -1,6 +1,5 @@
 """Infrastructure for ADAPT VQE algorithm"""
 from typing import List
-import os
 import copy
 import openfermion as of
 import fqe
@@ -8,7 +7,7 @@ from itertools import product
 import numpy as np
 import scipy as sp
 
-from openfermion import (MolecularData, make_reduced_hamiltonian,
+from openfermion import (make_reduced_hamiltonian,
                          InteractionOperator, )
 from openfermion.chem.molecular_data import spinorb_from_spatial
 
@@ -16,19 +15,20 @@ from fqe.hamiltonians.restricted_hamiltonian import RestrictedHamiltonian
 from fqe.fqe_decorators import build_hamiltonian
 from fqe.algorithm.brillouin_calculator import (
     get_fermion_op,
-    get_acse_residual_fqe,
-    get_acse_residual_fqe_parallel,
-    get_tpdm_grad_fqe,
-    get_tpdm_grad_fqe_parallel,
-    two_rdo_commutator_antisymm,
-    two_rdo_commutator_symm
+    two_rdo_commutator_symm,
+    one_rdo_commutator_symm,
 )
 
-class OperatorPool:
 
+class OperatorPool:
     def __init__(self, norbs: int, occ: List[int], virt: List[int]):
         """
-        Define an operator pool
+        Routines for defining operator pools
+
+        Args:
+            norbs: number of spatial orbitals
+            occ: list of indices of the occupied orbitals
+            virt: list of indices of the virtual orbitals
         """
         self.norbs = norbs
         self.occ = occ
@@ -38,7 +38,12 @@ class OperatorPool:
     def singlet_t2(self):
         """
         Generate singlet rotations
-        T_{ij}^{ab} = E(ai)E(bj)
+        T_{ij}^{ab} = T^(v1a, v2b)_{o1a, o2b} + T^(v1b, v2a)_{o1b, o2a} +
+                      T^(v1a, v2a)_{o1a, o2a} + T^(v1b, v2b)_{o1b, o2b}
+
+        where v1,v2 are indices of the virtual obritals and o1, o2 are
+        indices of the occupied orbitals with respect to the Hartree-Fock
+        reference.
         """
         for oidx, oo_i in enumerate(self.occ):
             for ojdx, oo_j in enumerate(self.occ):
@@ -59,10 +64,10 @@ class OperatorPool:
 
     def two_body_sz_adapted(self):
         """
-        Doubles generators with aa, bb, alpha-beta, beta-alpha
+        Doubles generators each with distinct Sz expectation value.
+
+        G^{isigma, jtau, ktau, lsigma) for sigma, tau in 0, 1
         """
-        # alpha-alpha block
-        # beta-beta
         for i, j, k, l in product(range(self.norbs), repeat=4):
             if i != j and k != l:
                 op_aa = ((2 * i, 1), (2 * j, 1), (2 * k, 0), (2 * l, 0))
@@ -78,22 +83,48 @@ class OperatorPool:
                 self.op_pool.append(fop_bb)
 
             op_ab = ((2 * i, 1), (2 * j + 1, 1), (2 * k + 1, 0), (2 * l, 0))
-            op_ba =  ((2 * i + 1, 1), (2 * j, 1), (2 * k, 0), (2 * l + 1, 0))
             fop_ab = of.FermionOperator(op_ab)
             fop_ab = fop_ab - of.hermitian_conjugated(fop_ab)
             fop_ab = of.normal_ordered(fop_ab)
-            self.op_pool.append(fop_ab)
+            if not np.isclose(fop_ab.induced_norm(), 0):
+                self.op_pool.append(fop_ab)
 
-            fop_ba = of.FermionOperator(op_ba)
-            fop_ba = fop_ba - of.hermitian_conjugated(fop_ba)
-            fop_ba = of.normal_ordered(fop_ba)
-            self.op_pool.append(fop_ba)
+    def one_body_sz_adapted(self):
+        # alpha-alpha rotation
+        # beta-beta rotation
+        for i, j in product(range(self.norbs), repeat=2):
+            if i > j:
+                op_aa = ((2 * i, 1), (2 * j, 0))
+                op_bb = ((2 * i + 1, 1), (2 * j + 1, 0))
+                fop_aa = of.FermionOperator(op_aa)
+                fop_aa = fop_aa - of.hermitian_conjugated(fop_aa)
+                fop_bb = of.FermionOperator(op_bb)
+                fop_bb = fop_bb - of.hermitian_conjugated(fop_bb)
+                fop_aa = of.normal_ordered(fop_aa)
+                fop_bb = of.normal_ordered(fop_bb)
+                self.op_pool.append(fop_aa)
+                self.op_pool.append(fop_bb)
 
 
 class ADAPT:
     def __init__(self, oei: np.ndarray, tei: np.ndarray, operator_pool,
-                 iter_max=30, verbose=True
+                 n_alpha: int, n_beta: int,
+                 iter_max=30, verbose=True, stopping_epsilon=1.0E-3
                  ):
+        """
+        ADAPT-VQE object.
+
+        Args:
+            oei: one electron integrals in the spatial basis
+            tei: two-electron integrals in the spatial basis
+            operator_pool: Object with .op_pool that is a list of antihermitian
+                           FermionOperators
+            n_alpha: Number of alpha-electrons
+            n_beta: Number of beta-electrons
+            iter_max: Maximum ADAPT-VQE steps to take
+            verbose: Print the iteration information
+            stopping_epsilon: define the <[G, H]> value that triggers stopping
+        """
         elec_hamil = RestrictedHamiltonian(
             (oei, np.einsum("ijlk", -0.5 * tei))
         )
@@ -102,28 +133,41 @@ class ADAPT:
         molecular_hamiltonian = InteractionOperator(
             0, soei, 0.25 * astei)
 
-        # moleham = molecule.get_molecular_hamiltonian()
         reduced_ham = make_reduced_hamiltonian(molecular_hamiltonian,
-                                               molecule.n_electrons)
-        self.molecule = molecule
+                                               n_alpha + n_beta)
         self.reduced_ham = reduced_ham
         self.elec_hamil = elec_hamil
         self.iter_max = iter_max
         self.sdim = elec_hamil.dim()
         # change to use multiplicity to derive this for open shell
-        self.nalpha = molecule.n_electrons // 2
-        self.nbeta = molecule.n_electrons // 2
+        self.nalpha = n_alpha
+        self.nbeta = n_beta
         self.sz = self.nalpha - self.nbeta
         self.nele = self.nalpha + self.nbeta
         self.verbose = verbose
         self.operator_pool = operator_pool
+        self.stopping_eps = stopping_epsilon
 
-    def vbc(self, initial_wf: fqe.Wavefunction):
-        """The variational Brillouin condition method"""
+    def vbc(self, initial_wf: fqe.Wavefunction, update_rank=None):
+        """The variational Brillouin condition method
+
+        Solve for the 2-body residual and then variationally determine
+        the step size.  This exact simulation cannot be implemented without
+        Trotterization.  A proxy for the approximate evolution is the update_
+        rank pameter which limites the rank of the residual.
+
+        Args:
+            initial_wf: initial wavefunction
+            update_rank: rank of residual to truncate via first factorization
+                         of the residual matrix <[Gamma_{lk}^{ij}, H]>
+        """
+        nso = 2 * self.sdim
         operator_pool = []
         existing_parameters = []
+        self.energies = []
+        self.residuals = []
         iteration = 0
-        while True:
+        while iteration < self.iter_max:
             # get current wavefunction
             wf = copy.deepcopy(initial_wf)
             for op, coeff in zip(operator_pool, existing_parameters):
@@ -139,34 +183,56 @@ class ADAPT:
                 self.reduced_ham.two_body_tensor, tpdm,
                 d3)
 
-            # calculate grad of each operator in the pool
-            pool_grad = []
-            for operator in self.operator_pool.op_pool:
-                grad_val = 0
-                for op_term, coeff in operator.terms.items():
-                    idx = [xx[0] for xx in op_term]
-                    grad_val += acse_residual[tuple(idx)] * coeff
-                pool_grad.append(grad_val)
+            if update_rank:
+                if update_rank % 2 != 0:
+                    raise ValueError("Update rank must be an even number")
 
-            max_grad_term_idx = np.argmax(np.abs(pool_grad))
-            operator_pool.append(self.operator_pool.op_pool[max_grad_term_idx])
+                # rank constraint
+                residual_mat = acse_residual.transpose(0, 1, 3, 2).reshape(
+                    (nso ** 2, nso ** 2))
+
+                hrm = 1j * residual_mat
+                w, v = np.linalg.eigh(hrm)
+                # sort by absolute algebraic size
+                idx = np.argsort(np.abs(w))[::-1]
+                w = w[idx]
+                v = v[:, idx]
+                residual_reconstructed = np.zeros_like(residual_mat)
+                for ii in range(update_rank):
+                    residual_reconstructed += w[ii] * v[:, [ii]] @ \
+                                              v[:, [ii]].conj().T
+                acse_residual = -1j * residual_reconstructed.reshape(
+                    (nso, nso, nso, nso)).transpose(0, 1, 3, 2)
+
+            fop = get_fermion_op(acse_residual)
+            operator_pool.append(fop)
             existing_parameters.append(0)
 
             new_parameters, current_e = self.optimize_param(operator_pool,
                                                  existing_parameters,
                                                  initial_wf)
             existing_parameters = new_parameters.tolist()
-            print(iteration, current_e, max(np.abs(pool_grad)))
-            if max(np.abs(pool_grad)) < 1.0E-3:
+            if self.verbose:
+                print(iteration, current_e, np.linalg.norm(acse_residual))
+            self.energies.append(current_e)
+            self.residuals.append(acse_residual)
+            if np.linalg.norm(acse_residual) < self.stopping_eps:
                 break
             iteration += 1
 
-
     def adapt_vqe(self, initial_wf: fqe.Wavefunction):
+        """
+        Run ADAPT-VQE using COBYLA to optimize parameters
+
+        Args:
+            initial_wf: Initial wavefunction at the start of the calculation
+        """
         operator_pool = []
         existing_parameters = []
+        self.gradients = []
+        self.energies = []
         iteration = 0
-        while True:
+        while iteration < self.iter_max:
             # get current wavefunction
             wf = copy.deepcopy(initial_wf)
             for op, coeff in zip(operator_pool, existing_parameters):
@@ -181,6 +247,8 @@ class ADAPT:
             acse_residual = two_rdo_commutator_symm(
                 self.reduced_ham.two_body_tensor, tpdm,
                 d3)
+            one_body_residual = one_rdo_commutator_symm(
+                self.reduced_ham.two_body_tensor, tpdm)
 
             # calculate grad of each operator in the pool
             pool_grad = []
@@ -188,7 +256,10 @@ class ADAPT:
                 grad_val = 0
                 for op_term, coeff in operator.terms.items():
                     idx = [xx[0] for xx in op_term]
-                    grad_val += acse_residual[tuple(idx)] * coeff
+                    if len(idx) == 4:
+                        grad_val += acse_residual[tuple(idx)] * coeff
+                    elif len(idx) == 2:
+                        grad_val += one_body_residual[tuple(idx)] * coeff
                 pool_grad.append(grad_val)
 
             max_grad_term_idx = np.argmax(np.abs(pool_grad))
@@ -199,13 +270,21 @@ class ADAPT:
                                                  existing_parameters,
                                                  initial_wf)
             existing_parameters = new_parameters.tolist()
-            print(iteration, current_e, max(np.abs(pool_grad)))
-            if max(np.abs(pool_grad)) < 1.0E-3:
+            if self.verbose:
+                print(iteration, current_e, max(np.abs(pool_grad)))
+            self.energies.append(current_e)
+            self.gradients.append(pool_grad)
+            if max(np.abs(pool_grad)) < self.stopping_eps:
                 break
             iteration += 1
 
     def optimize_param(self, pool: List[of.FermionOperator], existing_params,
                        initial_wf) -> fqe.wavefunction:
+        """Optimize a wavefunction given a list of generators
+
+        Generators are applied in sequence to the initial_wf.  We then use
+        COBYLA in scipy to optimize the parameters
+        """
 
         def cost_func(params):
             assert len(params) == len(pool)
@@ -221,113 +300,3 @@ class ADAPT:
 
         res = sp.optimize.minimize(cost_func, existing_params, method='COBYLA')
         return res.x, res.fun
-
-
-
-
-
-
-
-
-
-
-def get_h2_molecule(bd):
-    from openfermionpyscf import run_pyscf
-    geometry = [['H', [0, 0, 0]],
-                ['H', [0, 0, bd]]]
-    molecule = of.MolecularData(geometry=geometry, charge=0,
-                                multiplicity=1,
-                                basis='sto-3g')
-    molecule.filename = os.path.join(os.getcwd(), molecule.name)
-    molecule = run_pyscf(molecule, run_scf=True, run_fci=True)
-    return molecule
-
-
-def get_h4_molecule(bd):
-    from openfermionpyscf import run_pyscf
-    geometry = [['H', [0, 0, 0]],
-                ['H', [0, 0, bd]],
-                ['H', [0, 0, 2 * bd]],
-                ['H', [0, 0, 3 * bd]],
-                ]
-    molecule = of.MolecularData(geometry=geometry, charge=0,
-                                multiplicity=1,
-                                basis='sto-3g')
-    molecule.filename = os.path.join(os.getcwd(), molecule.name)
-    molecule = run_pyscf(molecule, run_scf=True, run_fci=True)
-    return molecule
-
-
-def get_n2_molecule(bd):
-    from openfermionpyscf import run_pyscf
-    geometry = [['N', [0, 0, 0]],
-                ['N', [0, 0, bd]]]
-    molecule = of.MolecularData(geometry=geometry, charge=0,
-                                multiplicity=1,
-                                basis='sto-3g')
-    molecule.filename = os.path.join(os.getcwd(), molecule.name)
-    molecule = run_pyscf(molecule, run_scf=True, run_fci=True)
-    return molecule
-
-
-def get_lih_molecule(bd):
-    from openfermionpyscf import run_pyscf
-    geometry = [['Li', [0, 0, 0]],
-                ['H', [0, 0, bd]]]
-    molecule = of.MolecularData(geometry=geometry, charge=0,
-                                multiplicity=1,
-                                basis='sto-3g')
-    molecule.filename = os.path.join(os.getcwd(), molecule.name)
-    molecule = run_pyscf(molecule, run_scf=True, run_fci=True)
-    return molecule
-
-
-def get_beh2_molecule(bd):
-    from openfermionpyscf import run_pyscf
-    geometry = [['H', [0, 0, -bd]],
-                ['Be', [0, 0, 0]],
-                ['H', [0, 0, bd]]]
-    molecule = of.MolecularData(geometry=geometry, charge=0,
-                                multiplicity=1,
-                                basis='sto-3g')
-    molecule.filename = os.path.join(os.getcwd(), molecule.name)
-    molecule = run_pyscf(molecule, run_scf=True, run_fci=True)
-    return molecule
-
-
-if __name__ == "__main__":
-    # molecule = get_h4_molecule(1.2)
-    # molecule = get_lih_molecule(2.0)
-    molecule = get_beh2_molecule(2.3)
-    # molecule = get_h2_molecule(0.8)
-    print("HF ", molecule.hf_energy - molecule.nuclear_repulsion)
-    print("FCI ", molecule.fci_energy - molecule.nuclear_repulsion)
-    norbs = molecule.n_orbitals
-    nalpha = molecule.n_electrons // 2
-    nbeta = molecule.n_electrons // 2
-    nele = nalpha + nbeta
-    sz = nalpha - nbeta
-    nocc = molecule.n_electrons // 2
-    occ = list(range(nocc))
-    virt = list(range(nocc, norbs))
-    sop = OperatorPool(norbs, occ, virt)
-    oei, tei = molecule.get_integrals()
-    # sop.singlet_t2()
-    sop.two_body_sz_adapted()
-    adapt = ADAPT(oei, tei, sop)
-
-    fqe_wf = fqe.Wavefunction([[molecule.n_electrons, sz, molecule.n_orbitals]])
-    fqe_wf.set_wfn(strategy='hartree-fock')
-    generator = of.FermionOperator()
-    fop = of.FermionOperator(((2, 1), (3, 1), (5, 0), (4, 0)), coefficient=-0.5)
-    generator += fop - of.hermitian_conjugated(fop)
-    fop = of.FermionOperator(((3, 1), (2, 1), (4, 0), (5, 0)), coefficient=-0.5)
-    generator += fop - of.hermitian_conjugated(fop)
-    # print(of.normal_ordered(1j * generator))
-    # generator = of.normal_ordered(generator)
-    # fqe_op = build_hamiltonian(1j * generator, norbs, conserve_number=True)
-    # fqe_wf = fqe_wf.time_evolve(1.0, 1j * generator)
-    # fqe_wf = fqe_wf.time_evolve(1.0, fqe_op)
-
-    #  print(fqe_wf.expectationValue(adapt.elec_hamil).real, molecule.hf_energy - molecule.nuclear_repulsion)
-    adapt.adapt_vqe(fqe_wf)
