@@ -1150,9 +1150,7 @@ class FqeData:
             out.coeff[targeta, targetb_vec] = (
                 coeff
                 * paritya
-                * np.multiply(
-                    self.coeff[sourcea, sourceb_vec], parityb_vec
-                )
+                * np.multiply(self.coeff[sourcea, sourceb_vec], parityb_vec)
             )
         # # TODO: THIS SHOULD BE CHECKED THOROUGHLY
         # # NOTE: Apparently the meshgrid construction overhead
@@ -1910,6 +1908,11 @@ class FqeData:
             supplied, the first column in data will correspond to the first
             index in vrange.
         """
+        if not isinstance(raw_data, np.ndarray):
+            raise TypeError(
+                "Expected np.ndarray for arg raw_data but received "
+                f"{type(raw_data)}."
+            )
 
         strategy_args = ["ones", "zero", "random", "from_data", "hartree-fock"]
 
@@ -1922,9 +1925,7 @@ class FqeData:
             raise ValueError("No data passed to initialize from.")
 
         if raw_data.shape != (0,) and strategy not in ["from_data", None]:
-            raise ValueError(
-                "Inconsistent strategy passed with data."
-            )
+            raise ValueError("Inconsistent strategy passed with data.")
 
         if strategy not in strategy_args:
             raise ValueError(
@@ -2025,8 +2026,7 @@ class FqeData:
         return beta_opdm, (tensor_bb - nik_njl_bb).transpose(0, 2, 1, 3)
 
     def get_openfermion_rdms(self):
-        """Generates spin-rdms and returns them in the OpenFermion format.
-        """
+        """Generates spin-rdms and returns them in the OpenFermion format."""
         opdm_a, tpdm_aa = self.get_aa_tpdm()
         opdm_b, tpdm_bb = self.get_bb_tpdm()
         tpdm_ab = self.get_ab_tpdm()
