@@ -1,5 +1,5 @@
 """Infrastructure for ADAPT VQE algorithm"""
-from typing import List
+from typing import List, Union
 import copy
 import openfermion as of
 import fqe
@@ -12,6 +12,9 @@ from openfermion import (make_reduced_hamiltonian,
 from openfermion.chem.molecular_data import spinorb_from_spatial
 
 from fqe.hamiltonians.restricted_hamiltonian import RestrictedHamiltonian
+from fqe.hamiltonians.general_hamiltonian import General as GeneralFQEHamiltonian
+from fqe.hamiltonians.sparse_hamiltonian import SparseHamiltonian
+from fqe.hamiltonians.hamiltonian import Hamiltonian as ABCHamiltonian
 from fqe.fqe_decorators import build_hamiltonian
 from fqe.algorithm.brillouin_calculator import (
     get_fermion_op,
@@ -148,7 +151,8 @@ class ADAPT:
         self.operator_pool = operator_pool
         self.stopping_eps = stopping_epsilon
 
-    def vbc(self, initial_wf: fqe.Wavefunction, update_rank=None):
+    def vbc(self, initial_wf: fqe.Wavefunction, update_rank=None,
+            opt_method: str='L-BFGS-B'):
         """The variational Brillouin condition method
 
         Solve for the 2-body residual and then variationally determine
@@ -160,9 +164,11 @@ class ADAPT:
             initial_wf: initial wavefunction
             update_rank: rank of residual to truncate via first factorization
                          of the residual matrix <[Gamma_{lk}^{ij}, H]>
+            opt_method: scipy optimizer name
         """
         nso = 2 * self.sdim
         operator_pool = []
+        operator_pool_fqe = []
         existing_parameters = []
         self.energies = []
         self.residuals = []
@@ -170,9 +176,9 @@ class ADAPT:
         while iteration < self.iter_max:
             # get current wavefunction
             wf = copy.deepcopy(initial_wf)
-            for op, coeff in zip(operator_pool, existing_parameters):
-                fqe_op = build_hamiltonian(1j * op, self.sdim,
-                                           conserve_number=True)
+            for fqe_op, coeff in zip(operator_pool_fqe, existing_parameters):
+                # fqe_op = build_hamiltonian(1j * op, self.sdim,
+                #                            conserve_number=True)
                 wf = wf.time_evolve(coeff, fqe_op)
 
             # calculate rdms for grad
@@ -206,11 +212,14 @@ class ADAPT:
 
             fop = get_fermion_op(acse_residual)
             operator_pool.append(fop)
+            fqe_op = build_hamiltonian(1j * fop, self.sdim,
+                                       conserve_number=True)
+            operator_pool_fqe.append(fqe_op)
             existing_parameters.append(0)
 
-            new_parameters, current_e = self.optimize_param(operator_pool,
+            new_parameters, current_e = self.optimize_param(operator_pool_fqe,
                                                  existing_parameters,
-                                                 initial_wf)
+                                                 initial_wf, opt_method)
             existing_parameters = new_parameters.tolist()
             if self.verbose:
                 print(iteration, current_e, np.linalg.norm(acse_residual))
@@ -220,14 +229,17 @@ class ADAPT:
                 break
             iteration += 1
 
-    def adapt_vqe(self, initial_wf: fqe.Wavefunction):
+    def adapt_vqe(self, initial_wf: fqe.Wavefunction,
+                  opt_method: str='L-BFGS-B'):
         """
-        Run ADAPT-VQE using COBYLA to optimize parameters
+        Run ADAPT-VQE using
 
         Args:
             initial_wf: Initial wavefunction at the start of the calculation
+            opt_method: scipy optimizer to use
         """
         operator_pool = []
+        operator_pool_fqe = []
         existing_parameters = []
         self.gradients = []
         self.energies = []
@@ -235,9 +247,7 @@ class ADAPT:
         while iteration < self.iter_max:
             # get current wavefunction
             wf = copy.deepcopy(initial_wf)
-            for op, coeff in zip(operator_pool, existing_parameters):
-                fqe_op = build_hamiltonian(1j * op, self.sdim,
-                                           conserve_number=True)
+            for fqe_op, coeff in zip(operator_pool_fqe, existing_parameters):
                 wf = wf.time_evolve(coeff, fqe_op)
 
             # calculate rdms for grad
@@ -264,11 +274,15 @@ class ADAPT:
 
             max_grad_term_idx = np.argmax(np.abs(pool_grad))
             operator_pool.append(self.operator_pool.op_pool[max_grad_term_idx])
+            fqe_op = build_hamiltonian(
+                1j * self.operator_pool.op_pool[max_grad_term_idx], self.sdim,
+                conserve_number=True)
+            operator_pool_fqe.append(fqe_op)
             existing_parameters.append(0)
 
-            new_parameters, current_e = self.optimize_param(operator_pool,
+            new_parameters, current_e = self.optimize_param(operator_pool_fqe,
                                                  existing_parameters,
-                                                 initial_wf)
+                                                 initial_wf, opt_method)
             existing_parameters = new_parameters.tolist()
             if self.verbose:
                 print(iteration, current_e, max(np.abs(pool_grad)))
@@ -278,25 +292,57 @@ class ADAPT:
                 break
             iteration += 1
 
-    def optimize_param(self, pool: List[of.FermionOperator], existing_params,
-                       initial_wf) -> fqe.wavefunction:
+    def optimize_param(self, pool: Union[
+        List[of.FermionOperator], List[GeneralFQEHamiltonian]],
+                       existing_params: Union[List, np.ndarray],
+                       initial_wf: fqe.Wavefunction,
+                       opt_method: str) -> fqe.wavefunction:
         """Optimize a wavefunction given a list of generators
 
-        Generators are applied in sequence to the initial_wf.  We then use
-        COBYLA in scipy to optimize the parameters
+        Args:
+            pool: generators of rotation
+            existing_params: parameters for the generators
+            initial_wf: initial wavefunction
+            opt_method: Scpy.optimize method
         """
-
         def cost_func(params):
             assert len(params) == len(pool)
+            # compute wf for function call
             wf = copy.deepcopy(initial_wf)
             for op, coeff in zip(pool, params):
                 if np.isclose(coeff, 0):
                     continue
-                fqe_op = build_hamiltonian(1j * op, self.sdim,
-                                           conserve_number=True)
+                if isinstance(op, ABCHamiltonian):
+                    fqe_op = op
+                else:
+                    fqe_op = build_hamiltonian(1j * op, self.sdim,
+                                               conserve_number=True)
                 wf = wf.time_evolve(coeff, fqe_op)
 
-            return wf.expectationValue(self.elec_hamil).real
+            # compute gradients
+            grad_vec = np.zeros(len(params), dtype=np.complex128)
+            for pidx, p in enumerate(params):
+                # evolve e^{iG_{n-1}g_{n-1}}e^{iG_{n-2}g_{n-2}}G_{n-3}e^{-G_{n-3}g_{n-3}...|0>
+                grad_wf = copy.deepcopy(initial_wf)
+                for gidx, (op, coeff) in enumerate(zip(pool, params)):
+                    if isinstance(op, ABCHamiltonian):
+                        fqe_op = op
+                    else:
+                        fqe_op = build_hamiltonian(1j * op, self.sdim,
+                                                   conserve_number=True)
+                    grad_wf = grad_wf.time_evolve(coeff, fqe_op)
+                    # if looking at the pth parameter then apply the operator
+                    # to the state
+                    if gidx == pidx:
+                        grad_wf = grad_wf.apply(fqe_op)
 
-        res = sp.optimize.minimize(cost_func, existing_params, method='COBYLA')
+                grad_val = grad_wf.expectationValue(self.elec_hamil, brawfn=wf)
+
+                grad_vec[pidx] = -1j * grad_val + 1j * grad_val.conj()
+                assert np.isclose(grad_vec[pidx].imag, 0)
+            return wf.expectationValue(self.elec_hamil).real, np.array(
+                grad_vec.real, order='F')
+
+        res = sp.optimize.minimize(cost_func, existing_params,
+                                   method=opt_method, jac=True)
         return res.x, res.fun
