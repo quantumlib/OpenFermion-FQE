@@ -151,7 +151,8 @@ class ADAPT:
         self.operator_pool = operator_pool
         self.stopping_eps = stopping_epsilon
 
-    def vbc(self, initial_wf: fqe.Wavefunction, update_rank=None):
+    def vbc(self, initial_wf: fqe.Wavefunction, update_rank=None,
+            opt_method: str='L-BFGS-B'):
         """The variational Brillouin condition method
 
         Solve for the 2-body residual and then variationally determine
@@ -163,6 +164,7 @@ class ADAPT:
             initial_wf: initial wavefunction
             update_rank: rank of residual to truncate via first factorization
                          of the residual matrix <[Gamma_{lk}^{ij}, H]>
+            opt_method: scipy optimizer name
         """
         nso = 2 * self.sdim
         operator_pool = []
@@ -217,7 +219,7 @@ class ADAPT:
 
             new_parameters, current_e = self.optimize_param(operator_pool_fqe,
                                                  existing_parameters,
-                                                 initial_wf)
+                                                 initial_wf, opt_method)
             existing_parameters = new_parameters.tolist()
             if self.verbose:
                 print(iteration, current_e, np.linalg.norm(acse_residual))
@@ -227,12 +229,14 @@ class ADAPT:
                 break
             iteration += 1
 
-    def adapt_vqe(self, initial_wf: fqe.Wavefunction):
+    def adapt_vqe(self, initial_wf: fqe.Wavefunction,
+                  opt_method: str='L-BFGS-B'):
         """
-        Run ADAPT-VQE using COBYLA to optimize parameters
+        Run ADAPT-VQE using
 
         Args:
             initial_wf: Initial wavefunction at the start of the calculation
+            opt_method: scipy optimizer to use
         """
         operator_pool = []
         operator_pool_fqe = []
@@ -278,7 +282,7 @@ class ADAPT:
 
             new_parameters, current_e = self.optimize_param(operator_pool_fqe,
                                                  existing_parameters,
-                                                 initial_wf)
+                                                 initial_wf, opt_method)
             existing_parameters = new_parameters.tolist()
             if self.verbose:
                 print(iteration, current_e, max(np.abs(pool_grad)))
@@ -291,11 +295,15 @@ class ADAPT:
     def optimize_param(self, pool: Union[
         List[of.FermionOperator], List[GeneralFQEHamiltonian]],
                        existing_params: Union[List, np.ndarray],
-                       initial_wf: fqe.Wavefunction) -> fqe.wavefunction:
+                       initial_wf: fqe.Wavefunction,
+                       opt_method: str) -> fqe.wavefunction:
         """Optimize a wavefunction given a list of generators
 
-        Generators are applied in sequence to the initial_wf.  We then use
-        COBYLA in scipy to optimize the parameters
+        Args:
+            pool: generators of rotation
+            existing_params: parameters for the generators
+            initial_wf: initial wavefunction
+            opt_method: Scpy.optimize method
         """
         def cost_func(params):
             assert len(params) == len(pool)
@@ -335,6 +343,6 @@ class ADAPT:
             return wf.expectationValue(self.elec_hamil).real, np.array(
                 grad_vec.real, order='F')
 
-        res = sp.optimize.minimize(cost_func, existing_params, method='L-BFGS-B',
-                                   jac=True)
+        res = sp.optimize.minimize(cost_func, existing_params,
+                                   method=opt_method, jac=True)
         return res.x, res.fun
