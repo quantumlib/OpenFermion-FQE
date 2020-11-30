@@ -45,9 +45,6 @@ def test_adapt():
     molecule = build_lih_moleculardata()
     n_electrons = molecule.n_electrons
     oei, tei = molecule.get_integrals()
-    elec_hamil = fqe.restricted_hamiltonian.RestrictedHamiltonian(
-        (oei, np.einsum("ijlk", -0.5 * tei))
-    )
     norbs = molecule.n_orbitals
     nalpha = molecule.n_electrons // 2
     nbeta = nalpha
@@ -86,19 +83,12 @@ def test_vbc():
     molecule = build_lih_moleculardata()
     n_electrons = molecule.n_electrons
     oei, tei = molecule.get_integrals()
-    elec_hamil = fqe.restricted_hamiltonian.RestrictedHamiltonian(
-        (oei, np.einsum("ijlk", -0.5 * tei))
-    )
     norbs = molecule.n_orbitals
     nalpha = molecule.n_electrons // 2
     nbeta = nalpha
     sz = nalpha - nbeta
     occ = list(range(nalpha))
     virt = list(range(nalpha, norbs))
-    soei, stei = spinorb_from_spatial(oei, tei)
-    astei = np.einsum('ijkl', stei) - np.einsum('ijlk', stei)
-    molecular_hamiltonian = of.InteractionOperator(
-        0, soei, 0.25 * astei)
 
     fqe_wf = fqe.Wavefunction([[n_electrons, sz, molecule.n_orbitals]])
     fqe_wf.set_wfn(strategy='hartree-fock')
@@ -107,7 +97,7 @@ def test_vbc():
     sop.two_body_sz_adapted()  # initialize pool
     adapt = ADAPT(oei, tei, sop, nalpha, nbeta, iter_max=1, verbose=False)
     adapt.vbc(fqe_wf)
-    assert np.isclose(adapt.energies[0], -8.95741717733075)
+    assert np.isclose(adapt.energies[0], -8.97304439380826)
 
     with pytest.raises(ValueError):
         adapt.vbc(fqe_wf, 3)
