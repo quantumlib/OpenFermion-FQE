@@ -798,3 +798,31 @@ def two_rdo_commutator_antisymm(two_body_tensor: np.ndarray, tpdm: np.ndarray,
                                                  d3[p, q, :, r, :, :])
         tensor_of_expectation[p, q, r, s] = commutator_expectation
     return tensor_of_expectation
+
+
+def one_rdo_commutator_symm(two_body_tensor: np.ndarray,
+                            tpdm: np.ndarray) -> np.ndarray:
+    """
+    Calculate <psi | [p^ q, A] | psi> where A is a two-body operator
+     A = \sum_{ijkl}A^{ij}_{lk}i^ j^ k l
+
+    where A^{ij}_{lk} is antisymmetric and hermitian
+
+    Args:
+        two_body_tensor: 4-tensor for the coefficients of A
+        tpdm: spin-orbital two-RDM p^ q^ r s corresponding to (1'2'2 1)
+    """
+    dim = tpdm.shape[0]
+    tensor_of_expectation = np.zeros(tuple([dim] * 2), dtype=tpdm.dtype)
+    k2 = two_body_tensor.transpose(0, 1, 3, 2)
+    for p, q in product(range(dim), repeat=2):
+        commutator_expectation = 0.
+        #   (   2.00000) k2(p,a,b,c) cre(b) cre(c) des(q) des(a)
+        commutator_expectation += 2.0 * np.einsum('abc,bca', k2[p, :, :, :],
+                                                  tpdm[:, :, q, :])
+
+        #   (  -2.00000) k2(q,a,b,c) cre(p) cre(a) des(b) des(c)
+        commutator_expectation += -2.0 * np.einsum('abc,abc', k2[q, :, :, :],
+                                                   tpdm[p, :, :, :])
+        tensor_of_expectation[p, q] = commutator_expectation
+    return tensor_of_expectation

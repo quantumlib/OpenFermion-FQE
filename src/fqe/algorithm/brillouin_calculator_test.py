@@ -28,7 +28,8 @@ from fqe.algorithm.brillouin_calculator import (get_tpdm_grad_fqe_parallel,
                                                 get_fermion_op,
                                                 two_rdo_commutator,
                                                 two_rdo_commutator_symm,
-                                                two_rdo_commutator_antisymm)
+                                                two_rdo_commutator_antisymm,
+                                                one_rdo_commutator_symm)
 
 try:
     from joblib import Parallel, delayed
@@ -47,6 +48,19 @@ def get_acse_residual(wf, hammat, nso):
     for p, q, r, s in product(range(nso), repeat=4):
         rdo = adag[p] @ adag[q] @ alow[r] @ alow[s]
         acse_residual[p, q, r, s] = wf.conj().T @ (
+                    rdo @ hammat - hammat @ rdo) @ wf
+    return acse_residual
+
+
+def get_one_body_acse_residual(wf, hammat, nso):
+    """Testing utilities"""
+    adag = [of.get_sparse_operator(of.FermionOperator(((x, 1))), n_qubits=nso)
+            for x in range(nso)]
+    alow = [op.conj().T for op in adag]
+    acse_residual = np.zeros((nso, nso), dtype=np.complex128)
+    for p, q in product(range(nso), repeat=2):
+        rdo = adag[p] @ alow[q]
+        acse_residual[p, q] = wf.conj().T @ (
                     rdo @ hammat - hammat @ rdo) @ wf
     return acse_residual
 
@@ -231,3 +245,9 @@ def test_get_acse_residual_rdm():
     true_tpdm_grad = get_tpdm_grad(cirq_wf, acse_res_op_mat, 2 * sdim)
     test_tpdm_grad = two_rdo_commutator_antisymm(true_acse_residual, tpdm, d3)
     assert np.allclose(test_tpdm_grad, true_tpdm_grad)
+
+    test_one_acse_residual = one_rdo_commutator_symm(
+        reduced_ham.two_body_tensor, tpdm)
+    true_one_acse_residual = get_one_body_acse_residual(cirq_wf, molehammat,
+                                                        2 * sdim)
+    assert np.allclose(true_one_acse_residual, test_one_acse_residual)

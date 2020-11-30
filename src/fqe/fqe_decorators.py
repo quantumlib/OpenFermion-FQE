@@ -86,10 +86,12 @@ def build_hamiltonian(ops: Union[FermionOperator, hamiltonian.Hamiltonian],
 
         ops_rank, e_0 = split_openfermion_tensor(ops)
 
-        norb = 0
-        for term in ops_rank.values():
-            ablk, bblk = largest_operator_index(term)
-            norb = max(norb, ablk // 2 + 1, bblk // 2 + 1)
+        if norb == 0:
+            for term in ops_rank.values():
+                ablk, bblk = largest_operator_index(term)
+                norb = max(norb, ablk // 2 + 1, bblk // 2 + 1)
+        else:
+            norb = norb
 
         ops_mat = {}
         maxrank = 0
