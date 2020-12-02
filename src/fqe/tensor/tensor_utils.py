@@ -125,10 +125,17 @@ def validate_matrix_symmetry(
 
 
 def validate_unity(unity_permutation: List[Any]) -> bool:
-    """Checks that the permutation passed in is the unity operation.
+    """Checks that the input permutation is the unity permutation, i.e., an
+    object s of type List[List[int], float, bool] such that
+
+    * s[0][0] > -1,
+    * s[0][i] < s[0][j] for i < j,
+    * s[1] = 1.0, and
+    * s[2] = False.
 
     Args:
-        unity_permutation: TODO: Add description.
+        unity_permutation: A permutation object to compare to the unity
+            operation.
 
     Returns:
         True if the input permutation is the unity permutation, else False.
