@@ -13,7 +13,6 @@ from openfermion.chem.molecular_data import spinorb_from_spatial
 
 from fqe.hamiltonians.restricted_hamiltonian import RestrictedHamiltonian
 from fqe.hamiltonians.general_hamiltonian import General as GeneralFQEHamiltonian
-from fqe.hamiltonians.sparse_hamiltonian import SparseHamiltonian
 from fqe.hamiltonians.hamiltonian import Hamiltonian as ABCHamiltonian
 from fqe.fqe_decorators import build_hamiltonian
 from fqe.algorithm.brillouin_calculator import (
@@ -21,6 +20,7 @@ from fqe.algorithm.brillouin_calculator import (
     two_rdo_commutator_symm,
     one_rdo_commutator_symm,
 )
+from fqe.algorithm.generalized_doubles_factorization import doubles_factorization
 
 
 class OperatorPool:
@@ -193,24 +193,33 @@ class ADAPT:
                 if update_rank % 2 != 0:
                     raise ValueError("Update rank must be an even number")
 
-                # rank constraint
-                residual_mat = acse_residual.transpose(0, 1, 3, 2).reshape(
-                    (nso ** 2, nso ** 2))
+                new_residual = np.zeros_like(acse_residual)
+                for p, q, r, s in product(range(nso), repeat=4):
+                    new_residual[p, q, r, s] = (acse_residual[p, q, r, s] -
+                                                acse_residual[s, r, q, p]) / 2
 
-                hrm = 1j * residual_mat
-                w, v = np.linalg.eigh(hrm)
-                # sort by absolute algebraic size
-                idx = np.argsort(np.abs(w))[::-1]
-                w = w[idx]
-                v = v[:, idx]
-                residual_reconstructed = np.zeros_like(residual_mat)
-                for ii in range(update_rank):
-                    residual_reconstructed += w[ii] * v[:, [ii]] @ \
-                                              v[:, [ii]].conj().T
-                acse_residual = -1j * residual_reconstructed.reshape(
-                    (nso, nso, nso, nso)).transpose(0, 1, 3, 2)
+                ul, vl, one_body_residual, ul_ops, vl_ops, one_body_op = \
+                    doubles_factorization(new_residual, eig_cutoff=update_rank)
 
-            fop = get_fermion_op(acse_residual)
+                lr_new_residual = np.zeros_like(new_residual)
+                for p, q, r, s in product(range(nso), repeat=4):
+                    for ll in range(len(ul)):
+                        lr_new_residual[p, q, r, s] += ul[ll][p, s] * \
+                                                       vl[ll][q, r]
+
+                if np.isclose(update_rank, nso**2):
+                    assert np.allclose(lr_new_residual, new_residual)
+
+                fop = get_fermion_op(new_residual)
+                if not of.is_hermitian(1j * fop):
+                    print(fop)
+                    print()
+                    print(of.normal_ordered(fop - of.hermitian_conjugated(fop)))
+                    raise AssertionError("generator is not antihermitian")
+
+            else:
+                fop = get_fermion_op(acse_residual)
+
             operator_pool.append(fop)
             fqe_op = build_hamiltonian(1j * fop, self.sdim,
                                        conserve_number=True)
