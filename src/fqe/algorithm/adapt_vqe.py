@@ -13,7 +13,6 @@ from openfermion.chem.molecular_data import spinorb_from_spatial
 
 from fqe.hamiltonians.restricted_hamiltonian import RestrictedHamiltonian
 from fqe.hamiltonians.general_hamiltonian import General as GeneralFQEHamiltonian
-from fqe.hamiltonians.sparse_hamiltonian import SparseHamiltonian
 from fqe.hamiltonians.hamiltonian import Hamiltonian as ABCHamiltonian
 from fqe.fqe_decorators import build_hamiltonian
 from fqe.algorithm.brillouin_calculator import (
@@ -21,42 +20,8 @@ from fqe.algorithm.brillouin_calculator import (
     two_rdo_commutator_symm,
     one_rdo_commutator_symm,
 )
+from fqe.algorithm.generalized_doubles_factorization import doubles_factorization
 
-
-# def get_fermion_op(coeff_tensor, ladder_order) -> of.FermionOperator:
-#     """Returns an openfermion.FermionOperator from the given coeff_tensor.
-#
-#     Given A[i, j, k, l] of A = \sum_{ijkl}A[i, j, k, l]i^ j^ k^ l
-#     return the FermionOperator A.
-#
-#     Args:
-#         coeff_tensor: Coefficients for 4-mode operator
-#     Returns:
-#         A FermionOperator object
-#     """
-#     if len(coeff_tensor.shape) not in (2, 4):
-#         raise ValueError(
-#             "Arg `coeff_tensor` should have dimension 2 or 4 but has dimension"
-#             f" {len(coeff_tensor.shape)}."
-#         )
-#
-#     if len(coeff_tensor.shape) == 4:
-#         nso = coeff_tensor.shape[0]
-#         fermion_op = of.FermionOperator()
-#         for p, q, r, s in product(range(nso), repeat=4):
-#             op = ((p, ladder_order[0]), (q, ladder_order[1]), (r, ladder_order[2]), (s, ladder_order[3]))
-#             fop = of.FermionOperator(op, coefficient=coeff_tensor[p, q, r, s])
-#             fermion_op += fop
-#         return fermion_op
-#
-#     if len(coeff_tensor.shape) == 2:
-#         nso = coeff_tensor.shape[0]
-#         fermion_op = of.FermionOperator()
-#         for p, q in product(range(nso), repeat=2):
-#             op = ((p, 1), (q, 0))
-#             fop = of.FermionOperator(op, coefficient=coeff_tensor[p, q])
-#             fermion_op += fop
-#         return fermion_op
 
 class OperatorPool:
     def __init__(self, norbs: int, occ: List[int], virt: List[int]):
@@ -224,203 +189,37 @@ class ADAPT:
                 self.reduced_ham.two_body_tensor, tpdm,
                 d3)
 
-
             if update_rank:
                 if update_rank % 2 != 0:
                     raise ValueError("Update rank must be an even number")
 
                 new_residual = np.zeros_like(acse_residual)
                 for p, q, r, s in product(range(nso), repeat=4):
-                    assert np.isclose(acse_residual[p, q, r, s], -acse_residual[p, q, s, r])
-                    assert np.isclose(acse_residual[p, q, r, s], -acse_residual[q, p, r, s])
-                    assert np.isclose(acse_residual[p, q, r, s], -acse_residual[s, r, q, p].conj())
-                    new_residual[p, q, r, s] = acse_residual[p, q, r, s] - acse_residual[s, r, q, p]
+                    new_residual[p, q, r, s] = (acse_residual[p, q, r, s] -
+                                                acse_residual[s, r, q, p]) / 2
 
-                zeroed_residual = np.zeros_like(new_residual)
-                zeroed_residual_symm = np.zeros_like(new_residual)
-                zeroed_residual_symmd = np.zeros_like(new_residual)
+                ul, vl, one_body_residual, ul_ops, vl_ops, one_body_op = \
+                    doubles_factorization(new_residual, eig_cutoff=update_rank)
+
+                lr_new_residual = np.zeros_like(new_residual)
                 for p, q, r, s in product(range(nso), repeat=4):
-                    if p < q and s < r and p * nso + q < s * nso + r:
-                        if not np.allclose([new_residual[p, q, r, s], new_residual[q, p, s, r], new_residual[p, q, s, r], new_residual[q, p, r, s]], 0):
-                            # print(new_residual[p, q, r, s].real, new_residual[q, p, s, r].real, new_residual[p, q, s, r].real, new_residual[q, p, r, s].real)
-                            assert np.isclose(new_residual[p, q, r, s].real, new_residual[q, p, s, r].real)
-                            assert np.isclose(new_residual[p, q, s, r].real, new_residual[q, p, r, s].real)
-                            assert np.isclose(new_residual[p, q, r, s].real, -new_residual[s, r, q, p].real)
-                            zeroed_residual[p, q, r, s] = new_residual[p, q, r, s]
-                            zeroed_residual_symm[p, q, r, s] = new_residual[p, q, r, s]
-                            zeroed_residual_symm[q, p, s, r] = new_residual[q, p, s, r]
-                for p, q, r, s in product(range(nso), repeat=4):
-                    if p * nso + q < s * nso + r:
-                        zeroed_residual_symmd[p, q, r, s] = new_residual[p, q, r, s]
-                        # zeroed_residual_symmd[q, p, s, r] = new_residual[q, p, s, r]
+                    for ll in range(len(ul)):
+                        lr_new_residual[p, q, r, s] += ul[ll][p, s] * \
+                                                       vl[ll][q, r]
 
-                sparse_new_residual = np.reshape(np.transpose(zeroed_residual, [0, 3, 1, 2]),
-                                              (nso**2, nso**2))
-                sparse_new_residual_symm = np.reshape(np.transpose(zeroed_residual_symm, [0, 3, 1, 2]),
-                                              (nso**2, nso**2))
-                sparse_new_residual_symmd = np.reshape(np.transpose(zeroed_residual_symmd, [0, 3, 1, 2]),
-                                              (nso**2, nso**2))
+                if np.isclose(update_rank, nso**2):
+                    assert np.allclose(lr_new_residual, new_residual)
 
-                new_residual_mat = np.reshape(np.transpose(new_residual, [0, 3, 1, 2]),
-                                              (nso**2, nso**2)).astype(np.float)
-                assert of.is_hermitian(new_residual_mat)
-
-                residual_mat = np.reshape(np.transpose(acse_residual, [0, 3, 1, 2]),
-                                          (nso**2, nso**2))
-                for p, q, r, s in product(range(nso), repeat=4):
-                    assert np.isclose(acse_residual[p, q, r, s], residual_mat[p * nso + s, q * nso + r])
-                    assert np.isclose(acse_residual[q, p, s, r], residual_mat[q * nso + r, p * nso + s])
-                    assert np.isclose(new_residual[p, q, r, s], new_residual_mat[p * nso + s, q * nso + r])
-                    assert np.isclose(new_residual_mat[p * nso + s, q * nso + r], -new_residual_mat[s * nso + p, r * nso + q])
-
-                    # commented out because this shouldn't be there.  We only have the upper triangle piece. We
-                    # want to test if this is reconstructed as V^T @ U^T
-                    # assert np.isclose(sparse_new_residual[p * nso + s, q * nso + r], -sparse_new_residual[s * nso + p, r * nso + q])
-                    # if p > q and s > r and p * nso + q < s * nso + r:
-                    #     assert np.isclose(sparse_new_residual[p * nso + s, q * nso + r], 0)
-                    #     if not np.isclose(new_residual_mat[p * nso + s, q * nso + r], 0):
-                    #         print(p, q, r, s, new_residual_mat[p * nso + s, q * nso + r], sparse_new_residual[p * nso + s, q * nso + r].real)
-
-                    # these should be zero.  We know A[p, q, r, s] = -A[s, r, q, p] = T[(s,p), (r,q)]
-                    # but we also construct the matrix such that p < q, s < r, and (p, q) < (s, r)
-                    # thus we need the (s, r) > (p, q) which we will relate tho the SVD of the sparse symmetric matrix
-                    # we take.
-                    if p < q and s < r and p * nso + q < s * nso + r:
-                        assert np.isclose(sparse_new_residual_symm[s * nso + p, r * nso + q], 0)
-
-                    if p * nso + q < s * nso + r:
-                        assert np.isclose(sparse_new_residual_symmd[s * nso + p , r * nso + q,], 0)
-
-                assert np.allclose(new_residual_mat, new_residual_mat.T)
-                # assert np.allclose(sparse_new_residual_symmd, sparse_new_residual_symmd.T)
-
-                # exit()
-
-                # one_body_residual = -np.einsum('pqrq->pr', acse_residual)
-                one_body_residual = -np.einsum('pqrq->pr', new_residual) # zeroed_residual_symm)
-                test_fop = of.FermionOperator()
-                for p, q in product(range(nso), repeat=2):
-                    fop = ((p, 1), (q, 0))
-                    test_fop += of.FermionOperator(fop,
-                                                  coefficient=one_body_residual[p, q])
-
-                # u, sigma, vh = np.linalg.svd(residual_mat.real)
-                # s, v = np.linalg.eigh(residual_mat.real)
-                # u, sigma, vh = np.linalg.svd(ut_new_residual_mat)
-                assert np.allclose(sparse_new_residual_symm, sparse_new_residual_symm.T)
-                assert not np.allclose(sparse_new_residual, sparse_new_residual.T)
-                u, sigma, vh = np.linalg.svd(new_residual_mat) # sparse_new_residual_symm)
-                assert np.isclose(np.linalg.norm(vh.imag), 0)
-                assert np.isclose(np.linalg.norm(u.imag), 0)
-
-                assert np.allclose(sparse_new_residual_symm, sparse_new_residual_symm.T)
-
-                us = u @ np.diag(sigma**0.5)
-                svh = np.diag(sigma**0.5) @ vh
-                # assert np.allclose(us @ svh, sparse_new_residual)
-                # assert np.allclose(us @ svh + svh.T @ us.T, sparse_new_residual_symm)
-                assert np.allclose(us @ svh + svh.T @ us.T, 2 * new_residual_mat)
-
-                ul = []
-                ul_ops = []
-                vl = []
-                vl_ops = []
-                vhl_ops = []
-                for ll in range(len(sigma)):
-                    ul.append(np.sqrt(sigma[ll]) * u[:, ll].reshape((nso, nso)))
-                    ul_ops.append(get_fermion_op(np.sqrt(sigma[ll]) * u[:, ll].reshape((nso, nso))))
-                    vl.append(np.sqrt(sigma[ll]) * vh[ll, :].reshape((nso, nso)))
-                    vl_ops.append(get_fermion_op(np.sqrt(sigma[ll]) * vh[ll, :].reshape((nso, nso))))
-                    vhl_ops.append(get_fermion_op(np.sqrt(sigma[ll]) * vh[ll, :].reshape((nso, nso)).T))
-                    # print(ul_ops[-1] - vl_ops[-1] + of.hermitian_conjugated(ul_ops[-1] - vl_ops[-1]))
-                    S = ul_ops[-1] + vl_ops[-1]
-                    D = ul_ops[-1] - vl_ops[-1]
-                    op1 = S + 1j * of.hermitian_conjugated(S)
-                    op2 = S - 1j * of.hermitian_conjugated(S)
-                    op3 = D + 1j * of.hermitian_conjugated(D)
-                    op4 = D - 1j * of.hermitian_conjugated(D)
-                    assert np.isclose(of.normal_ordered(of.commutator(op1, of.hermitian_conjugated(op1))).induced_norm(), 0)
-                    assert np.isclose(of.normal_ordered(of.commutator(op2, of.hermitian_conjugated(op2))).induced_norm(), 0)
-                    assert np.isclose(of.normal_ordered(of.commutator(op3, of.hermitian_conjugated(op3))).induced_norm(), 0)
-                    assert np.isclose(of.normal_ordered(of.commutator(op4, of.hermitian_conjugated(op4))).induced_norm(), 0)
-
-                    # print()
-
-                # move l-sum outisde
-                for ll in range(len(sigma)):
-                    # for p, s, q, r in product(range(nso), repeat=4):
-                    #     test_fop += of.FermionOperator(((p, 1), (s, 0)), coefficient=ul[ll][p, s]) * of.FermionOperator(((q, 1), (r, 0)), coefficient=vl[ll][q, r])
-                    test_fop += 0.25 * ul_ops[ll] * vl_ops[ll]
-                    test_fop += 0.25 * vl_ops[ll] * ul_ops[ll]
-                    # test_fop += vl_ops[ll] * ul_ops[ll]
-                    test_fop += -0.25 * of.hermitian_conjugated(vl_ops[ll]) * of.hermitian_conjugated(ul_ops[ll])
-                    test_fop += -0.25 * of.hermitian_conjugated(ul_ops[ll]) * of.hermitian_conjugated(vl_ops[ll])
-
-                low_rank_residual_mat = np.zeros_like(residual_mat)
-                for p, s, q, r in product(range(nso), repeat=4):
-                    test_val = 0j
-                    test_nr = 0j
-                    for ll in range(len(sigma)):
-                        # test_val += u[p * nso + s, ll] * sigma[ll] * vh[ll, q * nso + r]
-                        test_val += ul[ll][p, s] * vl[ll][q, r]
-                        if p < q and s < r:#  and p * nso + q < s * nso + r:
-                            test_nr += ul[ll][p, s] * vl[ll][q, r]
-                            # test_fop += of.FermionOperator(((p, 1), (s, 0), (q, 1), (r, 0)), coefficient=ul[ll][p, s] * vl[ll][q, r])
-
-                        assert np.isclose(np.sqrt(sigma[ll]) * u[p * nso + s, ll], ul[ll][p, s])
-                        assert np.isclose(np.sqrt(sigma[ll]) * vh[ll, q * nso + r], vl[ll][q, r])
-
-                    # assert np.isclose(sparse_new_residual[p * nso + s, q * nso + r],
-                    #                   test_val
-                    #                   )
-                    assert np.isclose(new_residual_mat[p * nso + s, q * nso + r],
-                                      test_val
-                                      )
-                    if p < q and s < r:#  and p * nso + q < s * nso + r:
-                        assert np.isclose(new_residual_mat[p * nso + s, q * nso + r],
-                                          test_nr
-                                          )
-
-                    lr_val = 0j
-                    for ll in range(update_rank):
-                        lr_val += u[p * nso + s, ll] * sigma[ll] * vh[ll, q * nso + r]
-                    low_rank_residual_mat[p * nso + s, q * nso + r] = lr_val
-
-                # true_fop = get_fermion_op(acse_residual)
-                # true_fop = get_fermion_op(zeroed_residual_symm)
-                true_fop = get_fermion_op(new_residual)
-                print(of.normal_ordered(test_fop - true_fop).induced_norm())
-                exit()
-
-                low_rank_residual = np.reshape(low_rank_residual_mat, (nso, nso, nso, nso))
-                tacse_residual = np.transpose(low_rank_residual, [0, 2, 3, 1])
-                # assert np.allclose(tacse_residual, acse_residual)
-                acse_residual = tacse_residual
-                # for p, q, r, s in product(range(nso), repeat=4):
-                for um, vm in zip(ul_ops, vhl_ops):
-                    print(of.normal_ordered(um * vm + vm * um))
+                fop = get_fermion_op(new_residual)
+                if not of.is_hermitian(1j * fop):
+                    print(fop)
                     print()
+                    print(of.normal_ordered(fop - of.hermitian_conjugated(fop)))
+                    raise AssertionError("generator is not antihermitian")
 
+            else:
+                fop = get_fermion_op(acse_residual)
 
-                exit()
-
-                # residual_mat = acse_residual.transpose(0, 1, 3, 2).reshape(
-                #     (nso ** 2, nso ** 2))
-
-                # hrm = 1j * residual_mat
-                # w, v = np.linalg.eigh(hrm)
-                # # sort by absolute algebraic size
-                # idx = np.argsort(np.abs(w))[::-1]
-                # w = w[idx]
-                # v = v[:, idx]
-                # residual_reconstructed = np.zeros_like(residual_mat)
-                # for ii in range(update_rank):
-                #     residual_reconstructed += w[ii] * v[:, [ii]] @ \
-                #                               v[:, [ii]].conj().T
-                # acse_residual = -1j * residual_reconstructed.reshape(
-                #     (nso, nso, nso, nso)).transpose(0, 1, 3, 2)
-
-            fop = get_fermion_op(acse_residual)
             operator_pool.append(fop)
             fqe_op = build_hamiltonian(1j * fop, self.sdim,
                                        conserve_number=True)
