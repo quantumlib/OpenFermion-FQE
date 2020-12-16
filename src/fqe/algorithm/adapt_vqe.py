@@ -112,7 +112,8 @@ class OperatorPool:
 class ADAPT:
     def __init__(self, oei: np.ndarray, tei: np.ndarray, operator_pool,
                  n_alpha: int, n_beta: int,
-                 iter_max=30, verbose=True, stopping_epsilon=1.0E-3
+                 iter_max=30, verbose=True, stopping_epsilon=1.0E-3,
+
                  ):
         """
         ADAPT-VQE object.
@@ -127,6 +128,7 @@ class ADAPT:
             iter_max: Maximum ADAPT-VQE steps to take
             verbose: Print the iteration information
             stopping_epsilon: define the <[G, H]> value that triggers stopping
+
         """
         elec_hamil = RestrictedHamiltonian(
             (oei, np.einsum("ijlk", -0.5 * tei))
@@ -152,7 +154,9 @@ class ADAPT:
         self.stopping_eps = stopping_epsilon
 
     def vbc(self, initial_wf: fqe.Wavefunction, update_rank=None,
-            opt_method: str='L-BFGS-B'):
+            opt_method: str='L-BFGS-B',
+            num_opt_var=None
+            ):
         """The variational Brillouin condition method
 
         Solve for the 2-body residual and then variationally determine
@@ -165,7 +169,9 @@ class ADAPT:
             update_rank: rank of residual to truncate via first factorization
                          of the residual matrix <[Gamma_{lk}^{ij}, H]>
             opt_method: scipy optimizer name
+            num_opt_var: Number of optimization variables to consider
         """
+        self.num_opt_var = num_opt_var
         nso = 2 * self.sdim
         operator_pool = []
         operator_pool_fqe = []
@@ -226,10 +232,37 @@ class ADAPT:
             operator_pool_fqe.append(fqe_op)
             existing_parameters.append(0)
 
-            new_parameters, current_e = self.optimize_param(operator_pool_fqe,
-                                                 existing_parameters,
-                                                 initial_wf, opt_method)
-            existing_parameters = new_parameters.tolist()
+            if self.num_opt_var is not None:
+                if len(operator_pool_fqe) < self.num_opt_var:
+                    pool_to_op = operator_pool_fqe
+                    params_to_op = existing_parameters
+                    current_wf = copy.deepcopy(initial_wf)
+                else:
+                    pool_to_op = operator_pool_fqe[-self.num_opt_var:]
+                    params_to_op = existing_parameters[-self.num_opt_var:]
+                    current_wf = copy.deepcopy(initial_wf)
+                    for fqe_op, coeff in zip(operator_pool_fqe[:-self.num_opt_var],
+                                             existing_parameters[:-self.num_opt_var]):
+                        current_wf = current_wf.time_evolve(coeff, fqe_op)
+                    # print("partial Eval iterate energy ", current_wf.expectationValue(self.elec_hamil))
+                    temp_cwf = copy.deepcopy(current_wf)
+                    for fqe_op, coeff in zip(pool_to_op, params_to_op):
+                        temp_cwf = temp_cwf.time_evolve(coeff, fqe_op)
+
+                new_parameters, current_e = self.optimize_param(pool_to_op,
+                                                     params_to_op,
+                                                     current_wf, opt_method)
+
+                if len(operator_pool_fqe) < self.num_opt_var:
+                    existing_parameters = new_parameters.tolist()
+                else:
+                    existing_parameters[-self.num_opt_var:] = new_parameters.tolist()
+            else:
+                new_parameters, current_e = self.optimize_param(operator_pool_fqe,
+                                                     existing_parameters,
+                                                     initial_wf, opt_method)
+                existing_parameters = new_parameters.tolist()
+
             if self.verbose:
                 print(iteration, current_e, np.linalg.norm(acse_residual))
             self.energies.append(current_e)
@@ -288,6 +321,7 @@ class ADAPT:
                 conserve_number=True)
             operator_pool_fqe.append(fqe_op)
             existing_parameters.append(0)
+
 
             new_parameters, current_e = self.optimize_param(operator_pool_fqe,
                                                  existing_parameters,
