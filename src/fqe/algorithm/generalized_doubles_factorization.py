@@ -38,12 +38,13 @@ def doubles_factorization(generator_tensor: np.ndarray, eig_cutoff=None):
             raise ValueError("eig_cutoff must be an even number")
 
     nso = generator_tensor.shape[0]
-    generator_tensor = generator_tensor.astype(np.float)
+    generator_tensor = generator_tensor.real
     generator_mat = np.zeros((nso**2, nso**2))
     for row_gem, col_gem in product(range(nso**2), repeat=2):
         p, s = row_gem // nso, row_gem % nso
         q, r = col_gem // nso, col_gem % nso
         generator_mat[row_gem, col_gem] = generator_tensor[p, q, r, s]
+
     test_generator_mat = np.reshape(np.transpose(generator_tensor, [0, 3, 1, 2]),
                                (nso ** 2, nso ** 2)).astype(np.float)
     assert np.allclose(test_generator_mat, generator_mat)
@@ -72,20 +73,6 @@ def doubles_factorization(generator_tensor: np.ndarray, eig_cutoff=None):
         vl.append(np.sqrt(sigma[ll]) * vh[ll, :].reshape((nso, nso)))
         vl_ops.append(
             get_fermion_op(np.sqrt(sigma[ll]) * vh[ll, :].reshape((nso, nso))))
-        S = ul_ops[ll] + vl_ops[ll]
-        D = ul_ops[ll] - vl_ops[ll]
-        op1 = S + 1j * of.hermitian_conjugated(S)
-        op2 = S - 1j * of.hermitian_conjugated(S)
-        op3 = D + 1j * of.hermitian_conjugated(D)
-        op4 = D - 1j * of.hermitian_conjugated(D)
-        assert np.isclose(of.normal_ordered(
-            of.commutator(op1, of.hermitian_conjugated(op1))).induced_norm(), 0)
-        assert np.isclose(of.normal_ordered(
-            of.commutator(op2, of.hermitian_conjugated(op2))).induced_norm(), 0)
-        assert np.isclose(of.normal_ordered(
-            of.commutator(op3, of.hermitian_conjugated(op3))).induced_norm(), 0)
-        assert np.isclose(of.normal_ordered(
-            of.commutator(op4, of.hermitian_conjugated(op4))).induced_norm(), 0)
 
     one_body_op = of.FermionOperator()
     for p, q in product(range(nso), repeat=2):
