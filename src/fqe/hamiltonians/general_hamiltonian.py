@@ -104,6 +104,10 @@ class General(hamiltonian.Hamiltonian):
             out.append(self._tensor[2 * (rank + 1)])
         return tuple(out)
 
+    def quadratic(self) -> bool:
+        """Returns True if the Hamiltonian is quadratic, else False."""
+        return self._quadratic
+
     def iht(self, time: float) -> Tuple[np.ndarray, ...]:
         """Return the matrices of the Hamiltonian prepared for time evolution.
 
