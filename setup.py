@@ -61,12 +61,13 @@ def main() -> None:
         author='The OpenFermion FQE Developers',
         author_email='help@openfermion.org',
         url='http://www.openfermion.org',
-        description=('OpenFermion Fermionic Quantum Emulator'),
+        description='OpenFermion Fermionic Quantum Emulator',
         long_description=long_description,
         install_requires=requirements,
         license='Apache 2',
         packages=find_packages(where='src'),
         package_dir={'': 'src'}
         )
+
 
 main()
