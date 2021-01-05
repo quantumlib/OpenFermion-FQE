@@ -48,11 +48,13 @@ class SparseHamiltonian(hamiltonian.Hamiltonian):
             e_0: Scalar part of the Hamiltonian.
         """
         if isinstance(operators, str):
-            operators = FermionOperator(operators, 1.0)
+            ops = FermionOperator(operators, 1.0)
+        else:
+            ops = operators
 
-        operators = normal_ordered(operators)
+        ops = normal_ordered(ops)
 
-        work = operators.terms.pop((), None)
+        work = ops.terms.pop((), None)
         if work is not None:
             e_0 += work
 
@@ -64,12 +66,10 @@ class SparseHamiltonian(hamiltonian.Hamiltonian):
         self._conserve_spin = conserve_spin
 
         self._rank = 0
-        for prod in operators.terms:
+        for prod in ops.terms:
             self._rank = max(self._rank, len(prod))
 
-        ops = list(operators.get_operators())
-
-        for oper in ops:
+        for oper in ops.get_operators():
             (
                 coeff,
                 phase,

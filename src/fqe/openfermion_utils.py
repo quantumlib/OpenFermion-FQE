@@ -18,7 +18,7 @@
 from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING, Union
 
 from openfermion import (FermionOperator, up_index, down_index, QubitOperator,
-                         MolecularData)
+                         MolecularData, SymbolicOperator)
 from openfermion.transforms import jordan_wigner, reverse_jordan_wigner
 
 import numpy
@@ -419,7 +419,7 @@ def split_openfermion_tensor(ops: 'FermionOperator'
     return split
 
 
-def update_operator_coeff(operators: 'FermionOperator',
+def update_operator_coeff(operators: 'SymbolicOperator',
                           coeff: numpy.ndarray) -> None:
     """Given a string of Symbolic operators, set each prefactor equal to the
     value in coeff.  Note that the order in which SymbolicOperators in
