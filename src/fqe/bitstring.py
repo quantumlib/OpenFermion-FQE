@@ -114,8 +114,7 @@ def lexicographic_bitstring_generator(str0: int, norb: int) -> List[int]:
             states
     """
     out = []
-    gs_bs = '{0:b}'.format(str0).zfill(norb)
-    gs_bs = [int(x) for x in gs_bs]
+    gs_bs = [int(x) for x in '{0:b}'.format(str0).zfill(norb)]
     n_elec = sum(gs_bs)
     n_orbs = len(gs_bs)
     for ones_positions in combinations(range(n_orbs), n_elec):
