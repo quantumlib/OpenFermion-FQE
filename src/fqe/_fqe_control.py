@@ -254,9 +254,9 @@ def from_cirq(state: numpy.ndarray, thresh: float) -> 'wavefunction.Wavefunction
         for orb in occ:
             if numpy.absolute(state[orb[0]]) > thresh:
                 param.append([pnum, orb[1], norb])
-    param = set([tuple(p) for p in param])
-    param = [list(x) for x in param]
-    wfn = wavefunction.Wavefunction(param)
+    param_set = set([tuple(p) for p in param])
+    param_list = [list(x) for x in param_set]
+    wfn = wavefunction.Wavefunction(param_list)
     transform.from_cirq(wfn, state)
     return wfn
 
@@ -300,25 +300,25 @@ def expectationValue(wfn: 'wavefunction.Wavefunction',
     return wfn.expectationValue(ops, brawfn)
 
 
-def get_s2_operator() -> 's2_op.S2Operator':
+def get_s2_operator() -> 'S2Operator':
     """Return an S^2 operator.
     """
     return S2Operator()
 
 
-def get_sz_operator() -> 'sz_op.SzOperator':
+def get_sz_operator() -> 'SzOperator':
     """Return an S_zperator.
     """
     return SzOperator()
 
 
-def get_time_reversal_operator() -> 'tr_op.TimeReversalOp':
+def get_time_reversal_operator() -> 'TimeReversalOp':
     """Return a Time Reversal Operator
     """
     return TimeReversalOp()
 
 
-def get_number_operator() -> 'number_op.NumberOperator':
+def get_number_operator() -> 'NumberOperator':
     """Return the particle number operator
     """
     return NumberOperator()
@@ -435,7 +435,7 @@ def get_gso_hamiltonian(tensors: Tuple[numpy.ndarray, ...],
 
 
 def get_restricted_hamiltonian(tensors: Tuple[numpy.ndarray, ...],
-                               e_0: complex = 0. + 0.j) -> 'restricted_hamiltonian.Restricted':
+                               e_0: complex = 0. + 0.j) -> 'restricted_hamiltonian.RestrictedHamiltonian':
     """Initialize spin conserving spin restricted hamiltonian
 
     Args:
