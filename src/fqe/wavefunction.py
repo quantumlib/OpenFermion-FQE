@@ -611,7 +611,7 @@ class Wavefunction:
         """
         maxval = 0.0
         for config in self._civec.values():
-            configmax = max(config.coeff.max(), config.coeff.min(), key=abs)
+            configmax = max(config.coeff.max(), config.coeff.min(), key=numpy.abs)
             maxval = max(configmax, maxval)
 
         return maxval
