@@ -131,13 +131,33 @@ class OperatorPool:
                 self.op_pool.append(fop_bb)
 
 
+class SumOfSquaresTrotter:
+
+    def __init__(self, fop_list: List[of.FermionOperator], sdim: int,
+                 trotterization: int):
+        """
+        A Collection of Two-body operators that can be implemented exactly
+        because they are all squares of normal operators.  The list is a
+        sum of antihermitian operators that are to be implemented with the
+        same evolution coefficient
+        """
+        self.fops = fop_list
+        self.sdim = sdim
+        self.trotterization = trotterization
+
+    def build_fqe_hamiltonians(self):
+        fqe_fops = []
+        for fop in self.fops:
+            fqe_fops.append(build_hamiltonian(1j * fop, self.sdim,
+                                             conserve_number=True))
+        self.fqe_fops = fqe_fops
+
 
 class ADAPT:
     def __init__(self, oei: np.ndarray, tei: np.ndarray, operator_pool,
                  n_alpha: int, n_beta: int,
                  iter_max=30, verbose=True, stopping_epsilon=1.0E-3,
                  delta_e_eps=1.0E-6
-
                  ):
         """
         ADAPT-VQE object.
@@ -187,7 +207,8 @@ class ADAPT:
             num_opt_var=None,
             v_reconstruct=False,
             trotterize_lr=False,
-            group_trotter_steps=True
+            group_trotter_steps=True,
+            trotterization=1,
             ):
         """The variational Brillouin condition method
 
@@ -208,6 +229,8 @@ class ADAPT:
                                  parameter.  This should be True unless you
                                  want 4x * singular vectors worth of parameters.
                                  You probably don't want that.
+            trotterization: How many trotter steps to implement the Trotterized
+                            two-body gradient term with
         """
         self.num_opt_var = num_opt_var
         nso = 2 * self.sdim
@@ -223,7 +246,14 @@ class ADAPT:
             for fqe_op, coeff in zip(operator_pool_fqe, existing_parameters):
                 # fqe_op = build_hamiltonian(1j * op, self.sdim,
                 #                            conserve_number=True)
-                wf = wf.time_evolve(coeff, fqe_op)
+                if isinstance(fqe_op, SumOfSquaresTrotter):
+                    # this is for SumOfSquaresTrotter
+                    for dm in range(fqe_op.trotterization):
+                        for sos_op in fqe_op.fqe_fops:
+                            wf = wf.time_evolve(coeff / fqe_op.trotterization,
+                                                sos_op)
+                else:
+                    wf = wf.time_evolve(coeff, fqe_op)
 
             # calculate rdms for grad
             opdm, tpdm = wf.sector((self.nele, self.sz)).get_openfermion_rdms()
@@ -258,6 +288,7 @@ class ADAPT:
                     (one_body_residual[::2, ::2] + one_body_residual[1::2, 1::2])
                         one_body_residual[1::2, 1::2] = one_body_residual[::2, ::2]
                         fop.extend([get_fermion_op(one_body_residual)])
+
                     for ll in range(len(ul)):
                         Smat = ul[ll] + vl[ll]
                         Dmat = ul[ll] - vl[ll]
@@ -288,6 +319,10 @@ class ADAPT:
                                get_fermion_op(new_fop3),
                                get_fermion_op(new_fop4)])
 
+                    if group_trotter_steps:
+                        fop = [SumOfSquaresTrotter(fop, self.sdim,
+                                                   trotterization=trotterization)]
+
                 else:
                     lr_new_residual = np.zeros_like(new_residual)
                     for p, q, r, s in product(range(nso), repeat=4):
@@ -313,24 +348,17 @@ class ADAPT:
             for f_op in fop:
                 if isinstance(f_op, ABCHamiltonian):
                     fqe_ops.append(f_op)
+                elif isinstance(f_op, SumOfSquaresTrotter):
+                    f_op.build_fqe_hamiltonians()
+                    fqe_ops.append(f_op)
                 else:
                     fqe_ops.append(build_hamiltonian(1j * f_op, self.sdim,
                                        conserve_number=True))
 
-            for check_op in fqe_ops:
-                for check_tensor in check_op.tensors():
-                    try:
-                        assert np.allclose(check_tensor.shape, nso)
-                    except AssertionError:
-                        print(one_body_op)
-                        print(one_body_residual)
-                        print(check_tensor.shape)
-                        raise
-
             operator_pool_fqe.extend(fqe_ops)
             existing_parameters.extend([0] * len(fop))
 
-            if self.num_opt_var is not None:
+            if self.num_opt_var is not None and group_trotter_steps is False:
                 if len(operator_pool_fqe) < self.num_opt_var:
                     pool_to_op = operator_pool_fqe
                     params_to_op = existing_parameters
@@ -479,20 +507,25 @@ class ADAPT:
             for op, coeff in zip(pool, params):
                 if np.isclose(coeff, 0):
                     continue
-                if isinstance(op, ABCHamiltonian):
+                if isinstance(op, (ABCHamiltonian, SumOfSquaresTrotter)):
                     fqe_op = op
                 else:
                     print("Found a OF Hamiltonian")
                     fqe_op = build_hamiltonian(1j * op, self.sdim,
                                                conserve_number=True)
-                try:
+                if isinstance(fqe_op, ABCHamiltonian):
                     wf = wf.time_evolve(coeff, fqe_op)
-                except:
-                    print(fqe_op)
-                    print(fqe_op.tensors())
-                    raise
+                elif isinstance(fqe_op, SumOfSquaresTrotter):
+                    # this is for SumOfSquaresTrotter
+                    for dm in range(fqe_op.trotterization):
+                        for sos_op in fqe_op.fqe_fops:
+                            wf = wf.time_evolve(coeff / fqe_op.trotterization,
+                                                sos_op)
+                else:
+                    raise ValueError("Can't evolve operator type {}".format(type(fqe_op)))
+
             end_time = time.time()
-            # print("cost_function eval time {: 5.5f}".format(end_time - start_time), end='\t')
+            print("cost_function eval time {: 5.5f}".format(end_time - start_time), end='\n')
 
             start_time = time.time()
             # compute gradients
@@ -533,6 +566,6 @@ class ADAPT:
                                    method=opt_method, jac=True,
                                    options=opt_options)
         total_end = time.time()
-        # print(res)
-        # print("Total opt time {: 5.5f}".format(total_end - total_start))
+        print(res)
+        print("Total opt time {: 5.5f}".format(total_end - total_start))
         return res.x, res.fun
