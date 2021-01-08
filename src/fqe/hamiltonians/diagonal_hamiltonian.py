@@ -64,7 +64,7 @@ class Diagonal(hamiltonian.Hamiltonian):
         """Returns the diagonal values packed into a single dimension."""
         return self._hdiag
 
-    def iht(self, time: float) -> Tuple[np.ndarray, ...]:
+    def iht(self, time: float) -> 'Diagonal':
         """Returns the matrices of the Hamiltonian prepared for time evolution.
 
         Args:

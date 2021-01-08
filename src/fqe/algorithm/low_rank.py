@@ -19,10 +19,11 @@ import openfermion as of
 from openfermion import givens_decomposition_square
 
 import fqe
+from fqe.wavefunction import Wavefunction
 from fqe.hamiltonians.diagonal_coulomb import DiagonalCoulomb
 
 
-def evolve_fqe_givens(wfn: fqe.Wavefunction, u: np.ndarray) -> np.ndarray:
+def evolve_fqe_givens(wfn: Wavefunction, u: np.ndarray) -> np.ndarray:
     """Evolve a wavefunction by u generated from a 1-body Hamiltonian.
 
     Args:
@@ -77,8 +78,8 @@ def evolve_fqe_givens(wfn: fqe.Wavefunction, u: np.ndarray) -> np.ndarray:
 
 
 def evolve_fqe_diagaonal_coulomb(
-    wfn: fqe.Wavefunction, vij_mat: np.ndarray, time=1
-) -> fqe.Wavefunction:
+    wfn: Wavefunction, vij_mat: np.ndarray, time=1
+) -> Wavefunction:
     r"""Utility for testing evolution of a full 2^{n} wavefunction via
 
     :math:`exp{-i time * \sum_{i,j, sigma, tau}v_{i, j}n_{i\sigma}n_{j\tau}}.`
@@ -96,8 +97,8 @@ def evolve_fqe_diagaonal_coulomb(
 
 
 def double_factor_trotter_evolution(
-    initial_wfn: fqe.Wavefunction, basis_change_unitaries, vij_mats, deltat
-) -> fqe.Wavefunction:
+    initial_wfn: Wavefunction, basis_change_unitaries, vij_mats, deltat
+) -> Wavefunction:
     r"""Doubled Factorized Trotter Evolution
 
     Evolves an initial according to the double factorized algorithm where each

@@ -22,7 +22,9 @@
 import copy
 import os
 import math
-from typing import (Callable,
+from typing import (Any,
+                    Callable,
+                    cast,
                     Dict,
                     KeysView,
                     List,
@@ -444,9 +446,10 @@ class Wavefunction:
         assert rank > 0
         assert rank < 5
 
+        out: List[Any] = [None, None, None, None]
+        tmp: List[Any] = [None, None, None, None]
+
         if self._conserve_spin:
-            out = [None, None, None, None]
-            tmp = [None, None, None, None]
             for key, sector in self._civec.items():
                 assert brawfn is None or key in brawfn.sectors()
                 bra = None if brawfn is None else brawfn._civec[key]
@@ -468,12 +471,9 @@ class Wavefunction:
             return tuple(out2)
 
         numbersectors = self._number_sectors()
-        brasectors = None if brawfn is None else brawfn._number_sectors()
-        out = [None, None, None, None]
-        tmp = [None, None, None, None]
         for nkey, dataset in numbersectors.items():
-            assert brasectors is None or nkey in brasectors.keys()
-            nbra = None if brawfn is None else brasectors[nkey]
+            assert brawfn is None or nkey in brawfn._number_sectors().keys()
+            nbra = None if brawfn is None else brawfn._number_sectors()[nkey]
             if rank == 1:
                 (tmp[0],) = dataset.rdm1(nbra)
             elif rank == 2:
@@ -611,7 +611,7 @@ class Wavefunction:
         """
         maxval = 0.0
         for config in self._civec.values():
-            configmax = max(config.coeff.max(), config.coeff.min(), key=abs)
+            configmax = max(config.coeff.max(), config.coeff.min(), key=numpy.abs)
             maxval = max(configmax, maxval)
 
         return maxval
@@ -758,7 +758,7 @@ class Wavefunction:
             raise ValueError('No data provided for set_wfn')
 
         if strategy == 'from_data':
-            for key, data in raw_data.items():
+            for key, data in raw_data.items():  # type: ignore
                 self._civec[key].set_wfn(strategy='from_data', raw_data=data)
         elif strategy == 'hartree-fock':
             # make sure we only have 1 sector
@@ -772,11 +772,11 @@ class Wavefunction:
                 sector.set_wfn(strategy=strategy)
 
     def transform(self, rotation: numpy.ndarray,
-                  low: numpy.ndarray = None,
-                  upp: numpy.ndarray = None) -> Tuple[numpy.ndarray,
-                                                      numpy.ndarray,
-                                                      numpy.ndarray,
-                                                      'Wavefunction']:
+                  low: Optional[numpy.ndarray] = None,
+                  upp: Optional[numpy.ndarray] = None) -> Tuple[numpy.ndarray,
+                                                                numpy.ndarray,
+                                                                numpy.ndarray,
+                                                                'Wavefunction']:
         """Transform the wavefunction using the orbtial rotation matrix and
         return the new wavefunction and the permutation matrix for the unitary
         transformation. This is an internal code, so performs minimal checking
@@ -796,7 +796,7 @@ class Wavefunction:
         external = low is not None
         assert external == (upp is not None)
         if external:
-            assert numpy.allclose(rotation, low @ upp)
+            assert numpy.allclose(rotation, low @ upp)  # type: ignore
 
         def ludecomp(rotmat: numpy.ndarray) -> Tuple[numpy.ndarray,
                                                      numpy.ndarray,
@@ -903,10 +903,10 @@ class Wavefunction:
                     lowt1, uppt1 = transpose_matrix(low1, upp1)
                     lowt2, uppt2 = transpose_matrix(low2, upp2)
                 else:
-                    lowt1 = low[:norb, :norb]
-                    lowt2 = low[norb:, norb:]
-                    uppt1 = upp[:norb, :norb]
-                    uppt2 = upp[norb:, norb:]
+                    lowt1 = low[:norb, :norb]  # type: ignore
+                    lowt2 = low[norb:, norb:]  # type: ignore
+                    uppt1 = upp[:norb, :norb]  # type: ignore
+                    uppt2 = upp[norb:, norb:]  # type: ignore
                 output1 = process_matrix(lowt1, uppt1)
                 output2 = process_matrix(lowt2, uppt2)
                 for icol in range(norb):
@@ -931,7 +931,6 @@ class Wavefunction:
                     low[norb:, norb:] = low2[:, :]
 
         return perm, low, upp, current
-
 
     @wrap_time_evolve
     def time_evolve(self, time: float, hamil, inplace: bool = False) -> 'Wavefunction':
@@ -1273,9 +1272,9 @@ class Wavefunction:
         return wick(string, rdm, self._conserve_spin)
 
 
+# TODO: Delete or make unit test?
 if __name__ == "__main__":
     from openfermion import FermionOperator
-    from openfermion.utils import hermitian_conjugated
     import numpy
     import fqe
     from fqe.unittest_data import build_lih_data, build_hamiltonian
@@ -1285,7 +1284,7 @@ if __name__ == "__main__":
     numpy.random.seed(seed=409)
 
     h1e, h2e, wfn = build_lih_data.build_lih_data('energy')
-    lih_hamiltonian = fqe.get_restricted_hamiltonian(([h1e, h2e]))
+    lih_hamiltonian = fqe.get_restricted_hamiltonian(([h1e, h2e]))  # type: ignore
     print(lih_hamiltonian._tensor)
     lihwfn = fqe.Wavefunction([[4, 0, 6]])
     lihwfn.set_wfn(strategy='from_data', raw_data={(4, 0): wfn})
@@ -1303,5 +1302,3 @@ if __name__ == "__main__":
     evolved.ax_plus_y(-1.0, nbody_evol)
     print(evolved.norm() < 1.e-8)
     print("END")
-
-

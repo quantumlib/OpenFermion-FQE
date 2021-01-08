@@ -703,7 +703,7 @@ class FqeData:
         if not from1234:
             (dveca, dvecb) = self.calculate_dvec_spin()
         else:
-            dveca, dvecb = dvec[0], dvec[1]
+            dveca, dvecb = dvec  # type: ignore
 
         if not from1234:
             evecaa = numpy.zeros((norb, norb, norb, norb, lena, lenb),
@@ -724,7 +724,7 @@ class FqeData:
                     evecab[:, :, i, j, :, :] = tmp[0][:, :, :, :]
                     evecbb[:, :, i, j, :, :] = tmp[1][:, :, :, :]
         else:
-            evecaa, evecab, evecba, evecbb = evec[0], evec[1], evec[2], evec[3]
+            evecaa, evecab, evecba, evecbb = evec  # type: ignore
 
         symfac = 2.0 if not from1234 else 1.0
 

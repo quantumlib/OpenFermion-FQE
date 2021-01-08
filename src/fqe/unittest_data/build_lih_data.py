@@ -27,12 +27,6 @@ def build_lih_data(target: str) -> Tuple[np.ndarray, ...]:
     Args:
         target: Either "energy" or "dipole".
     """
-    if target not in ("energy", "dipole"):
-        raise ValueError(
-            "Expected 'energy' or 'dipole' for arg `target` but received "
-            f"{target}."
-        )
-
     wfn = np.asarray(
         [
             [
@@ -613,7 +607,7 @@ def build_lih_data(target: str) -> Tuple[np.ndarray, ...]:
 
         return h1e, h2e, wfn
 
-    if target == "dipole":
+    elif target == "dipole":
 
         dip_ref = np.array([0.000000000000, -0.000000000000, 12.281283595669])
 
@@ -647,3 +641,9 @@ def build_lih_data(target: str) -> Tuple[np.ndarray, ...]:
         )
 
         return dip_ref, dip_mat, wfn
+
+    else:
+        raise ValueError(
+            "Expected 'energy' or 'dipole' for arg `target` but received "
+            f"{target}."
+        )

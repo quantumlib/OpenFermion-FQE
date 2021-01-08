@@ -25,8 +25,21 @@ on:
     branches: [ master ]
 
 jobs:
-  build:
+  mypy:
+    name: Type check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.6'
+          architecture: 'x64'
+      - name: Install mypy
+        run: pip install mypy~=0.790.0
+      - name: Run mypy
+        run: dev/check/mypy
 
+  build:
     runs-on: ubuntu-latest
     strategy:
       matrix:

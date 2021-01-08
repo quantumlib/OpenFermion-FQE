@@ -1,5 +1,5 @@
 """Infrastructure for ADAPT VQE algorithm"""
-from typing import List, Union
+from typing import List, Tuple, Union
 import copy
 import openfermion as of
 import fqe
@@ -12,7 +12,6 @@ from openfermion import (make_reduced_hamiltonian,
 from openfermion.chem.molecular_data import spinorb_from_spatial
 
 from fqe.hamiltonians.restricted_hamiltonian import RestrictedHamiltonian
-from fqe.hamiltonians.general_hamiltonian import General as GeneralFQEHamiltonian
 from fqe.hamiltonians.hamiltonian import Hamiltonian as ABCHamiltonian
 from fqe.fqe_decorators import build_hamiltonian
 from fqe.algorithm.brillouin_calculator import (
@@ -21,6 +20,7 @@ from fqe.algorithm.brillouin_calculator import (
     one_rdo_commutator_symm,
 )
 from fqe.algorithm.generalized_doubles_factorization import doubles_factorization
+from fqe.wavefunction import Wavefunction
 
 
 class OperatorPool:
@@ -36,7 +36,7 @@ class OperatorPool:
         self.norbs = norbs
         self.occ = occ
         self.virt = virt
-        self.op_pool = []
+        self.op_pool: List[of.FermionOperator] = []
 
     def singlet_t2(self):
         """
@@ -153,7 +153,7 @@ class ADAPT:
         self.operator_pool = operator_pool
         self.stopping_eps = stopping_epsilon
 
-    def vbc(self, initial_wf: fqe.Wavefunction, update_rank=None,
+    def vbc(self, initial_wf: Wavefunction, update_rank=None,
             opt_method: str='L-BFGS-B',
             num_opt_var=None
             ):
@@ -174,8 +174,8 @@ class ADAPT:
         self.num_opt_var = num_opt_var
         nso = 2 * self.sdim
         operator_pool = []
-        operator_pool_fqe = []
-        existing_parameters = []
+        operator_pool_fqe: List[ABCHamiltonian] = []
+        existing_parameters: List[float] = []
         self.energies = []
         self.residuals = []
         iteration = 0
@@ -271,7 +271,7 @@ class ADAPT:
                 break
             iteration += 1
 
-    def adapt_vqe(self, initial_wf: fqe.Wavefunction,
+    def adapt_vqe(self, initial_wf: Wavefunction,
                   opt_method: str='L-BFGS-B'):
         """
         Run ADAPT-VQE using
@@ -281,8 +281,8 @@ class ADAPT:
             opt_method: scipy optimizer to use
         """
         operator_pool = []
-        operator_pool_fqe = []
-        existing_parameters = []
+        operator_pool_fqe: List[ABCHamiltonian] = []
+        existing_parameters: List[float] = []
         self.gradients = []
         self.energies = []
         iteration = 0
@@ -336,10 +336,10 @@ class ADAPT:
             iteration += 1
 
     def optimize_param(self, pool: Union[
-        List[of.FermionOperator], List[GeneralFQEHamiltonian]],
+        List[of.FermionOperator], List[ABCHamiltonian]],
                        existing_params: Union[List, np.ndarray],
-                       initial_wf: fqe.Wavefunction,
-                       opt_method: str) -> fqe.wavefunction:
+                       initial_wf: Wavefunction,
+                       opt_method: str) -> Tuple[np.ndarray, float]:
         """Optimize a wavefunction given a list of generators
 
         Args:

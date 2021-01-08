@@ -75,7 +75,7 @@ class LowRankTrotter:
             threshold = self.icut
 
         # convert physics notation integrals into chemist notation
-        # and determine the first low-rank fractorization
+        # and determine the first low-rank factorization
         if self.spin_basis:
             (
                 eigenvalues,
@@ -95,7 +95,7 @@ class LowRankTrotter:
                 one_body_correction,
                 _,
             ) = low_rank_two_body_decomposition(
-                0.5 * self.tei,
+                0.5 * self.tei,  # type: ignore
                 truncation_threshold=threshold,
                 final_rank=self.lmax,
                 spin_basis=self.spin_basis,

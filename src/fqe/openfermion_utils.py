@@ -15,10 +15,10 @@
 """Utilities which specifically require import from OpernFermion
 """
 
-from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
+from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING, Union
 
 from openfermion import (FermionOperator, up_index, down_index, QubitOperator,
-                         MolecularData)
+                         MolecularData, SymbolicOperator)
 from openfermion.transforms import jordan_wigner, reverse_jordan_wigner
 
 import numpy
@@ -85,8 +85,9 @@ def ascending_index_order(ops: 'FermionOperator',
     return coeff*ops*(-1.0 + 0.0j)**nperm
 
 
-def bit_to_fermion_creation(string: int,
-                            spin: Optional[str] = None) -> 'FermionOperator':
+def bit_to_fermion_creation(
+    string: int, spin: Optional[str] = None
+) -> Union[None, 'FermionOperator']:
     """Convert an occupation bitstring representation for a single spin case
     into openfermion operators
 
@@ -176,26 +177,29 @@ def determinant_to_ops(a_str: int, b_str: int, inorder: bool = False) -> 'Fermio
         (FermionOperator)
     """
     if a_str + b_str == 0:
-        out = FermionOperator('', 1.0)
-    else:
-        if inorder:
-            occ = 0
-            # Get occupation list from beta. Convert to spin down.
-            for i in integer_index(b_str):
-                occ += 2**down_index(i)
-            for i in integer_index(a_str):
-                occ += 2**up_index(i)
-            out = bit_to_fermion_creation(occ)
-        else:
-            if b_str == 0:
-                ops = 1.0
-            else:
-                ops = bit_to_fermion_creation(b_str, 'down')
-            if a_str == 0:
-                out = ops
-            else:
-                out = bit_to_fermion_creation(a_str, 'up')*ops
-    return out
+        return FermionOperator('', 1.0)
+
+    if inorder:
+        occ = 0
+        # Get occupation list from beta. Convert to spin down.
+        for i in integer_index(b_str):
+            occ += 2**down_index(i)
+        for i in integer_index(a_str):
+            occ += 2**up_index(i)
+        # TODO: Consider forcing bit_to_fermion_creation to always return a
+        #  FermionOperator instead of Optional[FermionOperator].
+        return bit_to_fermion_creation(occ)  # type: ignore
+
+    a_up: FermionOperator = bit_to_fermion_creation(a_str, 'up')  # type: ignore
+    b_down: FermionOperator = bit_to_fermion_creation(b_str, 'down')  # type: ignore
+
+    if a_str == 0:
+        return b_down
+
+    if b_str == 0:
+        return a_up
+
+    return a_up * b_down
 
 
 def fci_fermion_operator_representation(norb: int,
@@ -415,7 +419,7 @@ def split_openfermion_tensor(ops: 'FermionOperator'
     return split
 
 
-def update_operator_coeff(operators: 'FermionOperator',
+def update_operator_coeff(operators: 'SymbolicOperator',
                           coeff: numpy.ndarray) -> None:
     """Given a string of Symbolic operators, set each prefactor equal to the
     value in coeff.  Note that the order in which SymbolicOperators in

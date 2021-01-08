@@ -17,7 +17,7 @@ intrinsics
 #there are two places where access to protected members improves code quality
 #pylint: disable=protected-access
 
-from typing import Dict, Tuple, Union, Optional, List
+from typing import Any, Dict, Tuple, Union, Optional, List
 from functools import wraps
 
 import copy
@@ -75,6 +75,7 @@ def build_hamiltonian(ops: Union[FermionOperator, hamiltonian.Hamiltonian],
 
     assert is_hermitian(ops)
 
+    out: Any
     if len(ops.terms) <= 2:
         out = sparse_hamiltonian.SparseHamiltonian(ops, e_0=e_0)
 
@@ -84,7 +85,7 @@ def build_hamiltonian(ops: Union[FermionOperator, hamiltonian.Hamiltonian],
 
         ops = normal_ordered(ops)
 
-        ops_rank, e_0 = split_openfermion_tensor(ops)
+        ops_rank, e_0 = split_openfermion_tensor(ops)  # type: ignore
 
         if norb == 0:
             for term in ops_rank.values():

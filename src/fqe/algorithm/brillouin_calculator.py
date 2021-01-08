@@ -21,6 +21,7 @@ import numpy as np
 
 import openfermion as of
 import fqe
+from fqe.wavefunction import Wavefunction
 from fqe.hamiltonians.restricted_hamiltonian import RestrictedHamiltonian
 
 try:
@@ -42,12 +43,6 @@ def get_fermion_op(coeff_tensor) -> of.FermionOperator:
     Returns:
         A FermionOperator object
     """
-    if len(coeff_tensor.shape) not in (2, 4):
-        raise ValueError(
-            "Arg `coeff_tensor` should have dimension 2 or 4 but has dimension"
-            f" {len(coeff_tensor.shape)}."
-        )
-
     if len(coeff_tensor.shape) == 4:
         nso = coeff_tensor.shape[0]
         fermion_op = of.FermionOperator()
@@ -57,17 +52,23 @@ def get_fermion_op(coeff_tensor) -> of.FermionOperator:
             fermion_op += fop
         return fermion_op
 
-    if len(coeff_tensor.shape) == 2:
+    elif len(coeff_tensor.shape) == 2:
         nso = coeff_tensor.shape[0]
         fermion_op = of.FermionOperator()
         for p, q in product(range(nso), repeat=2):
-            op = ((p, 1), (q, 0))
-            fop = of.FermionOperator(op, coefficient=coeff_tensor[p, q])
+            oper = ((p, 1), (q, 0))
+            fop = of.FermionOperator(oper, coefficient=coeff_tensor[p, q])
             fermion_op += fop
         return fermion_op
 
+    else:
+        raise ValueError(
+            "Arg `coeff_tensor` should have dimension 2 or 4 but has dimension"
+            f" {len(coeff_tensor.shape)}."
+        )
 
-def get_acse_residual_fqe(fqe_wf: fqe.Wavefunction,
+
+def get_acse_residual_fqe(fqe_wf: Wavefunction,
                           fqe_ham: RestrictedHamiltonian,
                           norbs: int) -> np.ndarray:
     """Get the ACSE block by using reduced density operators that are Sz spin
