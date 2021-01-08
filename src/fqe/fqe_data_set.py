@@ -107,11 +107,26 @@ class FqeDataSet:
         norb = self._norb
         assert h1e.shape == (norb*2, norb*2)
 
-        # next make FciGraphSet
-        dvec = self.calculate_dvec()
-        out = copy.deepcopy(self)
-        for key, sector in out._data.items():
-            sector.coeff = numpy.einsum('ij, ijkl->kl', h1e, dvec[key])
+        ncol = 0
+        jorb = 0
+        for j in range(norb*2):
+            if numpy.any(h1e[:, j]):
+                ncol += 1
+                jorb = j
+            if ncol > 1:
+                break
+
+        if ncol > 1:
+            dvec = self.calculate_dvec()
+            out = copy.deepcopy(self)
+            for key, sector in out._data.items():
+                sector.coeff = numpy.einsum('ij, ijkl->kl', h1e, dvec[key])
+        else:
+            dvec = self.calculate_dvec_fixed_j(jorb)
+            out = copy.deepcopy(self)
+            for key, sector in out._data.items():
+                sector.coeff = numpy.einsum('i, ikl->kl', h1e[:, jorb], dvec[key])
+
         return out
 
 
@@ -565,6 +580,17 @@ class FqeDataSet:
         return self.calculate_dvec_with_coeff(self._data)
 
 
+    def calculate_dvec_fixed_j(self,
+                               jorb: int) -> Dict[Tuple[int, int], numpy.ndarray]:
+        """Generate, using self.coeff as C_I, for fixed j
+
+        .. math::
+            D^{J}_{ij} = \\sum_I \\langle J|a^\\dagger_i a_j|I \\rangle C_I
+
+        """
+        return self.calculate_dvec_with_coeff_fixed_j(self._data, jorb)
+
+
     def calculate_evec(self,
                        dvec: Dict[Tuple[int, int], numpy.ndarray]
                        ) -> Dict[Tuple[int, int], numpy.ndarray]:
@@ -651,6 +677,61 @@ class FqeDataSet:
                                 work = sector.coeff[sourcea, sourceb]
                                 dvec1[i+norb,
                                       j,
+                                      targeta,
+                                      targetb] += work*paritya*parityb
+        return dvec
+
+    def calculate_dvec_with_coeff_fixed_j(self,
+                                          data: Dict[Tuple[int, int], 'FqeData'],
+                                          jorb: int) -> Dict[Tuple[int, int], numpy.ndarray]:
+        """Generate, for fixed j,
+
+        .. math::
+            D^{J}_{ij} = \\sum_I \\langle J|a^\\dagger_i a_j|I \\rangle C_I
+
+        """
+        norb = self._norb
+
+        dvec = {}
+        for key, sector in data.items():
+            dvec[key] = numpy.zeros((norb*2,
+                                     sector.lena(),
+                                     sector.lenb()),
+                                    dtype=sector.coeff.dtype)
+
+        for (nalpha, nbeta), sector in data.items():
+            dvec0 = dvec[(nalpha, nbeta)]
+            for i in range(norb):
+                if jorb < norb:
+                    # a^+ a |0>
+                    if nalpha > 0:
+                        for source, target, parity in sector.alpha_map(i, jorb):
+                            dvec0[i, target, :] += sector.coeff[source, :] * parity
+                    # b^+ a |0>
+                    if nalpha-1 >= 0 and nbeta+1 <= norb:
+                        dvec1 = dvec[(nalpha-1, nbeta+1)]
+                        (alphamap, betamap) = sector.get_fcigraph().find_mapping(-1, 1)
+                        for sourcea, targeta, paritya in alphamap[(jorb, )]:
+                            paritya *= (-1)**(nalpha-1)
+                            for sourceb, targetb, parityb in betamap[(i, )]:
+                                work = sector.coeff[sourcea, sourceb]
+                                dvec1[i+norb,
+                                      targeta,
+                                      targetb] += work*paritya*parityb
+                else:
+                    # b^+ b |0>
+                    if nbeta > 0:
+                        for source, target, parity in sector.beta_map(i, jorb - norb):
+                            dvec0[i+norb, :, target] += sector.coeff[:, source] * parity
+                    # a^+ b |0>
+                    if nalpha+1 <= norb and nbeta-1 >= 0:
+                        dvec1 = dvec[(nalpha+1, nbeta-1)]
+                        (alphamap, betamap) = sector.get_fcigraph().find_mapping(1, -1)
+                        for sourcea, targeta, paritya in alphamap[(i, )]:
+                            paritya *= (-1)**nalpha
+                            for sourceb, targetb, parityb in betamap[(jorb - norb, )]:
+                                work = sector.coeff[sourcea, sourceb]
+                                dvec1[i,
                                       targeta,
                                       targetb] += work*paritya*parityb
         return dvec
