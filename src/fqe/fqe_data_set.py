@@ -117,15 +117,15 @@ class FqeDataSet:
                 break
 
         if ncol > 1:
-          dvec = self.calculate_dvec()
-          out = copy.deepcopy(self)
-          for key, sector in out._data.items():
-              sector.coeff = numpy.einsum('ij, ijkl->kl', h1e, dvec[key])
+            dvec = self.calculate_dvec()
+            out = copy.deepcopy(self)
+            for key, sector in out._data.items():
+                sector.coeff = numpy.einsum('ij, ijkl->kl', h1e, dvec[key])
         else:
-          dvec = self.calculate_dvec_fixed_j(jorb)
-          out = copy.deepcopy(self)
-          for key, sector in out._data.items():
-              sector.coeff = numpy.einsum('i, ikl->kl', h1e[:, jorb], dvec[key])
+            dvec = self.calculate_dvec_fixed_j(jorb)
+            out = copy.deepcopy(self)
+            for key, sector in out._data.items():
+                sector.coeff = numpy.einsum('i, ikl->kl', h1e[:, jorb], dvec[key])
 
         return out
 
