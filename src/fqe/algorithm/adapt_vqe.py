@@ -26,6 +26,9 @@ from fqe.algorithm.generalized_doubles_factorization import \
 
 import time
 
+from uthc.thc import UTHC
+from uthc.jax_givens import GivensNetwork
+
 
 def valdemaro_reconstruction_functional(tpdm, n_electrons, true_opdm=None):
     """
@@ -201,7 +204,8 @@ class ADAPT:
         self.stopping_eps = stopping_epsilon
         self.delta_e_eps = delta_e_eps
 
-    def vbc(self, initial_wf: fqe.Wavefunction, update_rank=None,
+    def vbc(self, initial_wf: fqe.Wavefunction,
+            update_rank=None,
             opt_method: str='L-BFGS-B',
             opt_options: Dict={},
             num_opt_var=None,
@@ -209,6 +213,7 @@ class ADAPT:
             trotterize_lr=False,
             group_trotter_steps=True,
             trotterization=1,
+            update_utc=None
             ):
         """The variational Brillouin condition method
 
@@ -231,6 +236,9 @@ class ADAPT:
                                  You probably don't want that.
             trotterization: How many trotter steps to implement the Trotterized
                             two-body gradient term with
+            update_utc: None or integer on how many tensor factor terms
+                        should be fit.  Each tensor factor is an O(N) depth
+                        circuit.
         """
         self.num_opt_var = num_opt_var
         nso = 2 * self.sdim
@@ -339,7 +347,35 @@ class ADAPT:
                         print()
                         print(of.normal_ordered(fop - of.hermitian_conjugated(fop)))
                         raise AssertionError("generator is not antihermitian")
+            elif update_utc:
+                fop = []
+                one_body_residual = -np.einsum('pqrq->pr',
+                                               acse_residual)
+                one_body_op = get_fermion_op(one_body_residual)
+                assert of.is_hermitian(1j * one_body_op)
+                if not np.isclose((1j * one_body_op).induced_norm(), 0):
+                    # enforce symmetry in one-body sector
+                    one_body_residual[::2, ::2] = 0.5 * \
+                                                  (one_body_residual[::2,
+                                                   ::2] + one_body_residual[
+                                                          1::2, 1::2])
+                    one_body_residual[1::2, 1::2] = one_body_residual[::2, ::2]
+                    fop.extend([get_fermion_op(one_body_residual)])
 
+                givens = GivensNetwork(dim=nso)
+                uthc = UTHC(t2_amplitudes=acse_residual, dim=nso,
+                            rank=update_utc, givens_network=givens)
+                uthc.optimize()
+                param_mats = uthc.params_to_mats(uthc.optimized_params)
+                for u, jj in param_mats:
+                    gt = np.array(uthc.guess_tensor([[u, jj]]))
+                    fop_t = get_fermion_op(gt)
+                    assert of.is_hermitian(1j * fop_t)
+                    fop.extend([get_fermion_op(gt)])
+                # construct the fop to add to the pool
+                # Since we are doing tensor fitting  we don't want to do
+                # trotterization. Thus =1.
+                fop = [SumOfSquaresTrotter(fop, self.sdim, trotterization=1)]
             else:
                 fop = [get_fermion_op(acse_residual)]
 

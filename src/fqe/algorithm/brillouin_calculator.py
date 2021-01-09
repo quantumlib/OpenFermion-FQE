@@ -52,6 +52,8 @@ def get_fermion_op(coeff_tensor) -> of.FermionOperator:
         nso = coeff_tensor.shape[0]
         fermion_op = of.FermionOperator()
         for p, q, r, s in product(range(nso), repeat=4):
+            if p == q or r == s:
+                continue
             op = ((p, 1), (q, 1), (r, 0), (s, 0))
             fop = of.FermionOperator(op, coefficient=coeff_tensor[p, q, r, s])
             fermion_op += fop

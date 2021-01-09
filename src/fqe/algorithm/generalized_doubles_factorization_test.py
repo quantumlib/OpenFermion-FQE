@@ -4,11 +4,18 @@ import scipy as sp
 import copy
 
 import fqe
-from fqe.algorithm.generalized_doubles_factorization import doubles_factorization
+from fqe.algorithm.generalized_doubles_factorization import (
+    doubles_factorization, doubles_factorization2, takagi)
+from fqe.algorithm.adapt_vqe import ADAPT
+from fqe.algorithm.brillouin_calculator import two_rdo_commutator_symm
 from fqe.algorithm.brillouin_calculator import get_fermion_op
 from fqe.algorithm.low_rank import (evolve_fqe_givens_unrestricted,
                                     evolve_fqe_charge_charge_unrestricted, )
+from fqe.unittest_data.build_lih_data import build_lih_data
 from fqe.fqe_decorators import build_hamiltonian
+
+from fqe.unittest_data.generate_openfermion_molecule import \
+    build_lih_moleculardata
 import openfermion as of
 
 import time
@@ -831,12 +838,88 @@ def test_normal_op_tensor_reconstruction2():
     print("PASSED")
 
 
+def get_lih_molecule(bd):
+    from openfermionpyscf import run_pyscf
+    import os
+    geometry = [['Li', [0, 0, 0]],
+                ['H', [0, 0, bd]]]
+    molecule = of.MolecularData(geometry=geometry, charge=0,
+                                multiplicity=1,
+                                basis='sto-3g')
+    molecule.filename = os.path.join(os.getcwd(), molecule.name)
+    molecule = run_pyscf(molecule, run_scf=True, run_fci=True)
+    return molecule
+
+def get_h4_molecule(bd):
+    from openfermionpyscf import run_pyscf
+    import os
+    geometry = [['H', [0, 0, 0]],
+                ['H', [0, 0, bd]],
+                ['H', [0, 0, 2 * bd]],
+                ['H', [0, 0, 3 * bd]],
+                ]
+    molecule = of.MolecularData(geometry=geometry, charge=0,
+                                multiplicity=1,
+                                basis='sto-3g')
+    molecule.filename = os.path.join(os.getcwd(), molecule.name)
+    molecule = run_pyscf(molecule, run_scf=True, run_fci=True)
+    return molecule
+
+def test_generalized_doubles_takagi():
+    molecule = get_lih_molecule(1.7)
+    molecule = build_lih_moleculardata()
+    oei, tei = molecule.get_integrals()
+    nele = 4
+    nalpha = 2
+    nbeta = 2
+    sz = 0
+    norbs = oei.shape[0]
+    nso = 2 * norbs
+    fqe_wf = fqe.Wavefunction(
+        [[nele, sz, norbs]])
+    fqe_wf.set_wfn(strategy='random')
+    fqe_wf.normalize()
+    opdm, tpdm = fqe_wf.sector((nele, sz)).get_openfermion_rdms()
+    d3 = fqe_wf.sector((nele, sz)).get_three_pdm()
+
+    adapt = ADAPT(oei, tei, None, nalpha, nbeta, iter_max=50)
+    acse_residual = two_rdo_commutator_symm(
+                adapt.reduced_ham.two_body_tensor, tpdm,
+                d3)
+    for p, q, r, s in product(range(nso), repeat=4):
+        if p == q or r == s:
+            continue
+        assert np.isclose(acse_residual[p, q, r, s],
+                          -acse_residual[s, r, q, p].conj())
+
+    Zlp, Zlm, Zl, one_body_residual = doubles_factorization2(acse_residual)
+    test_fop = get_fermion_op(one_body_residual)
+    for ll in range(len(Zlp)):
+        test_fop += 0.25 * get_fermion_op(Zlp[ll]) ** 2
+        test_fop += 0.25 * get_fermion_op(Zlm[ll]) ** 2
+    assert np.isclose(of.normal_ordered(
+        test_fop - get_fermion_op(acse_residual)).induced_norm(), 0,
+                      atol=1.0E-6)
+
+def test_takagi():
+    A = np.random.randn(36).reshape((6, 6))
+    B = np.random.randn(36).reshape((6, 6))
+    A = A + A.T
+    B = B + B.T
+    C = A + 1j * B
+    assert np.allclose(C, C.T)
+    T, Z = takagi(C)
+    assert np.allclose(Z @ np.diag(T) @ Z.T, C)
+
+
 if __name__ == "__main__":
     np.random.seed(10)
     np.set_printoptions(linewidth=500)
     # np.random.seed(10)
     # test_generalized_doubles2()
     # test_random_evolution()
-    test_normal_op_tensor_reconstruction2()
+    # test_normal_op_tensor_reconstruction2()
     # test_trotter_error()
     # test_reconstruction_error()
+    # test_generalized_doubles_takagi()
+    test_takagi()
