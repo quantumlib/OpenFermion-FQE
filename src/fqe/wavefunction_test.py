@@ -323,7 +323,7 @@ class WavefunctionTest(unittest.TestCase):
         self.assertEqual(outstring, ref_string)
 
     def test_hartree_fock_init(self):
-        h1e, h2e, lih_ground = build_lih_data('energy')
+        h1e, h2e, _ = build_lih_data('energy')
         elec_hamil = get_restricted_hamiltonian((h1e, h2e))
         norb = 6
         nalpha = 2

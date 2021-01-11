@@ -1825,7 +1825,7 @@ class FqeData:
         new_data.coeff[:, :] = self.coeff[:, :]
         return new_data
 
-    def __deepcopy__(self, memodict={}):
+    def __deepcopy__(self, memodict={}):  # pylint: disable=dangerous-default-value
         # FCIGraph is passed as by reference
         new_data = FqeData(nalpha=self._core.nalpha(),
                            nbeta=self._core.nbeta(),
@@ -1905,7 +1905,7 @@ class FqeData:
         return opdm, tpdm
 
     def get_three_spin_blocks_rdm(self):
-        """
+        r"""
         Generate 3-RDM in the spin-orbital basis.
 
         3-RDM has Sz spin-blocks (aaa, aab, abb, bbb).  The strategy is to
@@ -1946,7 +1946,7 @@ class FqeData:
         krond = numpy.eye(opdm.shape[0] // 2)
         # alpha-alpha-alpha
         for t, u in itertools.product(range(self.norb()), repeat=2):
-            tdveca_a, tdvecb_a = self._calculate_dvec_spin_with_coeff(dveca[t, u, :, :])
+            tdveca_a, _ = self._calculate_dvec_spin_with_coeff(dveca[t, u, :, :])
             tdveca_b, tdvecb_b = self._calculate_dvec_spin_with_coeff(dvecb[t, u, :, :])
             for r, s in itertools.product(range(self.norb()), repeat=2):
                 # p(:)^ q(:) r^ s t^ u
