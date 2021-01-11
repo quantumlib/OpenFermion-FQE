@@ -1,12 +1,26 @@
+#   Copyright 2020 Google LLC
+
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at
+#
+#       http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+
 """Infrastructure for ADAPT VQE algorithm"""
 from typing import List, Tuple, Union
 import copy
-import openfermion as of
-import fqe
+
 from itertools import product
 import numpy as np
 import scipy as sp
 
+import openfermion as of
 from openfermion import (make_reduced_hamiltonian,
                          InteractionOperator, )
 from openfermion.chem.molecular_data import spinorb_from_spatial
@@ -48,10 +62,10 @@ class OperatorPool:
         indices of the occupied orbitals with respect to the Hartree-Fock
         reference.
         """
-        for oidx, oo_i in enumerate(self.occ):
-            for ojdx, oo_j in enumerate(self.occ):
-                for vadx, vv_a in enumerate(self.virt):
-                    for vbdx, vv_b in enumerate(self.virt):
+        for oo_i in self.occ:
+            for oo_j in self.occ:
+                for vv_a in self.virt:
+                    for vv_b in self.virt:
                         term = of.FermionOperator()
                         for sigma, tau in product(range(2), repeat=2):
                             op = ((2 * vv_a + sigma, 1), (2 * vv_b + tau, 1),
@@ -188,7 +202,7 @@ class ADAPT:
                 wf = wf.time_evolve(coeff, fqe_op)
 
             # calculate rdms for grad
-            opdm, tpdm = wf.sector((self.nele, self.sz)).get_openfermion_rdms()
+            _, tpdm = wf.sector((self.nele, self.sz)).get_openfermion_rdms()
             d3 = wf.sector((self.nele, self.sz)).get_three_pdm()
             # get ACSE Residual and 2-RDM gradient
             acse_residual = two_rdo_commutator_symm(
@@ -204,8 +218,7 @@ class ADAPT:
                     new_residual[p, q, r, s] = (acse_residual[p, q, r, s] -
                                                 acse_residual[s, r, q, p]) / 2
 
-                ul, vl, one_body_residual, ul_ops, vl_ops, one_body_op = \
-                    doubles_factorization(new_residual, eig_cutoff=update_rank)
+                ul, vl, _ = doubles_factorization(new_residual, eig_cutoff=update_rank)
 
                 lr_new_residual = np.zeros_like(new_residual)
                 for p, q, r, s in product(range(nso), repeat=4):
@@ -293,7 +306,7 @@ class ADAPT:
                 wf = wf.time_evolve(coeff, fqe_op)
 
             # calculate rdms for grad
-            opdm, tpdm = wf.sector((self.nele, self.sz)).get_openfermion_rdms()
+            _, tpdm = wf.sector((self.nele, self.sz)).get_openfermion_rdms()
             d3 = wf.sector((self.nele, self.sz)).get_three_pdm()
             # get ACSE Residual and 2-RDM gradient
             acse_residual = two_rdo_commutator_symm(
@@ -364,7 +377,7 @@ class ADAPT:
 
             # compute gradients
             grad_vec = np.zeros(len(params), dtype=np.complex128)
-            for pidx, p in enumerate(params):
+            for pidx in range(len(params)):
                 # evolve e^{iG_{n-1}g_{n-1}}e^{iG_{n-2}g_{n-2}}G_{n-3}e^{-G_{n-3}g_{n-3}...|0>
                 grad_wf = copy.deepcopy(initial_wf)
                 for gidx, (op, coeff) in enumerate(zip(pool, params)):

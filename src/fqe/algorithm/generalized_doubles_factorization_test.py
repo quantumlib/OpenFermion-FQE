@@ -12,12 +12,14 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-from itertools import product
-import numpy as np
 import copy
+from itertools import product
+
+import numpy as np
+import openfermion as of
+
 from fqe.algorithm.generalized_doubles_factorization import doubles_factorization
 from fqe.algorithm.brillouin_calculator import get_fermion_op
-import openfermion as of
 
 
 def generate_antisymm_generator(nso):

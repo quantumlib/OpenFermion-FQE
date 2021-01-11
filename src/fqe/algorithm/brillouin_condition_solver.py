@@ -174,7 +174,7 @@ class BrillouinCondition:
             fqe_data = fqe_wf.sector(sector)
             # get RDMs from FqeData
             d3 = fqe_data.get_three_pdm()
-            opdm, tpdm = fqe_data.get_openfermion_rdms()
+            _, tpdm = fqe_data.get_openfermion_rdms()
 
             # get ACSE Residual and 2-RDM gradient
             acse_residual = two_rdo_commutator_symm(
@@ -190,7 +190,7 @@ class BrillouinCondition:
             fqe_wfh = fqe_wf.time_evolve(h, 1j * acse_res_op)
             fqe_datah = fqe_wfh.sector(sector)
             d3h = fqe_datah.get_three_pdm()
-            opdmh, tpdmh = fqe_datah.get_openfermion_rdms()
+            _, tpdmh = fqe_datah.get_openfermion_rdms()
             acse_residualh = two_rdo_commutator_symm(
                 self.reduced_ham.two_body_tensor, tpdmh, d3h)
             tpdm_gradh = two_rdo_commutator_antisymm(acse_residualh, tpdmh, d3h)

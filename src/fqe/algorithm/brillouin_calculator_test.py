@@ -12,11 +12,15 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 """Tests if the BC calculation is correct."""
-import pytest
+
 from itertools import product
+
+import pytest
+
 import numpy as np
 import openfermion as of
 from openfermion.chem.molecular_data import spinorb_from_spatial
+
 import fqe
 from fqe.unittest_data.generate_openfermion_molecule import (
     build_lih_moleculardata, build_h4square_moleculardata)
@@ -229,7 +233,7 @@ def test_get_acse_residual_rdm():
     # get the fqe_data object and produce RDMs
     fqe_data = fqe_wf.sector((nalpha + nbeta, sz))
     d3 = fqe_data.get_three_pdm()
-    opdm, tpdm = fqe_data.get_openfermion_rdms()
+    _, tpdm = fqe_data.get_openfermion_rdms()
 
     # compare acse residual expressions from RDMs
     test_acse_residual = two_rdo_commutator(reduced_ham.two_body_tensor, tpdm,

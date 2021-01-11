@@ -1,12 +1,29 @@
+#   Copyright 2020 Google LLC
+
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at
+#
+#       http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+"""Unit tests for Adapt-VQE."""
+
+import numpy as np
 import pytest
+
+import openfermion as of
+from openfermion.chem.molecular_data import spinorb_from_spatial
+
 import fqe
 from fqe.algorithm.adapt_vqe import OperatorPool, ADAPT
 from fqe.unittest_data.generate_openfermion_molecule import (
     build_lih_moleculardata,
 )
-import openfermion as of
-from openfermion.chem.molecular_data import spinorb_from_spatial
-import numpy as np
 
 
 def test_op_pool():
@@ -36,7 +53,7 @@ def test_op_pool():
     op = OperatorPool(2, [0], [1])
     op.one_body_sz_adapted()
     for gen in op.op_pool:
-        for ladder_idx, coeff in gen.terms.items():
+        for ladder_idx, _ in gen.terms.items():
             # check if one body terms are generated
             assert len(ladder_idx) == 2
 
