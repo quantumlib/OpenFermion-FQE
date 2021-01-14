@@ -1297,7 +1297,7 @@ if __name__ == "__main__":
                            precision=6,
                            linewidth=80,
                            suppress=True)
-    numpy.random.seed(seed=409)
+    numpy.random.seed(seed=409  )
 
     h1e, h2e, wfn = build_lih_data.build_lih_data('energy')
     lih_hamiltonian = fqe.get_restricted_hamiltonian(([  # type: ignore
