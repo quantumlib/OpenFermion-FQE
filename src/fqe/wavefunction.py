@@ -1301,8 +1301,7 @@ if __name__ == "__main__":
 
     h1e, h2e, wfn = build_lih_data.build_lih_data('energy')
     lih_hamiltonian = fqe.get_restricted_hamiltonian(([  # type: ignore
-        h1e,
-        h2e
+        h1e, h2e
     ]))
     print(lih_hamiltonian._tensor)
     lihwfn = fqe.Wavefunction([[4, 0, 6]])
