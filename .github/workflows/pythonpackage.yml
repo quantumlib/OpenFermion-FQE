@@ -37,7 +37,7 @@ jobs:
       - name: Install yapf
         run: pip install yapf~=0.27.0
       - name: Run yapf
-        run: dev/check/format
+        run: yapf --style=google --diff --recursive src/fqe
 
   mypy:
     name: Type check
