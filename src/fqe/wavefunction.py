@@ -1300,8 +1300,8 @@ if __name__ == "__main__":
     numpy.random.seed(seed=409)
 
     h1e, h2e, wfn = build_lih_data.build_lih_data('energy')
-    lih_hamiltonian = fqe.get_restricted_hamiltonian(([h1e,
-                                                       h2e]))  # type: ignore
+    lih_hamiltonian = fqe.get_restricted_hamiltonian(([h1e,  # type: ignore
+                                                       h2e]))
     print(lih_hamiltonian._tensor)
     lihwfn = fqe.Wavefunction([[4, 0, 6]])
     lihwfn.set_wfn(strategy='from_data', raw_data={(4, 0): wfn})
