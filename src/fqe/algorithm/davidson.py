@@ -31,11 +31,11 @@ class ConvergenceError(Exception):
 
 
 def davidsonliu(
-    hmat: np.ndarray,
-    nroots: int,
-    guess_vecs=None,
-    epsilon: float = 1.0e-8,
-    verbose=False,
+        hmat: np.ndarray,
+        nroots: int,
+        guess_vecs=None,
+        epsilon: float = 1.0e-8,
+        verbose=False,
 ):
     """TODO: Add docstring."""
     # check if the nroots is specified correctly
@@ -62,15 +62,12 @@ def davidsonliu(
         # this can easily be improved to linear scaling with |guess_ves|
         # by storing the intermediate subspace matrix instead of rebuilding
         start_time = time.time()
-        subspace_mat = np.zeros(
-            (len(guess_vecs), len(guess_vecs)), dtype=np.complex128
-        )
+        subspace_mat = np.zeros((len(guess_vecs), len(guess_vecs)),
+                                dtype=np.complex128)
         for i, j in product(range(len(guess_vecs)), repeat=2):
             if i >= j:
                 val = guess_vecs[i].T @ hmat @ guess_vecs[j]
-                if isinstance(
-                    val, (float, complex, np.complex128, np.complex)
-                ):
+                if isinstance(val, (float, complex, np.complex128, np.complex)):
                     subspace_mat[i, j] = val
                 else:
                     subspace_mat[i, j] = val[0, 0]
@@ -88,8 +85,7 @@ def davidsonliu(
         if verbose:
             print(
                 "eig convergence  {}, ".format(
-                    np.linalg.norm(w[:nroots] - old_thetas)
-                ),
+                    np.linalg.norm(w[:nroots] - old_thetas)),
                 w[:nroots] - old_thetas,
             )
         if np.linalg.norm(w[:nroots] - old_thetas) < epsilon:
@@ -98,13 +94,9 @@ def davidsonliu(
             eigenvectors = []
             for i in range(nroots):
                 eigenvectors.append(
-                    sum(
-                        [
-                            v[j, i] * guess_vecs[j]
-                            for j in range(current_num_gv)
-                        ]
-                    )
-                )
+                    sum([
+                        v[j, i] * guess_vecs[j] for j in range(current_num_gv)
+                    ]))
 
             return w[:nroots], eigenvectors
 
@@ -119,17 +111,14 @@ def davidsonliu(
             start_time = time.time()
             # expand in the space of all existing guess_vecs
             subspace_eigvec_expanded = sum(
-                [v[j, i] * guess_vecs[j] for j in range(current_num_gv)]
-            )
+                [v[j, i] * guess_vecs[j] for j in range(current_num_gv)])
 
-            residual = (
-                hmat @ subspace_eigvec_expanded
-                - w[i] * subspace_eigvec_expanded
-            )
+            residual = (hmat @ subspace_eigvec_expanded -
+                        w[i] * subspace_eigvec_expanded)
             # this is wrong. preconditioner is w[i] - np.diag(hmat)
             preconditioned_residual = np.multiply(
-                residual.flatten(), np.reciprocal(w[i] - hmat_diag)
-            ).reshape((-1, 1))
+                residual.flatten(), np.reciprocal(w[i] - hmat_diag)).reshape(
+                    (-1, 1))
             if verbose:
                 print("residual formation time ", time.time() - start_time)
 
@@ -142,26 +131,24 @@ def davidsonliu(
             if verbose:
                 print("orthogonalization time ", time.time() - start_time)
             # normalize and add to guess_vecs
-            guess_vecs.append(
-                preconditioned_residual
-                / np.linalg.norm(preconditioned_residual)
-            )
+            guess_vecs.append(preconditioned_residual /
+                              np.linalg.norm(preconditioned_residual))
 
     raise ConvergenceError("Maximal number of steps exceeded")
 
 
 def davidsonliu_fqe(
-    hmat: Hamiltonian,
-    nroots: int,
-    guess_vecs,
-    nele,
-    sz,
-    norb,
-    epsilon: float = 1.0e-8,
-    verbose=False,
+        hmat: Hamiltonian,
+        nroots: int,
+        guess_vecs,
+        nele,
+        sz,
+        norb,
+        epsilon: float = 1.0e-8,
+        verbose=False,
 ):
     """TODO: Add docstring."""
-    if nroots < 1 or nroots > 2 ** (hmat.dim() - 1):
+    if nroots < 1 or nroots > 2**(hmat.dim() - 1):
         raise ValueError("Number of roots is incorrectly specified")
 
     gv_sector = list(guess_vecs[0].sectors())[0]
@@ -186,12 +173,11 @@ def davidsonliu_fqe(
             empty_vec[graph.index_alpha(ia), graph.index_beta(ib)] = 1.0
             assert np.isclose(np.sum(empty_vec), 1)
             old_ia, old_ib = graph.index_alpha(ia), graph.index_beta(ib)
-            comp_basis.set_wfn(
-                strategy="from_data", raw_data={(nele, sz): empty_vec}
-            )
-            diagonal_ham[
-                graph.index_alpha(ia), graph.index_beta(ib)
-            ] = comp_basis.expectationValue(hmat).real
+            comp_basis.set_wfn(strategy="from_data",
+                               raw_data={(nele, sz): empty_vec})
+            diagonal_ham[graph.index_alpha(ia),
+                         graph.index_beta(ib)] = comp_basis.expectationValue(
+                             hmat).real
 
     old_thetas = np.array([np.infty] * nroots)
     while len(guess_vecs) <= graph.lena() * graph.lenb() / 2:
@@ -199,14 +185,12 @@ def davidsonliu_fqe(
             print()
         current_num_gv = len(guess_vecs)
         start_time = time.time()
-        subspace_mat = np.zeros(
-            (len(guess_vecs), len(guess_vecs)), dtype=np.complex128
-        )
+        subspace_mat = np.zeros((len(guess_vecs), len(guess_vecs)),
+                                dtype=np.complex128)
         for i, j in product(range(len(guess_vecs)), repeat=2):
             if i >= j:
                 subspace_mat[i, j] = guess_vecs[j].expectationValue(
-                    hmat, brawfn=guess_vecs[i]
-                )
+                    hmat, brawfn=guess_vecs[i])
             subspace_mat[j, i] = subspace_mat[i, j]
         if verbose:
             print("subspace mat problem formation ", time.time() - start_time)
@@ -221,8 +205,7 @@ def davidsonliu_fqe(
         if verbose:
             print(
                 "eig convergence  {}, ".format(
-                    np.linalg.norm(w[:nroots] - old_thetas)
-                ),
+                    np.linalg.norm(w[:nroots] - old_thetas)),
                 w[:nroots] - old_thetas,
             )
         if np.linalg.norm(w[:nroots] - old_thetas) < epsilon:
@@ -230,18 +213,14 @@ def davidsonliu_fqe(
             eigenvectors = []
             for i in range(nroots):
                 eigenvectors.append(
-                    sum(
-                        [
-                            v[j, i] * guess_vecs[j].sector(gv_sector).coeff
-                            for j in range(current_num_gv)
-                        ]
-                    )
-                )
+                    sum([
+                        v[j, i] * guess_vecs[j].sector(gv_sector).coeff
+                        for j in range(current_num_gv)
+                    ]))
             eigfuncs = []
             for eg in eigenvectors:
                 new_wfn = copy.deepcopy(guess_vecs[0])
-                new_wfn.set_wfn(strategy='from_data',
-                                raw_data={gv_sector: eg})
+                new_wfn.set_wfn(strategy='from_data', raw_data={gv_sector: eg})
                 eigfuncs.append(new_wfn)
 
             return w[:nroots], eigfuncs
@@ -254,12 +233,10 @@ def davidsonliu_fqe(
         # the nroots lowest eigenvalues
         for i in range(nroots):
             # expand in the space of all existing guess_vecs
-            subspace_eigvec_expanded = sum(
-                [
-                    v[j, i] * guess_vecs[j].sector(gv_sector).coeff
-                    for j in range(current_num_gv)
-                ]
-            )
+            subspace_eigvec_expanded = sum([
+                v[j, i] * guess_vecs[j].sector(gv_sector).coeff
+                for j in range(current_num_gv)
+            ])
             subspace_eigvec = copy.deepcopy(guess_vecs[0])
             subspace_eigvec.set_wfn(
                 strategy="from_data",
@@ -291,14 +268,11 @@ def davidsonliu_fqe(
                         np.multiply(
                             guess_vecs[idx].get_coeff(gv_sector),
                             f_k.get_coeff(gv_sector),
-                        )
-                    )
-                )
+                        )))
 
             for idx in range(len(guess_vecs)):
                 f_k.sector(gv_sector).coeff -= (
-                    overlaps[idx] * guess_vecs[idx].sector(gv_sector).coeff
-                )
+                    overlaps[idx] * guess_vecs[idx].sector(gv_sector).coeff)
 
             f_k.normalize()
             guess_vecs.append(f_k)
@@ -306,8 +280,12 @@ def davidsonliu_fqe(
     raise ConvergenceError("Maximal number of steps exceeded")
 
 
-def davidson_diagonalization(hamiltonian: fqe.restricted_hamiltonian.RestrictedHamiltonian,
-                             n_alpha: int, n_beta: int, nroots=1, guess_vecs=None):
+def davidson_diagonalization(
+        hamiltonian: fqe.restricted_hamiltonian.RestrictedHamiltonian,
+        n_alpha: int,
+        n_beta: int,
+        nroots=1,
+        guess_vecs=None):
     norb = hamiltonian.dim()  # this should be the num_orbitals
     nele = n_alpha + n_beta
     sz = n_alpha - n_beta
@@ -320,12 +298,10 @@ def davidson_diagonalization(hamiltonian: fqe.restricted_hamiltonian.RestrictedH
         guess_vec2_coeffs = np.zeros((graph.lena(), graph.lenb()))
         alpha_hf = fqe.util.init_bitstring_groundstate(n_alpha)
         beta_hf = fqe.util.init_bitstring_groundstate(n_beta)
-        guess_vec1_coeffs[
-            graph.index_alpha(alpha_hf), graph.index_beta(beta_hf)
-        ] = 1.0
-        guess_vec2_coeffs[
-            graph.index_alpha(alpha_hf << 1), graph.index_beta(beta_hf << 1)
-        ] = 1.0
+        guess_vec1_coeffs[graph.index_alpha(alpha_hf),
+                          graph.index_beta(beta_hf)] = 1.0
+        guess_vec2_coeffs[graph.index_alpha(alpha_hf << 1),
+                          graph.index_beta(beta_hf << 1)] = 1.0
 
         guess_wfn1 = copy.deepcopy(wfn)
         guess_wfn2 = copy.deepcopy(wfn)
@@ -340,10 +316,14 @@ def davidson_diagonalization(hamiltonian: fqe.restricted_hamiltonian.RestrictedH
         guess_vecs = [guess_wfn1, guess_wfn2]
 
     # run FQE-DL
-    dl_w, dl_v = davidsonliu_fqe(
-        hamiltonian, nroots, guess_vecs, nele=nele, sz=sz, norb=norb
-    )
+    dl_w, dl_v = davidsonliu_fqe(hamiltonian,
+                                 nroots,
+                                 guess_vecs,
+                                 nele=nele,
+                                 sz=sz,
+                                 norb=norb)
     return dl_w, dl_v
+
 
 # TODO: Make this a unit test?
 if __name__ == "__main__":
@@ -369,12 +349,10 @@ if __name__ == "__main__":
     beta_hf = fqe.util.init_bitstring_groundstate(2)
     alpha_hf_idx = fqe.util.init_bitstring_groundstate(2)
     beta_hf_idx = fqe.util.init_bitstring_groundstate(2)
-    guess_vec1_coeffs[
-        graph.index_alpha(alpha_hf), graph.index_beta(beta_hf)
-    ] = 1.0
-    guess_vec2_coeffs[
-        graph.index_alpha(alpha_hf << 1), graph.index_beta(beta_hf << 1)
-    ] = 1.0
+    guess_vec1_coeffs[graph.index_alpha(alpha_hf),
+                      graph.index_beta(beta_hf)] = 1.0
+    guess_vec2_coeffs[graph.index_alpha(alpha_hf << 1),
+                      graph.index_beta(beta_hf << 1)] = 1.0
 
     guess_wfn1 = copy.deepcopy(wfn)
     guess_wfn2 = copy.deepcopy(wfn)
@@ -387,9 +365,12 @@ if __name__ == "__main__":
         raw_data={(nele, nalpha - nbeta): guess_vec2_coeffs},
     )
     guess_vecs = [guess_wfn1, guess_wfn2]
-    dl_w, dl_v = davidsonliu_fqe(
-        elec_hamil, 1, guess_vecs, nele=nele, sz=sz, norb=norb
-    )
+    dl_w, dl_v = davidsonliu_fqe(elec_hamil,
+                                 1,
+                                 guess_vecs,
+                                 nele=nele,
+                                 sz=sz,
+                                 norb=norb)
 
     # dummy geometry
     geometry = [["Li", [0, 0, 0], ["H", [0, 0, 1.4]]]]
@@ -409,23 +390,25 @@ if __name__ == "__main__":
     ham_mat = of.get_sparse_operator(of.jordan_wigner(ham_fop)).toarray()
 
     cirq_ci = fqe.to_cirq(wfn)
-    cirq_ci = cirq_ci.reshape((2 ** 12, 1))
+    cirq_ci = cirq_ci.reshape((2**12, 1))
     assert np.isclose(cirq_ci.conj().T @ ham_mat @ cirq_ci, ecalc)
 
     hf_idx = int("111100000000", 2)
     hf_idx2 = int("111001000000", 2)
-    hf_vec = np.zeros((2 ** 12, 1))
-    hf_vec2 = np.zeros((2 ** 12, 1))
+    hf_vec = np.zeros((2**12, 1))
+    hf_vec2 = np.zeros((2**12, 1))
     hf_vec[hf_idx, 0] = 1.0
     hf_vec2[hf_idx2, 0] = 1.0
 
     # scale diagonal so vacuum has non-zero energy
-    ww, vv = davidsonliu(
-        ham_mat + np.eye(ham_mat.shape[0]), 1, guess_vecs=[hf_vec, hf_vec2]
-    )
+    ww, vv = davidsonliu(ham_mat + np.eye(ham_mat.shape[0]),
+                         1,
+                         guess_vecs=[hf_vec, hf_vec2])
     print("full mat DL ", ww.real - 1)
     print("GS Energy ", ecalc.real)
     print("DL-FQE ", dl_w.real)
 
-    dl_w, dl_v = davidson_diagonalization(hamiltonian=elec_hamil, n_alpha=nalpha, n_beta=nbeta)
+    dl_w, dl_v = davidson_diagonalization(hamiltonian=elec_hamil,
+                                          n_alpha=nalpha,
+                                          n_beta=nbeta)
     print("API : ", dl_w.real)

@@ -11,7 +11,6 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
-
 """ fci_graph unit tests
 """
 #pylint: disable=protected-access
@@ -34,10 +33,10 @@ from fqe.fqe_ops.fqe_ops import (
 
 import fqe
 
+
 class FqeControlTest(unittest.TestCase):
     """For Fqe structures
     """
-
 
     def test_fqe_control_dot_vdot(self):
         """Find the dot product of two wavefunctions.
@@ -51,7 +50,6 @@ class FqeControlTest(unittest.TestCase):
         wfn1.normalize()
         self.assertAlmostEqual(fqe.vdot(wfn1, wfn1), 1. + .0j)
 
-
     def test_initialize_new_wavefunctions(self):
         """APply the generated unitary transformation from the fqe namespace
         """
@@ -60,17 +58,11 @@ class FqeControlTest(unittest.TestCase):
         norb = 4
         wfn = fqe.get_wavefunction(nele, m_s, norb)
         self.assertIsInstance(wfn, wavefunction.Wavefunction)
-        multiple = [
-            [4, 0, 4],
-            [4, 2, 4],
-            [3, -3, 4],
-            [1, 1, 4]
-        ]
+        multiple = [[4, 0, 4], [4, 2, 4], [3, -3, 4], [1, 1, 4]]
         wfns = fqe.get_wavefunction_multiple(multiple)
         for wfn in wfns:
             with self.subTest():
                 self.assertIsInstance(wfn, wavefunction.Wavefunction)
-
 
     def test_apply_generated_unitary(self):
         """APply the generated unitary transformation from the fqe namespace
@@ -78,7 +70,8 @@ class FqeControlTest(unittest.TestCase):
         norb = 4
         nele = 3
         time = 0.001
-        ops = FermionOperator('1^ 3^ 5 0', 2.0 - 2.j) + FermionOperator('0^ 5^ 3 1', 2.0 + 2.j)
+        ops = FermionOperator('1^ 3^ 5 0', 2.0 - 2.j) + FermionOperator(
+            '0^ 5^ 3 1', 2.0 + 2.j)
 
         wfn = fqe.get_number_conserving_wavefunction(nele, norb)
         wfn.set_wfn(strategy='random')
@@ -86,7 +79,7 @@ class FqeControlTest(unittest.TestCase):
 
         reference = fqe.apply_generated_unitary(wfn, time, 'taylor', ops)
 
-        h1e = numpy.zeros((2*norb, 2*norb), dtype=numpy.complex128)
+        h1e = numpy.zeros((2 * norb, 2 * norb), dtype=numpy.complex128)
         h2e = hamiltonian_utils.nbody_matrix(ops, norb)
         h2e = hamiltonian_utils.antisymm_two_body(h2e)
         hamil = general_hamiltonian.General(tuple([h1e, h2e]))
@@ -98,7 +91,6 @@ class FqeControlTest(unittest.TestCase):
                 err = linalg.norm(diff)
                 self.assertTrue(err < 1.e-8)
 
-
     def test_cirq_interop(self):
         """Check the transition from a line quibit and back.
         """
@@ -108,7 +100,6 @@ class FqeControlTest(unittest.TestCase):
         wfn = fqe.from_cirq(work, thresh=1.0e-7)
         test = fqe.to_cirq(wfn)
         self.assertTrue(numpy.allclose(test, work))
-
 
     def test_operator_constructors(self):
         """Creation of FQE-operators

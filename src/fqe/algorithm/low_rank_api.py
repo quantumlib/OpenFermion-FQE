@@ -39,13 +39,13 @@ class LowRankTrotter:
     """
 
     def __init__(
-        self,
-        molecule: Optional[MolecularData] = None,
-        oei: Optional[np.ndarray] = None,
-        tei: Optional[np.ndarray] = None,
-        integral_cutoff: Optional[float] = 1.0e-8,
-        basis_cutoff: Optional[float] = 1.0e-8,
-        spin_basis: Optional[bool] = False,
+            self,
+            molecule: Optional[MolecularData] = None,
+            oei: Optional[np.ndarray] = None,
+            tei: Optional[np.ndarray] = None,
+            integral_cutoff: Optional[float] = 1.0e-8,
+            basis_cutoff: Optional[float] = 1.0e-8,
+            spin_basis: Optional[bool] = False,
     ):
         self.molecule = molecule
         self.oei = oei
@@ -103,10 +103,10 @@ class LowRankTrotter:
         return eigenvalues, one_body_squares, one_body_correction
 
     def second_factorization(
-        self,
-        eigenvalues: np.ndarray,
-        one_body_squares: np.ndarray,
-        threshold: Optional[float] = None,
+            self,
+            eigenvalues: np.ndarray,
+            one_body_squares: np.ndarray,
+            threshold: Optional[float] = None,
     ):
         r"""
         Get Givens angles and DiagonalHamiltonian to simulate squared one-body.
@@ -137,11 +137,9 @@ class LowRankTrotter:
                 sdensity_density_matrix,
                 sbasis_change_matrix,
             ) = prepare_one_body_squared_evolution(
-                one_body_squares[j][::2, ::2], spin_basis=False
-            )
+                one_body_squares[j][::2, ::2], spin_basis=False)
             scaled_density_density_matrices.append(
-                np.real(eigenvalues[j]) * sdensity_density_matrix
-            )
+                np.real(eigenvalues[j]) * sdensity_density_matrix)
             basis_change_matrices.append(sbasis_change_matrix)
 
         return scaled_density_density_matrices, basis_change_matrices
@@ -198,23 +196,19 @@ class LowRankTrotter:
         ) = self.second_factorization(eigenvalues, one_body_squares, self.mcut)
 
         trotter_basis_change = [
-            basis_change_matrices[0]
-            @ expm(-1j * delta_t * (self.oei + one_body_correction[::2, ::2]))
+            basis_change_matrices[0] @ expm(
+                -1j * delta_t * (self.oei + one_body_correction[::2, ::2]))
         ]
         time_scaled_rho_rho_matrices = []
 
         for ii in range(len(basis_change_matrices) - 1):
-            trotter_basis_change.append(
-                basis_change_matrices[ii + 1]
-                @ basis_change_matrices[ii].conj().T
-            )
+            trotter_basis_change.append(basis_change_matrices[ii + 1]
+                                        @ basis_change_matrices[ii].conj().T)
             time_scaled_rho_rho_matrices.append(
-                delta_t * scaled_density_density_matrices[ii]
-            )
+                delta_t * scaled_density_density_matrices[ii])
         # get the last element
         time_scaled_rho_rho_matrices.append(
-            delta_t * scaled_density_density_matrices[-1].astype(np.complex128)
-        )
+            delta_t * scaled_density_density_matrices[-1].astype(np.complex128))
         trotter_basis_change.append(basis_change_matrices[ii + 1].conj().T)
 
         return trotter_basis_change, time_scaled_rho_rho_matrices

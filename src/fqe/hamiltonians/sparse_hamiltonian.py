@@ -34,10 +34,10 @@ class SparseHamiltonian(hamiltonian.Hamiltonian):
     """
 
     def __init__(
-        self,
-        operators: Union[FermionOperator, str],
-        conserve_spin: bool = True,
-        e_0: complex = 0.0 + 0.0j,
+            self,
+            operators: Union[FermionOperator, str],
+            conserve_spin: bool = True,
+            e_0: complex = 0.0 + 0.0j,
     ) -> None:
         """Initializes a SparseHamiltonian.
 
@@ -61,8 +61,7 @@ class SparseHamiltonian(hamiltonian.Hamiltonian):
         super().__init__(e_0=e_0)
 
         self._operators: List[
-            Tuple[complex, List[Tuple[int, int]], List[Tuple[int, int]]]
-        ] = []
+            Tuple[complex, List[Tuple[int, int]], List[Tuple[int, int]]]] = []
         self._conserve_spin = conserve_spin
 
         self._rank = 0

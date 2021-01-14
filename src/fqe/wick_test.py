@@ -54,20 +54,21 @@ class TestWick(unittest.TestCase):
 
         h_1 = numpy.zeros_like(out1)
         for i in range(norb):
-            h_1[:, :] += out2[:, i, :, i] / (norb*2 - nele - 1)
+            h_1[:, :] += out2[:, i, :, i] / (norb * 2 - nele - 1)
         self.assertAlmostEqual(numpy.std(out1 + h_1), 0.)
 
         out2a = wick.wick('k l^ i^ j', list(rdms), True)
-        self.assertAlmostEqual(out2a[2, 3, 0, 1], - rdms[1][0, 3, 2, 1])
+        self.assertAlmostEqual(out2a[2, 3, 0, 1], -rdms[1][0, 3, 2, 1])
 
         out3 = wick.wick('k l m i^ j^ n^', list(rdms), True)
         h_2 = numpy.zeros_like(out2)
         for i in range(norb):
-            h_2[:, :, :, :] += out3[:, i, :, :, i, :] / (norb*2 - nele - 2)
+            h_2[:, :, :, :] += out3[:, i, :, :, i, :] / (norb * 2 - nele - 2)
         self.assertAlmostEqual(numpy.std(out2 - h_2), 0.)
 
         out4 = wick.wick('k l m x i^ j^ n^ y^', list(rdms), True)
         h_3 = numpy.zeros_like(out3)
         for i in range(norb):
-            h_3[:, :, :, :, :, :] += out4[:, i, :, :, :, i, :, :] / (norb*2 - nele - 3)
+            h_3[:, :, :, :, :, :] += out4[:, i, :, :, :, i, :, :] / (norb * 2 -
+                                                                     nele - 3)
         self.assertAlmostEqual(numpy.std(out3 + h_3), 0.)

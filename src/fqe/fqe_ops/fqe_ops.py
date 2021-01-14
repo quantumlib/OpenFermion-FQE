@@ -29,9 +29,8 @@ if TYPE_CHECKING:
 class NumberOperator(fqe_operator.FqeOperator):
     """The number operator."""
 
-    def contract(
-        self, brastate: "Wavefunction", ketstate: "Wavefunction"
-    ) -> complex:
+    def contract(self, brastate: "Wavefunction",
+                 ketstate: "Wavefunction") -> complex:
         """Given two wavefunctions, generate the expectation value of the
         operator according to its representation.
 
@@ -56,9 +55,8 @@ class NumberOperator(fqe_operator.FqeOperator):
 class S2Operator(fqe_operator.FqeOperator):
     r"""The :math:`S^2` operator."""
 
-    def contract(
-        self, brastate: "Wavefunction", ketstate: "Wavefunction"
-    ) -> complex:
+    def contract(self, brastate: "Wavefunction",
+                 ketstate: "Wavefunction") -> complex:
         """Given two wavefunctions, generate the expectation value of the
         operator according to its representation.
 
@@ -83,9 +81,8 @@ class S2Operator(fqe_operator.FqeOperator):
 class SzOperator(fqe_operator.FqeOperator):
     r"""The :math:`S_z` operator."""
 
-    def contract(
-        self, brastate: "Wavefunction", ketstate: "Wavefunction"
-    ) -> complex:
+    def contract(self, brastate: "Wavefunction",
+                 ketstate: "Wavefunction") -> complex:
         """Given two wavefunctions, generate the expectation value of the
         operator according to its representation.
 
@@ -113,9 +110,8 @@ class TimeReversalOp(fqe_operator.FqeOperator):
     The program assumes the Kramers-paired storage for the wavefunction.
     """
 
-    def contract(
-        self, brastate: "Wavefunction", ketstate: "Wavefunction"
-    ) -> complex:
+    def contract(self, brastate: "Wavefunction",
+                 ketstate: "Wavefunction") -> complex:
         """Given two wavefunctions, generate the expectation value of the
         operator according to its representation.
 
@@ -130,20 +126,18 @@ class TimeReversalOp(fqe_operator.FqeOperator):
                 if not (nele, nbeta - nalpha) in out._civec.keys():
                     raise ValueError(
                         "The wavefunction space is not closed under "
-                        "time reversal."
-                    )
+                        "time reversal.")
                 sector2 = out._civec[(nele, nbeta - nalpha)]
                 tmp = np.copy(sector.coeff)
-                phase = (-1) ** (nbeta * (nalpha + 1))
-                phase2 = (-1) ** (nalpha * (nbeta + 1))
+                phase = (-1)**(nbeta * (nalpha + 1))
+                phase2 = (-1)**(nalpha * (nbeta + 1))
                 sector.coeff = sector2.coeff.T.conj() * phase2
                 sector2.coeff = tmp.T.conj() * phase
             elif nalpha > nbeta:
                 if not (nele, nbeta - nalpha) in out._civec.keys():
                     raise ValueError(
                         "The wavefunction space is not closed under "
-                        "time reversal."
-                    )
+                        "time reversal.")
             elif nalpha == nbeta:
                 sector.coeff = sector.coeff.T.conj()
         return vdot(brastate, out)

@@ -10358,9 +10358,8 @@ def build_nh_data():
                         h2e[l, k, j, i] = val.conj()
 
     # Rearrange h2e in spin sectors:
-    h2e_rel = np.zeros(
-        (norb_rel, norb_rel, norb_rel, norb_rel), dtype=np.complex128
-    )
+    h2e_rel = np.zeros((norb_rel, norb_rel, norb_rel, norb_rel),
+                       dtype=np.complex128)
     for a in range(2):
         for b in range(2):
             for c in range(2):
@@ -10373,9 +10372,8 @@ def build_nh_data():
                             for k in range(c, norb_rel, 2):
                                 l1 = d * norb
                                 for l in range(d, norb_rel, 2):
-                                    h2e_rel[i1, j1, k1, l1] = (
-                                        -0.5 * h2e[i, k, j, l]
-                                    )
+                                    h2e_rel[i1, j1, k1, l1] = (-0.5 *
+                                                               h2e[i, k, j, l])
                                     l1 += 1
                                 k1 += 1
                             j1 += 1

@@ -68,7 +68,7 @@ def index_queue(dim: int, highest_index: int) -> Deque[Tuple[int, ...]]:
         for i in range(highest_index):
             i_queue.append(tuple([i]))
     else:
-        total = highest_index ** dim - 1
+        total = highest_index**dim - 1
         ticker = [0 for _ in range(dim)]
         i_queue.append(tuple(ticker))
 
@@ -83,9 +83,9 @@ def index_queue(dim: int, highest_index: int) -> Deque[Tuple[int, ...]]:
     return deque(i_queue)
 
 
-def validate_matrix_symmetry(
-    matrix: np.ndarray, symmetry: List[Any], threshold: float = 1.0e-8
-) -> None:
+def validate_matrix_symmetry(matrix: np.ndarray,
+                             symmetry: List[Any],
+                             threshold: float = 1.0e-8) -> None:
     """Go through every element of the matrix and check that the symmetry
     operations are valid up to a threshold.
 
@@ -111,12 +111,9 @@ def validate_matrix_symmetry(
                 ref_value = permu[1] * value
 
             if np.abs(test_value - ref_value) > threshold:
-                raise ValueError(
-                    "Error with symmetry in permutation {} -> {}."
-                    " {} != {}".format(
-                        index, test_index, ref_value, test_value
-                    )
-                )
+                raise ValueError("Error with symmetry in permutation {} -> {}."
+                                 " {} != {}".format(index, test_index,
+                                                    ref_value, test_value))
 
             try:
                 all_index.remove(test_index)

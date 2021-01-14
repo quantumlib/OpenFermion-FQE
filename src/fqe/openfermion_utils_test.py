@@ -11,7 +11,6 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
-
 """Unit tests for openfermion_utils.
 """
 
@@ -38,7 +37,8 @@ class OpenFermionUtilsTest(unittest.TestCase):
         ops = FermionOperator('5^ 4^ 3^ 2^ 1^ 0^', 1.0)
         test = FermionOperator('0^ 1^ 2^ 3^ 4^ 5^', -1.0)
         for key in ops.terms:
-            f_ops = openfermion_utils.ascending_index_order(key, ops.terms[key],
+            f_ops = openfermion_utils.ascending_index_order(key,
+                                                            ops.terms[key],
                                                             order='inorder')
         self.assertEqual(f_ops, test)
 
@@ -82,8 +82,10 @@ class OpenFermionUtilsTest(unittest.TestCase):
     def test_bit_to_fermion_creation_error(self):
         """Bad options for indexes should raise an error
         """
-        self.assertRaises(ValueError, openfermion_utils.bit_to_fermion_creation,
-                          1, spin='around')
+        self.assertRaises(ValueError,
+                          openfermion_utils.bit_to_fermion_creation,
+                          1,
+                          spin='around')
 
     def test_bit_to_fermion_creation_order(self):
         """Return the representation of a bitstring as FermionOperators acting
@@ -101,23 +103,18 @@ class OpenFermionUtilsTest(unittest.TestCase):
         assertDictEqual
         """
 
-
         def _calc_coeff(val):
-            return round(val/numpy.sqrt(30.0), 7) + .0j
+            return round(val / numpy.sqrt(30.0), 7) + .0j
 
         coeff = [
             _calc_coeff(1.0),
             _calc_coeff(2.0),
             _calc_coeff(3.0),
             _calc_coeff(4.0)
-            ]
+        ]
 
-        data = numpy.array([
-            [coeff[0]],
-            [coeff[1]],
-            [coeff[2]],
-            [coeff[3]]
-            ], dtype=numpy.complex128)
+        data = numpy.array([[coeff[0]], [coeff[1]], [coeff[2]], [coeff[3]]],
+                           dtype=numpy.complex128)
 
         test = FermionOperator('0^ 1^', coeff[0])
         test += FermionOperator('0^ 3^', coeff[1])
@@ -125,7 +122,7 @@ class OpenFermionUtilsTest(unittest.TestCase):
         test += FermionOperator('2^ 3^', coeff[3])
         wfn = wavefunction.Wavefunction([[2, 0, 2]])
         data = numpy.reshape(data, (2, 2))
-        passed_data = {(2, 0) : data}
+        passed_data = {(2, 0): data}
         wfn.set_wfn(strategy='from_data', raw_data=passed_data)
         ops = openfermion_utils.fqe_to_fermion_operator(wfn)
         self.assertListEqual(list(ops.terms.keys()), list(test.terms.keys()))
@@ -141,8 +138,8 @@ class OpenFermionUtilsTest(unittest.TestCase):
 
         laddero = openfermion_utils.ladder_op
 
-        q_ops = coeff[0]*laddero(0, 1)*laddero(2, 1)*laddero(1, 1)
-        q_ops += coeff[1]*laddero(2, 1)*laddero(3, 1)*laddero(4, 1)
+        q_ops = coeff[0] * laddero(0, 1) * laddero(2, 1) * laddero(1, 1)
+        q_ops += coeff[1] * laddero(2, 1) * laddero(3, 1) * laddero(4, 1)
         ops = openfermion_utils.convert_qubit_wfn_to_fqe_syntax(q_ops)
         # Test Keys
         self.assertListEqual(list(ops.terms.keys()), list(test.terms.keys()))
@@ -181,9 +178,8 @@ class OpenFermionUtilsTest(unittest.TestCase):
         return the orbitals based on increasing index.
         """
         test_ops = FermionOperator('0^ 1^ 2^ 3^ 4^', 1.0)
-        self.assertEqual(openfermion_utils.determinant_to_ops(7, 3,
-                                                              inorder=True),
-                         test_ops)
+        self.assertEqual(
+            openfermion_utils.determinant_to_ops(7, 3, inorder=True), test_ops)
 
     def test_fci_fermion_operator_representation(self):
         """If we don't already have a wavefunction object to build from we can
@@ -238,11 +234,7 @@ class OpenFermionUtilsTest(unittest.TestCase):
         ops = FermionOperator('0^ 1^', 1. + .0j) + \
               FermionOperator('2^ 5^', 2. + .0j) + \
               FermionOperator('8^ 9^', 3. + .0j)
-        test = [
-            [1, 1, 1. + .0j],
-            [2, 4, 2. + .0j],
-            [16, 16, 3. + .0j]
-            ]
+        test = [[1, 1, 1. + .0j], [2, 4, 2. + .0j], [16, 16, 3. + .0j]]
         result = openfermion_utils.fermion_opstring_to_bitstring(ops)
         for val in result:
             self.assertTrue(val in test)
@@ -271,27 +263,21 @@ class OpenFermionUtilsTest(unittest.TestCase):
         ops3 = FermionOperator('7', 1.0)
         ref23 = [0, 0, 0]
         for term in ops0.terms:
-            self.assertListEqual(ref0,
-                                 list(openfermion_utils.mutate_config(0, 0,
-                                                                      term)))
-            self.assertListEqual(ref0a,
-                                 list(openfermion_utils.mutate_config(1, 0,
-                                                                      term)))
+            self.assertListEqual(
+                ref0, list(openfermion_utils.mutate_config(0, 0, term)))
+            self.assertListEqual(
+                ref0a, list(openfermion_utils.mutate_config(1, 0, term)))
         for term in ops1.terms:
-            self.assertListEqual(ref1,
-                                 list(openfermion_utils.mutate_config(0, 0,
-                                                                      term)))
-            self.assertListEqual(ref1a,
-                                 list(openfermion_utils.mutate_config(0, 8,
-                                                                      term)))
+            self.assertListEqual(
+                ref1, list(openfermion_utils.mutate_config(0, 0, term)))
+            self.assertListEqual(
+                ref1a, list(openfermion_utils.mutate_config(0, 8, term)))
         for term in ops2.terms:
-            self.assertListEqual(ref23,
-                                 list(openfermion_utils.mutate_config(0, 0,
-                                                                      term)))
+            self.assertListEqual(
+                ref23, list(openfermion_utils.mutate_config(0, 0, term)))
         for term in ops3.terms:
-            self.assertListEqual(ref23,
-                                 list(openfermion_utils.mutate_config(0, 0,
-                                                                      term)))
+            self.assertListEqual(
+                ref23, list(openfermion_utils.mutate_config(0, 0, term)))
 
     def test_mutate_config_alpha_beta_order(self):
         """Any beta operator must commute with all alpha operators before it
@@ -302,13 +288,11 @@ class OpenFermionUtilsTest(unittest.TestCase):
         ref1 = [9, 0, 1]
         ops1 = FermionOperator('7', 1.0)
         for term in ops0.terms:
-            self.assertListEqual(ref0,
-                                 list(openfermion_utils.mutate_config(1, 0,
-                                                                      term)))
+            self.assertListEqual(
+                ref0, list(openfermion_utils.mutate_config(1, 0, term)))
         for term in ops1.terms:
-            self.assertListEqual(ref1,
-                                 list(openfermion_utils.mutate_config(9, 8,
-                                                                      term)))
+            self.assertListEqual(
+                ref1, list(openfermion_utils.mutate_config(9, 8, term)))
 
     def test_mutate_config_operator_order(self):
         """Bare configurations have no affliated sign and so for the parity to
@@ -321,13 +305,11 @@ class OpenFermionUtilsTest(unittest.TestCase):
         ref1 = [29, 0, -1]
         ops1 = FermionOperator('2 8^', 1.0)
         for term in ops0.terms:
-            self.assertListEqual(ref0,
-                                 list(openfermion_utils.mutate_config(15, 0,
-                                                                      term)))
+            self.assertListEqual(
+                ref0, list(openfermion_utils.mutate_config(15, 0, term)))
         for term in ops1.terms:
-            self.assertListEqual(ref1,
-                                 list(openfermion_utils.mutate_config(15, 0,
-                                                                      term)))
+            self.assertListEqual(
+                ref1, list(openfermion_utils.mutate_config(15, 0, term)))
 
     def test_mutate_config_operator_order_with_beta(self):
         """Same test as before but now we create a beta electron inbetween to
@@ -338,13 +320,11 @@ class OpenFermionUtilsTest(unittest.TestCase):
         ref1 = [29, 1, 1]
         ops1 = FermionOperator('2 1^ 8^', 1.0)
         for term in ops0.terms:
-            self.assertListEqual(ref0,
-                                 list(openfermion_utils.mutate_config(15, 0,
-                                                                      term)))
+            self.assertListEqual(
+                ref0, list(openfermion_utils.mutate_config(15, 0, term)))
         for term in ops1.terms:
-            self.assertListEqual(ref1,
-                                 list(openfermion_utils.mutate_config(15, 0,
-                                                                      term)))
+            self.assertListEqual(
+                ref1, list(openfermion_utils.mutate_config(15, 0, term)))
 
     def test_update_operator_coeff(self):
         """Update the coefficients of an operator string
@@ -353,7 +333,7 @@ class OpenFermionUtilsTest(unittest.TestCase):
         test = FermionOperator('1^', 1. + .0j)
         ops = FermionOperator('1^', 1. + .0j)
         for i in range(2, 7):
-            ops += FermionOperator(str(i) + '^', i*(1. + .0j))
+            ops += FermionOperator(str(i) + '^', i * (1. + .0j))
             test += FermionOperator(str(i) + '^', 1. + .0j)
 
         openfermion_utils.update_operator_coeff(ops, coeff)
@@ -386,8 +366,10 @@ class OpenFermionUtilsTest(unittest.TestCase):
         geometry = [['Li', [0, 0, 0], ['H', [0, 0, 1.4]]]]
         charge = 0
         multiplicity = 1
-        molecule = MolecularData(geometry=geometry, basis='sto-3g',
-                                 charge=charge, multiplicity=multiplicity)
+        molecule = MolecularData(geometry=geometry,
+                                 basis='sto-3g',
+                                 charge=charge,
+                                 multiplicity=multiplicity)
         molecule.one_body_integrals = h1e
         molecule.two_body_integrals = numpy.einsum('ijlk', -2 * h2e)
         molecule.nuclear_repulsion = 0

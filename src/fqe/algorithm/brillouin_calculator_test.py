@@ -25,15 +25,11 @@ import fqe
 from fqe.unittest_data.generate_openfermion_molecule import (
     build_lih_moleculardata, build_h4square_moleculardata)
 
-from fqe.algorithm.brillouin_calculator import (get_tpdm_grad_fqe_parallel,
-                                                get_tpdm_grad_fqe,
-                                                get_acse_residual_fqe_parallel,
-                                                get_acse_residual_fqe,
-                                                get_fermion_op,
-                                                two_rdo_commutator,
-                                                two_rdo_commutator_symm,
-                                                two_rdo_commutator_antisymm,
-                                                one_rdo_commutator_symm)
+from fqe.algorithm.brillouin_calculator import (
+    get_tpdm_grad_fqe_parallel, get_tpdm_grad_fqe,
+    get_acse_residual_fqe_parallel, get_acse_residual_fqe, get_fermion_op,
+    two_rdo_commutator, two_rdo_commutator_symm, two_rdo_commutator_antisymm,
+    one_rdo_commutator_symm)
 
 try:
     from joblib import Parallel, delayed
@@ -45,47 +41,52 @@ except ImportError:
 
 def get_acse_residual(wf, hammat, nso):
     """Testing utilities"""
-    adag = [of.get_sparse_operator(of.FermionOperator(((x, 1))), n_qubits=nso)
-            for x in range(nso)]
+    adag = [
+        of.get_sparse_operator(of.FermionOperator(((x, 1))), n_qubits=nso)
+        for x in range(nso)
+    ]
     alow = [op.conj().T for op in adag]
     acse_residual = np.zeros((nso, nso, nso, nso), dtype=np.complex128)
     for p, q, r, s in product(range(nso), repeat=4):
         rdo = adag[p] @ adag[q] @ alow[r] @ alow[s]
-        acse_residual[p, q, r, s] = wf.conj().T @ (
-                    rdo @ hammat - hammat @ rdo) @ wf
+        acse_residual[p, q, r, s] = wf.conj().T @ (rdo @ hammat -
+                                                   hammat @ rdo) @ wf
     return acse_residual
 
 
 def get_one_body_acse_residual(wf, hammat, nso):
     """Testing utilities"""
-    adag = [of.get_sparse_operator(of.FermionOperator(((x, 1))), n_qubits=nso)
-            for x in range(nso)]
+    adag = [
+        of.get_sparse_operator(of.FermionOperator(((x, 1))), n_qubits=nso)
+        for x in range(nso)
+    ]
     alow = [op.conj().T for op in adag]
     acse_residual = np.zeros((nso, nso), dtype=np.complex128)
     for p, q in product(range(nso), repeat=2):
         rdo = adag[p] @ alow[q]
-        acse_residual[p, q] = wf.conj().T @ (
-                    rdo @ hammat - hammat @ rdo) @ wf
+        acse_residual[p, q] = wf.conj().T @ (rdo @ hammat - hammat @ rdo) @ wf
     return acse_residual
 
 
 def get_tpdm_grad(wf, acse_res, nso):
     """Testing utilities"""
-    adag = [of.get_sparse_operator(of.FermionOperator(((x, 1))), n_qubits=nso)
-            for x in range(nso)]
+    adag = [
+        of.get_sparse_operator(of.FermionOperator(((x, 1))), n_qubits=nso)
+        for x in range(nso)
+    ]
     alow = [op.conj().T for op in adag]
     acse_residual = np.zeros((nso, nso, nso, nso), dtype=np.complex128)
     for p, q, r, s in product(range(nso), repeat=4):
         rdo = adag[p] @ adag[q] @ alow[r] @ alow[s]
-        acse_residual[p, q, r, s] = wf.conj().T @ (
-                    rdo @ acse_res - acse_res @ rdo) @ wf
+        acse_residual[p, q, r, s] = wf.conj().T @ (rdo @ acse_res -
+                                                   acse_res @ rdo) @ wf
     return acse_residual
 
 
 def get_particle_projected(wf, n_target):
     """Testing Utility"""
     dim = int(np.log2(wf.shape[0]))
-    for ii in range(2 ** dim):
+    for ii in range(2**dim):
         ket = [int(x) for x in np.binary_repr(ii, width=dim)]
         if sum(ket) != n_target:
             wf[ii, 0] = 0
@@ -94,7 +95,7 @@ def get_particle_projected(wf, n_target):
 
 
 def get_random_wf(n_qubits):
-    wf = np.random.randn(2 ** n_qubits) + 1j * np.random.randn(2 ** n_qubits)
+    wf = np.random.randn(2**n_qubits) + 1j * np.random.randn(2**n_qubits)
     wf /= np.linalg.norm(wf)
     assert np.isclose(wf.conj().T @ wf, 1)
     return wf.reshape((-1, 1))
@@ -115,8 +116,8 @@ def test_get_acse_residual_fqe():
     assert np.allclose(true_acse_residual, test_acse_residual)
 
     if PARALLELIZABLE:
-        test_acse_residual = get_acse_residual_fqe_parallel(fqe_wf, elec_ham,
-                                                            sdim)
+        test_acse_residual = get_acse_residual_fqe_parallel(
+            fqe_wf, elec_ham, sdim)
         assert np.allclose(true_acse_residual, test_acse_residual)
 
 
@@ -136,8 +137,8 @@ def test_get_acse_residual_fqe_lih():
     assert np.allclose(true_acse_residual, test_acse_residual)
 
     if PARALLELIZABLE:
-        test_acse_residual = get_acse_residual_fqe_parallel(fqe_wf, elec_ham,
-                                                            sdim)
+        test_acse_residual = get_acse_residual_fqe_parallel(
+            fqe_wf, elec_ham, sdim)
         assert np.allclose(true_acse_residual, test_acse_residual)
 
 
@@ -204,8 +205,7 @@ def test_get_acse_residual_rdm():
     oei, tei = molecule.get_integrals()
     soei, stei = spinorb_from_spatial(oei, tei)
     astei = np.einsum('ijkl', stei) - np.einsum('ijlk', stei)
-    molecular_hamiltonian = of.InteractionOperator(
-        0, soei, 0.25 * astei)
+    molecular_hamiltonian = of.InteractionOperator(0, soei, 0.25 * astei)
     reduced_ham = of.make_reduced_hamiltonian(molecular_hamiltonian,
                                               molecule.n_electrons)
 

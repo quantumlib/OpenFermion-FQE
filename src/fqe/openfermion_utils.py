@@ -11,7 +11,6 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
-
 """Utilities which specifically require import from OpernFermion
 """
 
@@ -56,7 +55,6 @@ def ascending_index_order(ops: 'FermionOperator',
 
     ilist = []
 
-
     if order == 'inorder':
         for term in ops:
             ilist.append(term[0])
@@ -82,12 +80,11 @@ def ascending_index_order(ops: 'FermionOperator',
             ops *= FermionOperator(str(i) + '^', 1.0)
         for i in betl:
             ops *= FermionOperator(str(i) + '^', 1.0)
-    return coeff*ops*(-1.0 + 0.0j)**nperm
+    return coeff * ops * (-1.0 + 0.0j)**nperm
 
 
-def bit_to_fermion_creation(
-    string: int, spin: Optional[str] = None
-) -> Union[None, 'FermionOperator']:
+def bit_to_fermion_creation(string: int, spin: Optional[str] = None
+                           ) -> Union[None, 'FermionOperator']:
     """Convert an occupation bitstring representation for a single spin case
     into openfermion operators
 
@@ -102,11 +99,13 @@ def bit_to_fermion_creation(
     """
     ops = None
     if string != 0:
+
         def _index_parser(spin):
             if spin is None:
 
                 def _spinless_index(i):
                     return i
+
                 return _spinless_index
 
             if spin.lower() == 'a' or spin.lower() == 'up':
@@ -138,7 +137,7 @@ def fqe_to_fermion_operator(wfn: 'Wavefunction') -> 'FermionOperator':
     for key in wfn.sectors():
         sector = wfn.sector(key)
         for alpha, beta, coeffcient in sector.generator():
-            ops += coeffcient*determinant_to_ops(alpha, beta)
+            ops += coeffcient * determinant_to_ops(alpha, beta)
             if numpy.isclose(coeffcient, 0):
                 continue
     return ops
@@ -162,7 +161,8 @@ def convert_qubit_wfn_to_fqe_syntax(ops: 'QubitOperator') -> 'FermionOperator':
     return out
 
 
-def determinant_to_ops(a_str: int, b_str: int, inorder: bool = False) -> 'FermionOperator':
+def determinant_to_ops(a_str: int, b_str: int,
+                       inorder: bool = False) -> 'FermionOperator':
     """Given the alpha and beta occupation strings return, a fermion operator
     which would produce that state when acting on the vacuum.
 
@@ -191,7 +191,8 @@ def determinant_to_ops(a_str: int, b_str: int, inorder: bool = False) -> 'Fermio
         return bit_to_fermion_creation(occ)  # type: ignore
 
     a_up: FermionOperator = bit_to_fermion_creation(a_str, 'up')  # type: ignore
-    b_down: FermionOperator = bit_to_fermion_creation(b_str, 'down')  # type: ignore
+    b_down: FermionOperator = bit_to_fermion_creation(b_str,
+                                                      'down')  # type: ignore
 
     if a_str == 0:
         return b_down
@@ -202,8 +203,7 @@ def determinant_to_ops(a_str: int, b_str: int, inorder: bool = False) -> 'Fermio
     return a_up * b_down
 
 
-def fci_fermion_operator_representation(norb: int,
-                                        nele: int,
+def fci_fermion_operator_representation(norb: int, nele: int,
                                         m_s: int) -> 'FermionOperator':
     """Generate the Full Configuration interaction wavefunction in the
     openfermion FermionOperator representation with coefficients of 1.0.
@@ -230,9 +230,7 @@ def fci_fermion_operator_representation(norb: int,
     return ops - FermionOperator('', 1.0)
 
 
-def fci_qubit_representation(norb: int,
-                             nele: int,
-                             m_s: int) -> 'QubitOperator':
+def fci_qubit_representation(norb: int, nele: int, m_s: int) -> 'QubitOperator':
     """Create the qubit representation of Full CI according to the parameters
     passed
 
@@ -265,9 +263,9 @@ def fermion_operator_to_bitstring(term: 'FermionOperator') -> Tuple[int, int]:
     downstring = 0
     for ops in term:
         if ops[0] % 2 == 0:
-            upstring += 2**(ops[0]//2)
+            upstring += 2**(ops[0] // 2)
         else:
-            downstring += 2**((ops[0]-1)//2)
+            downstring += 2**((ops[0] - 1) // 2)
     return upstring, downstring
 
 
@@ -328,14 +326,13 @@ def ladder_op(ind: int, step: int):
     ystr = 'Y' + str(ind)
     op_ = QubitOperator(xstr, 1. +.0j) + \
             ((-1)**step)*QubitOperator(ystr, 0. + 1.j)
-    zstr = QubitOperator('', 1. +.0j)
+    zstr = QubitOperator('', 1. + .0j)
     for i in range(ind):
-        zstr *= QubitOperator('Z' + str(i), 1. +.0j)
-    return zstr*op_/2.0
+        zstr *= QubitOperator('Z' + str(i), 1. + .0j)
+    return zstr * op_ / 2.0
 
 
-def mutate_config(stra: int,
-                  strb: int,
+def mutate_config(stra: int, strb: int,
                   term: Tuple[Tuple[int, int]]) -> Tuple[int, int, int]:
     """Apply creation and annihilation operators to a configuration in the
     bitstring representation and return the new configuration and the parity.
@@ -358,39 +355,39 @@ def mutate_config(stra: int,
     for ops in reversed(term):
         if ops[0] % 2:
             abits = count_bits(newa)
-            indx = (ops[0] - 1)//2
+            indx = (ops[0] - 1) // 2
             if ops[1] == 1:
                 if newb & 2**indx:
-#                    return -1, -1, 0
+                    #                    return -1, -1, 0
                     return stra, strb, 0
 
                 newb += 2**indx
             else:
                 if not newb & 2**indx:
-#                    return -1, -1, 0
+                    #                    return -1, -1, 0
                     return stra, strb, 0
 
                 newb -= 2**indx
 
-            lowbit = (1<<(indx)) - 1
+            lowbit = (1 << (indx)) - 1
             parity *= (-1)**(count_bits(lowbit & newb) + abits)
 
         else:
-            indx = ops[0]//2
+            indx = ops[0] // 2
             if ops[1] == 1:
                 if newa & 2**indx:
-#                    return -1, -1, 0
+                    #                    return -1, -1, 0
                     return stra, strb, 0
 
                 newa += 2**indx
             else:
                 if not newa & 2**indx:
-#                    return -1, -1, 0
+                    #                    return -1, -1, 0
                     return stra, strb, 0
 
                 newa -= 2**indx
 
-            lowbit = (1<<(indx)) - 1
+            lowbit = (1 << (indx)) - 1
             parity *= (-1)**count_bits(lowbit & newa)
 
     return newa, newb, parity
@@ -435,11 +432,11 @@ def update_operator_coeff(operators: 'SymbolicOperator',
         nothing - mutates coeff in place
     """
     for ops, val in zip(operators.terms, coeff):
-        operators.terms[ops] = 1.0*val
+        operators.terms[ops] = 1.0 * val
 
 
-def molecular_data_to_restricted_fqe_op(
-        molecule: MolecularData) -> RestrictedHamiltonian:
+def molecular_data_to_restricted_fqe_op(molecule: MolecularData
+                                       ) -> RestrictedHamiltonian:
     """
     Convert an OpenFermion MolecularData object to a FQE Hamiltonian
 

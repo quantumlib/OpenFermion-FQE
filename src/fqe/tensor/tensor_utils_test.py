@@ -153,19 +153,17 @@ def test_index_queue():
     test = deque([tuple([i]) for i in range(10)])
     assert test == tensor_utils.index_queue(1, 10)
 
-    test = deque(
-        [
-            (0, 0),
-            (0, 1),
-            (0, 2),
-            (1, 0),
-            (1, 1),
-            (1, 2),
-            (2, 0),
-            (2, 1),
-            (2, 2),
-        ]
-    )
+    test = deque([
+        (0, 0),
+        (0, 1),
+        (0, 2),
+        (1, 0),
+        (1, 1),
+        (1, 2),
+        (2, 0),
+        (2, 1),
+        (2, 2),
+    ])
 
     assert test == tensor_utils.index_queue(2, 3)
 

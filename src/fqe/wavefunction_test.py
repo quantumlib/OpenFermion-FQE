@@ -44,14 +44,14 @@ class WavefunctionTest(unittest.TestCase):
     """Unit tests
     """
 
-
     def test_init_exceptions(self):
         """Check that wavefunction throws the proper errors when an incorrect
         initialization is passed.
         """
         self.assertRaises(TypeError, Wavefunction, broken=['spin', 'number'])
-        self.assertRaises(ValueError, Wavefunction, param=[[0, 0, 2], [0, 0, 4]])
-
+        self.assertRaises(ValueError,
+                          Wavefunction,
+                          param=[[0, 0, 2], [0, 0, 4]])
 
     def test_general_exceptions(self):
         """Test general method exceptions
@@ -64,7 +64,6 @@ class WavefunctionTest(unittest.TestCase):
         self.assertRaises(ValueError, test1.__add__, test2)
         self.assertRaises(ValueError, test1.__sub__, test2)
         self.assertRaises(ValueError, test1.set_wfn, strategy='from_data')
-
 
     def test_general_functions(self):
         """Test general wavefunction members
@@ -81,22 +80,21 @@ class WavefunctionTest(unittest.TestCase):
         test1.set_wfn(strategy='ones')
         test2.set_wfn(strategy='ones')
         work = test1 + test2
-        ref = 2.0*numpy.ones((4, 4), dtype=numpy.complex128)
+        ref = 2.0 * numpy.ones((4, 4), dtype=numpy.complex128)
         self.assertTrue(numpy.allclose(ref, work._civec[(2, 0)].coeff))
         work = test1 - test2
         ref = numpy.zeros((4, 4), dtype=numpy.complex128)
         self.assertTrue(numpy.allclose(ref, work._civec[(2, 0)].coeff))
 
-
     def test_apply_number(self):
         norb = 4
         test = numpy.random.rand(norb, norb)
-        diag = numpy.random.rand(norb*2)
+        diag = numpy.random.rand(norb * 2)
         diag2 = copy.deepcopy(diag)
         e_0 = 0
         for i in range(norb):
             e_0 += diag[i + norb]
-            diag2[i + norb] = - diag[i + norb]
+            diag2[i + norb] = -diag[i + norb]
         hamil = diagonal_hamiltonian.Diagonal(diag2, e_0=e_0)
         hamil._conserve_number = False
         wfn = Wavefunction([[4, 2, norb]], broken=['number'])
@@ -108,27 +106,26 @@ class WavefunctionTest(unittest.TestCase):
         wfn.set_wfn(strategy='from_data', raw_data={(4, 2): test})
         out2 = wfn.apply(hamil)
 
-        self.assertTrue(numpy.allclose(out1._civec[(4, 2)].coeff,
-                                       out2._civec[(4, 2)].coeff))
-
+        self.assertTrue(
+            numpy.allclose(out1._civec[(4, 2)].coeff,
+                           out2._civec[(4, 2)].coeff))
 
     def test_apply_type_error(self):
         data = numpy.zeros((2, 2), dtype=numpy.complex128)
         wfn = Wavefunction([[2, 0, 2]], broken=['spin'])
-        hamil = general_hamiltonian.General((data, ))
+        hamil = general_hamiltonian.General((data,))
         hamil._conserve_number = False
         self.assertRaises(TypeError, wfn.apply, hamil)
         self.assertRaises(TypeError, wfn.time_evolve, 0.1, hamil)
 
         wfn = Wavefunction([[2, 0, 2]], broken=['number'])
-        hamil = general_hamiltonian.General((data, ))
+        hamil = general_hamiltonian.General((data,))
         self.assertRaises(TypeError, wfn.apply, hamil)
         self.assertRaises(TypeError, wfn.time_evolve, 0.1, hamil)
 
         wfn = Wavefunction([[2, 0, 2]])
         hamil = get_restricted_hamiltonian((data,))
         self.assertRaises(ValueError, wfn.time_evolve, 0.1, hamil, True)
-
 
     def test_apply_individual_nbody_error(self):
         fop = FermionOperator('1^ 0')
@@ -156,7 +153,6 @@ class WavefunctionTest(unittest.TestCase):
 
         self.assertRaises(TypeError, wfn._evolve_individual_nbody, 0.1, 1)
 
-
     def test_apply_diagonal(self):
         wfn = Wavefunction([[2, 0, 2]])
         wfn.set_wfn(strategy='random')
@@ -170,7 +166,6 @@ class WavefunctionTest(unittest.TestCase):
         out2 = wfn._apply_diagonal(hamil)
         out2.ax_plus_y(-fac, wfn)
         self.assertTrue((out1 - out2).norm() < 1.0e-8)
-
 
     def test_apply_nbody(self):
         wfn = Wavefunction([[2, 0, 2]])
@@ -187,7 +182,6 @@ class WavefunctionTest(unittest.TestCase):
         out2.scale(-1.0)
         out2.ax_plus_y(fac, wfn)
         self.assertTrue((out1 - out2).norm() < 1.0e-8)
-
 
     def test_rdm(self):
         """Check that the rdms will properly return the energy
@@ -211,11 +205,9 @@ class WavefunctionTest(unittest.TestCase):
         expval += numpy.tensordot(h4e, rdm4, axes=(axes, axes))
         self.assertAlmostEqual(expval, energy)
 
-
     def test_expectation_value_type_error(self):
         wfn = Wavefunction([[4, 0, 4]])
         self.assertRaises(TypeError, wfn.expectationValue, 1)
-
 
     def test_save_read(self):
         """Check that the wavefunction can be properly archived and
@@ -228,7 +220,9 @@ class WavefunctionTest(unittest.TestCase):
         read_wfn = Wavefunction()
         read_wfn.read('test_save_read')
         for key in read_wfn.sectors():
-            self.assertTrue(numpy.allclose(read_wfn._civec[key].coeff, wfn._civec[key].coeff))
+            self.assertTrue(
+                numpy.allclose(read_wfn._civec[key].coeff,
+                               wfn._civec[key].coeff))
         self.assertEqual(read_wfn._symmetry_map, wfn._symmetry_map)
         self.assertEqual(read_wfn._conserved, wfn._conserved)
         self.assertEqual(read_wfn._conserve_spin, wfn._conserve_spin)
@@ -243,7 +237,9 @@ class WavefunctionTest(unittest.TestCase):
         read_wfn = Wavefunction()
         read_wfn.read('test_save_read')
         for key in read_wfn.sectors():
-            self.assertTrue(numpy.allclose(read_wfn._civec[key].coeff, wfn._civec[key].coeff))
+            self.assertTrue(
+                numpy.allclose(read_wfn._civec[key].coeff,
+                               wfn._civec[key].coeff))
         self.assertEqual(read_wfn._symmetry_map, wfn._symmetry_map)
         self.assertEqual(read_wfn._conserved, wfn._conserved)
         self.assertEqual(read_wfn._conserve_spin, wfn._conserve_spin)
@@ -251,7 +247,6 @@ class WavefunctionTest(unittest.TestCase):
         self.assertEqual(read_wfn._norb, wfn._norb)
 
         os.remove('test_save_read')
-
 
     def test_wavefunction_print(self):
         """Check printing routine for the wavefunction.

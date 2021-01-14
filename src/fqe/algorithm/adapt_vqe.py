@@ -11,7 +11,6 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
-
 """Infrastructure for ADAPT VQE algorithm"""
 from typing import List, Tuple, Union
 import copy
@@ -21,8 +20,10 @@ import numpy as np
 import scipy as sp
 
 import openfermion as of
-from openfermion import (make_reduced_hamiltonian,
-                         InteractionOperator, )
+from openfermion import (
+    make_reduced_hamiltonian,
+    InteractionOperator,
+)
 from openfermion.chem.molecular_data import spinorb_from_spatial
 
 from fqe.hamiltonians.restricted_hamiltonian import RestrictedHamiltonian
@@ -38,6 +39,7 @@ from fqe.wavefunction import Wavefunction
 
 
 class OperatorPool:
+
     def __init__(self, norbs: int, occ: List[int], virt: List[int]):
         """
         Routines for defining operator pools
@@ -124,11 +126,18 @@ class OperatorPool:
 
 
 class ADAPT:
-    def __init__(self, oei: np.ndarray, tei: np.ndarray, operator_pool,
-                 n_alpha: int, n_beta: int,
-                 iter_max=30, verbose=True, stopping_epsilon=1.0E-3,
 
-                 ):
+    def __init__(
+            self,
+            oei: np.ndarray,
+            tei: np.ndarray,
+            operator_pool,
+            n_alpha: int,
+            n_beta: int,
+            iter_max=30,
+            verbose=True,
+            stopping_epsilon=1.0E-3,
+    ):
         """
         ADAPT-VQE object.
 
@@ -144,13 +153,10 @@ class ADAPT:
             stopping_epsilon: define the <[G, H]> value that triggers stopping
 
         """
-        elec_hamil = RestrictedHamiltonian(
-            (oei, np.einsum("ijlk", -0.5 * tei))
-        )
+        elec_hamil = RestrictedHamiltonian((oei, np.einsum("ijlk", -0.5 * tei)))
         soei, stei = spinorb_from_spatial(oei, tei)
         astei = np.einsum('ijkl', stei) - np.einsum('ijlk', stei)
-        molecular_hamiltonian = InteractionOperator(
-            0, soei, 0.25 * astei)
+        molecular_hamiltonian = InteractionOperator(0, soei, 0.25 * astei)
 
         reduced_ham = make_reduced_hamiltonian(molecular_hamiltonian,
                                                n_alpha + n_beta)
@@ -167,10 +173,11 @@ class ADAPT:
         self.operator_pool = operator_pool
         self.stopping_eps = stopping_epsilon
 
-    def vbc(self, initial_wf: Wavefunction, update_rank=None,
-            opt_method: str='L-BFGS-B',
-            num_opt_var=None
-            ):
+    def vbc(self,
+            initial_wf: Wavefunction,
+            update_rank=None,
+            opt_method: str = 'L-BFGS-B',
+            num_opt_var=None):
         """The variational Brillouin condition method
 
         Solve for the 2-body residual and then variationally determine
@@ -206,8 +213,7 @@ class ADAPT:
             d3 = wf.sector((self.nele, self.sz)).get_three_pdm()
             # get ACSE Residual and 2-RDM gradient
             acse_residual = two_rdo_commutator_symm(
-                self.reduced_ham.two_body_tensor, tpdm,
-                d3)
+                self.reduced_ham.two_body_tensor, tpdm, d3)
 
             if update_rank:
                 if update_rank % 2 != 0:
@@ -218,7 +224,8 @@ class ADAPT:
                     new_residual[p, q, r, s] = (acse_residual[p, q, r, s] -
                                                 acse_residual[s, r, q, p]) / 2
 
-                ul, vl, _ = doubles_factorization(new_residual, eig_cutoff=update_rank)
+                ul, vl, _ = doubles_factorization(new_residual,
+                                                  eig_cutoff=update_rank)
 
                 lr_new_residual = np.zeros_like(new_residual)
                 for p, q, r, s in product(range(nso), repeat=4):
@@ -240,7 +247,8 @@ class ADAPT:
                 fop = get_fermion_op(acse_residual)
 
             operator_pool.append(fop)
-            fqe_op = build_hamiltonian(1j * fop, self.sdim,
+            fqe_op = build_hamiltonian(1j * fop,
+                                       self.sdim,
                                        conserve_number=True)
             operator_pool_fqe.append(fqe_op)
             existing_parameters.append(0)
@@ -254,26 +262,27 @@ class ADAPT:
                     pool_to_op = operator_pool_fqe[-self.num_opt_var:]
                     params_to_op = existing_parameters[-self.num_opt_var:]
                     current_wf = copy.deepcopy(initial_wf)
-                    for fqe_op, coeff in zip(operator_pool_fqe[:-self.num_opt_var],
-                                             existing_parameters[:-self.num_opt_var]):
+                    for fqe_op, coeff in zip(
+                            operator_pool_fqe[:-self.num_opt_var],
+                            existing_parameters[:-self.num_opt_var]):
                         current_wf = current_wf.time_evolve(coeff, fqe_op)
                     # print("partial Eval iterate energy ", current_wf.expectationValue(self.elec_hamil))
                     temp_cwf = copy.deepcopy(current_wf)
                     for fqe_op, coeff in zip(pool_to_op, params_to_op):
                         temp_cwf = temp_cwf.time_evolve(coeff, fqe_op)
 
-                new_parameters, current_e = self.optimize_param(pool_to_op,
-                                                     params_to_op,
-                                                     current_wf, opt_method)
+                new_parameters, current_e = self.optimize_param(
+                    pool_to_op, params_to_op, current_wf, opt_method)
 
                 if len(operator_pool_fqe) < self.num_opt_var:
                     existing_parameters = new_parameters.tolist()
                 else:
-                    existing_parameters[-self.num_opt_var:] = new_parameters.tolist()
+                    existing_parameters[-self.
+                                        num_opt_var:] = new_parameters.tolist()
             else:
-                new_parameters, current_e = self.optimize_param(operator_pool_fqe,
-                                                     existing_parameters,
-                                                     initial_wf, opt_method)
+                new_parameters, current_e = self.optimize_param(
+                    operator_pool_fqe, existing_parameters, initial_wf,
+                    opt_method)
                 existing_parameters = new_parameters.tolist()
 
             if self.verbose:
@@ -284,8 +293,7 @@ class ADAPT:
                 break
             iteration += 1
 
-    def adapt_vqe(self, initial_wf: Wavefunction,
-                  opt_method: str='L-BFGS-B'):
+    def adapt_vqe(self, initial_wf: Wavefunction, opt_method: str = 'L-BFGS-B'):
         """
         Run ADAPT-VQE using
 
@@ -310,8 +318,7 @@ class ADAPT:
             d3 = wf.sector((self.nele, self.sz)).get_three_pdm()
             # get ACSE Residual and 2-RDM gradient
             acse_residual = two_rdo_commutator_symm(
-                self.reduced_ham.two_body_tensor, tpdm,
-                d3)
+                self.reduced_ham.two_body_tensor, tpdm, d3)
             one_body_residual = one_rdo_commutator_symm(
                 self.reduced_ham.two_body_tensor, tpdm)
 
@@ -330,15 +337,14 @@ class ADAPT:
             max_grad_term_idx = np.argmax(np.abs(pool_grad))
             operator_pool.append(self.operator_pool.op_pool[max_grad_term_idx])
             fqe_op = build_hamiltonian(
-                1j * self.operator_pool.op_pool[max_grad_term_idx], self.sdim,
+                1j * self.operator_pool.op_pool[max_grad_term_idx],
+                self.sdim,
                 conserve_number=True)
             operator_pool_fqe.append(fqe_op)
             existing_parameters.append(0)
 
-
-            new_parameters, current_e = self.optimize_param(operator_pool_fqe,
-                                                 existing_parameters,
-                                                 initial_wf, opt_method)
+            new_parameters, current_e = self.optimize_param(
+                operator_pool_fqe, existing_parameters, initial_wf, opt_method)
             existing_parameters = new_parameters.tolist()
             if self.verbose:
                 print(iteration, current_e, max(np.abs(pool_grad)))
@@ -348,11 +354,10 @@ class ADAPT:
                 break
             iteration += 1
 
-    def optimize_param(self, pool: Union[
-        List[of.FermionOperator], List[ABCHamiltonian]],
-                       existing_params: Union[List, np.ndarray],
-                       initial_wf: Wavefunction,
-                       opt_method: str) -> Tuple[np.ndarray, float]:
+    def optimize_param(
+            self, pool: Union[List[of.FermionOperator], List[ABCHamiltonian]],
+            existing_params: Union[List, np.ndarray], initial_wf: Wavefunction,
+            opt_method: str) -> Tuple[np.ndarray, float]:
         """Optimize a wavefunction given a list of generators
 
         Args:
@@ -361,6 +366,7 @@ class ADAPT:
             initial_wf: initial wavefunction
             opt_method: Scpy.optimize method
         """
+
         def cost_func(params):
             assert len(params) == len(pool)
             # compute wf for function call
@@ -371,7 +377,8 @@ class ADAPT:
                 if isinstance(op, ABCHamiltonian):
                     fqe_op = op
                 else:
-                    fqe_op = build_hamiltonian(1j * op, self.sdim,
+                    fqe_op = build_hamiltonian(1j * op,
+                                               self.sdim,
                                                conserve_number=True)
                 wf = wf.time_evolve(coeff, fqe_op)
 
@@ -384,7 +391,8 @@ class ADAPT:
                     if isinstance(op, ABCHamiltonian):
                         fqe_op = op
                     else:
-                        fqe_op = build_hamiltonian(1j * op, self.sdim,
+                        fqe_op = build_hamiltonian(1j * op,
+                                                   self.sdim,
                                                    conserve_number=True)
                     grad_wf = grad_wf.time_evolve(coeff, fqe_op)
                     # if looking at the pth parameter then apply the operator
@@ -399,6 +407,8 @@ class ADAPT:
             return wf.expectationValue(self.elec_hamil).real, np.array(
                 grad_vec.real, order='F')
 
-        res = sp.optimize.minimize(cost_func, existing_params,
-                                   method=opt_method, jac=True)
+        res = sp.optimize.minimize(cost_func,
+                                   existing_params,
+                                   method=opt_method,
+                                   jac=True)
         return res.x, res.fun

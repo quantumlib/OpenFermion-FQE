@@ -25,7 +25,7 @@ from fqe.algorithm.brillouin_calculator import get_fermion_op
 def generate_antisymm_generator(nso):
     A = np.zeros(tuple([nso] * 4))
     for p, q, r, s in product(range(nso), repeat=4):
-        if p < q and s < r  and p * nso + q < s * nso + r:
+        if p < q and s < r and p * nso + q < s * nso + r:
             A[p, q, r, s] = np.random.random()
             A[p, q, s, r] = -A[p, q, r, s]
             A[q, p, r, s] = -A[p, q, r, s]
@@ -48,14 +48,13 @@ def test_generalized_doubles():
         doubles_factorization(generator)
 
     generator_mat = np.reshape(np.transpose(generator, [0, 3, 1, 2]),
-                               (nso ** 2, nso ** 2)).astype(np.float)
-    one_body_residual_test = -np.einsum('pqrq->pr',
-                                   generator)
+                               (nso**2, nso**2)).astype(np.float)
+    one_body_residual_test = -np.einsum('pqrq->pr', generator)
     assert np.allclose(generator_mat, generator_mat.T)
     assert np.allclose(one_body_residual, one_body_residual_test)
 
     tgenerator_mat = np.zeros_like(generator_mat)
-    for row_gem, col_gem in product(range(nso ** 2), repeat=2):
+    for row_gem, col_gem in product(range(nso**2), repeat=2):
         p, s = row_gem // nso, row_gem % nso
         q, r = col_gem // nso, col_gem % nso
         tgenerator_mat[row_gem, col_gem] = generator[p, q, r, s]
@@ -83,17 +82,21 @@ def test_generalized_doubles():
         op2 = S - 1j * of.hermitian_conjugated(S)
         op3 = D + 1j * of.hermitian_conjugated(D)
         op4 = D - 1j * of.hermitian_conjugated(D)
-        assert np.isclose(of.normal_ordered(
-            of.commutator(op1, of.hermitian_conjugated(op1))).induced_norm(), 0)
-        assert np.isclose(of.normal_ordered(
-            of.commutator(op2, of.hermitian_conjugated(op2))).induced_norm(), 0)
-        assert np.isclose(of.normal_ordered(
-            of.commutator(op3, of.hermitian_conjugated(op3))).induced_norm(), 0)
-        assert np.isclose(of.normal_ordered(
-            of.commutator(op4, of.hermitian_conjugated(op4))).induced_norm(), 0)
+        assert np.isclose(
+            of.normal_ordered(of.commutator(
+                op1, of.hermitian_conjugated(op1))).induced_norm(), 0)
+        assert np.isclose(
+            of.normal_ordered(of.commutator(
+                op2, of.hermitian_conjugated(op2))).induced_norm(), 0)
+        assert np.isclose(
+            of.normal_ordered(of.commutator(
+                op3, of.hermitian_conjugated(op3))).induced_norm(), 0)
+        assert np.isclose(
+            of.normal_ordered(of.commutator(
+                op4, of.hermitian_conjugated(op4))).induced_norm(), 0)
 
-        fop3 += (1/8) * ((S**2 - Sd**2) - (D**2 - Dd**2))
-        fop4 += (1/16) * ((op1**2 + op2**2) - (op3**2 + op4**2))
+        fop3 += (1 / 8) * ((S**2 - Sd**2) - (D**2 - Dd**2))
+        fop4 += (1 / 16) * ((op1**2 + op2**2) - (op3**2 + op4**2))
 
         fop2 += 0.25 * ul_ops[ll] * vl_ops[ll]
         fop2 += 0.25 * vl_ops[ll] * ul_ops[ll]

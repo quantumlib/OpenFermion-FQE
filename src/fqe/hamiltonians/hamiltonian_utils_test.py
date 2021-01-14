@@ -20,9 +20,8 @@ from fqe.hamiltonians.hamiltonian_utils import gather_nbody_spin_sectors
 
 
 def test_nbody_spin_sectors():
-    op = of.FermionOperator(
-        ((3, 1), (4, 1), (2, 0), (0, 0)), coefficient=1.0 + 0.5j
-    )
+    op = of.FermionOperator(((3, 1), (4, 1), (2, 0), (0, 0)),
+                            coefficient=1.0 + 0.5j)
     # op += of.hermitian_conjugated(op)
     (
         coefficient,

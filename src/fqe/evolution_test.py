@@ -41,14 +41,15 @@ class EvolutionTest(unittest.TestCase):
     """Tests for evolving Hamiltonians
     """
 
-
     def setUp(self):
         """setting up the test
         """
         # === numpy control options ===
-        numpy.set_printoptions(floatmode='fixed', precision=6, linewidth=200, suppress=True)
+        numpy.set_printoptions(floatmode='fixed',
+                               precision=6,
+                               linewidth=200,
+                               suppress=True)
         numpy.random.seed(seed=409)
-
 
     def test_diagonal_evolution(self):
         """Test time evolution of diagonal Hamiltonians
@@ -60,7 +61,7 @@ class EvolutionTest(unittest.TestCase):
         nele = nalpha + nbeta
         lena = int(special.binom(norb, nalpha))
         lenb = int(special.binom(norb, nbeta))
-        cidim = lena*lenb
+        cidim = lena * lenb
 
         h1e = numpy.zeros((norb, norb), dtype=numpy.complex128)
         for i in range(norb):
@@ -84,36 +85,40 @@ class EvolutionTest(unittest.TestCase):
 
         proj_coeff = fci_vec.conj().T @ test_state
         fci_rep = fci_vec @ proj_coeff
-        self.assertTrue(numpy.abs(numpy.linalg.norm(fci_rep - test_state)) < 1.e-8)
+        self.assertTrue(
+            numpy.abs(numpy.linalg.norm(fci_rep - test_state)) < 1.e-8)
 
-        phase = numpy.multiply(numpy.exp(-1.j*time*fci_eig), proj_coeff)
+        phase = numpy.multiply(numpy.exp(-1.j * time * fci_eig), proj_coeff)
         reference = fci_vec @ phase
 
         test_state = numpy.reshape(test_state, (lena, lenb))
-        wfn = Wavefunction([[nele, nalpha-nbeta, norb]])
-        wfn.set_wfn(strategy='from_data', raw_data={(nele, nalpha-nbeta): test_state})
+        wfn = Wavefunction([[nele, nalpha - nbeta, norb]])
+        wfn.set_wfn(strategy='from_data',
+                    raw_data={(nele, nalpha - nbeta): test_state})
 
         hamil = fqe.get_diagonal_hamiltonian(h1e.diagonal())
         initial_energy = wfn.expectationValue(hamil)
 
         evol_wfn = fqe.time_evolve(wfn, time, hamil)
-        computed = numpy.reshape(evol_wfn._civec[(nele, nalpha-nbeta)].coeff, (cidim))
+        computed = numpy.reshape(evol_wfn._civec[(nele, nalpha - nbeta)].coeff,
+                                 (cidim))
         self.assertTrue(numpy.abs(linalg.norm(reference - computed)) < 1.e-8)
 
         final_energy = evol_wfn.expectationValue(hamil)
         self.assertTrue(numpy.abs(final_energy - initial_energy) < 1.e-7)
 
         tay_wfn = wfn.apply_generated_unitary(time, 'taylor', hamil)
-        computed = numpy.reshape(tay_wfn._civec[(nele, nalpha-nbeta)].coeff, (cidim))
+        computed = numpy.reshape(tay_wfn._civec[(nele, nalpha - nbeta)].coeff,
+                                 (cidim))
         self.assertTrue(numpy.abs(linalg.norm(reference - computed)) < 1.e-8)
 
         tay_ene = tay_wfn.expectationValue(hamil)
         self.assertTrue(numpy.abs(tay_ene - initial_energy) < 1.e-7)
 
         fqe.time_evolve(wfn, time, hamil, True)
-        computed = numpy.reshape(wfn._civec[(nele, nalpha-nbeta)].coeff, (cidim))
+        computed = numpy.reshape(wfn._civec[(nele, nalpha - nbeta)].coeff,
+                                 (cidim))
         self.assertTrue(numpy.abs(linalg.norm(reference - computed)) < 1.e-8)
-
 
     def test_quadratic_both_conserved(self):
         """Test time evolution with a Hamiltonian that conserves both spin and number
@@ -122,7 +127,7 @@ class EvolutionTest(unittest.TestCase):
         h1e = numpy.zeros((norb, norb), dtype=numpy.complex128)
         for i in range(norb):
             for j in range(norb):
-                h1e[i, j] += (i+j) * 0.02
+                h1e[i, j] += (i + j) * 0.02
             h1e[i, i] += i * 2.0
 
         hamil = fqe.get_restricted_hamiltonian((h1e,))
@@ -139,11 +144,13 @@ class EvolutionTest(unittest.TestCase):
                 ket_h = ket.apply((h1e,))
                 hci[:, :, i, j] = ket_h.coeff
 
-        fci_eig, fci_vec = linalg.eigh(numpy.reshape(hci, (lena*lenb, lena*lenb)))
+        fci_eig, fci_vec = linalg.eigh(
+            numpy.reshape(hci, (lena * lenb, lena * lenb)))
 
         wfn = fqe.Wavefunction([[nalpha + nbeta, nalpha - nbeta, norb]])
 
-        wfn._civec[(nalpha + nbeta, nalpha - nbeta)].coeff.flat[:] = fci_vec[:, 0]
+        wfn._civec[(nalpha + nbeta,
+                    nalpha - nbeta)].coeff.flat[:] = fci_vec[:, 0]
 
         initial_energy = wfn.expectationValue(hamil)
         self.assertTrue(numpy.abs(initial_energy - fci_eig[0]) < 1.0e-8)
@@ -154,7 +161,6 @@ class EvolutionTest(unittest.TestCase):
         final_energy = evolved.expectationValue(hamil)
         self.assertTrue(numpy.abs(initial_energy - final_energy) < 1.0e-8)
 
-
     def test_quadratic_number_conserved_spin_broken(self):
         """Quadratic number conserving and spin broken evolution
         """
@@ -164,42 +170,42 @@ class EvolutionTest(unittest.TestCase):
         maxb = min(norb, nele)
         minb = nele - maxb
 
-        h1e = numpy.zeros((2*norb, 2*norb), dtype=numpy.complex128)
+        h1e = numpy.zeros((2 * norb, 2 * norb), dtype=numpy.complex128)
 
         mata = numpy.zeros((norb, norb), dtype=numpy.complex128)
         matb = numpy.zeros((norb, norb), dtype=numpy.complex128)
         for i in range(norb):
             for j in range(norb):
-                mata[i, j] += (i+j) * 0.02
-                matb[i, j] += (i-j) * 0.002
+                mata[i, j] += (i + j) * 0.02
+                matb[i, j] += (i - j) * 0.002
             mata[i, i] += i * 2.0
         h1e[:norb, :norb] = mata
         h1e[norb:, norb:] = mata.conj()
         h1e[:norb, norb:] = matb
-        h1e[norb:, :norb] = - matb.conj()
+        h1e[norb:, :norb] = -matb.conj()
 
         hamil = gso_hamiltonian.GSOHamiltonian(tuple([h1e]))
 
-        ndim = int(special.binom(2*norb, nele))
+        ndim = int(special.binom(2 * norb, nele))
         hci = numpy.zeros((ndim, ndim), dtype=numpy.complex128)
 
         for i in range(ndim):
             wfn = fqe.get_number_conserving_wavefunction(nele, norb)
             cnt = 0
-            for nbeta in range(minb, maxb+1):
-                coeff = wfn.get_coeff((nele, nele-2*nbeta))
+            for nbeta in range(minb, maxb + 1):
+                coeff = wfn.get_coeff((nele, nele - 2 * nbeta))
                 size = coeff.size
                 if cnt <= i < cnt + size:
-                    coeff.flat[i-cnt] = 1.0
+                    coeff.flat[i - cnt] = 1.0
                 cnt += size
 
             result = fqe.apply(hamil, wfn)
 
             cnt = 0
-            for nbeta in range(minb, maxb+1):
-                coeff = result.get_coeff((nele, nele-2*nbeta))
+            for nbeta in range(minb, maxb + 1):
+                coeff = result.get_coeff((nele, nele - 2 * nbeta))
                 for j in range(coeff.size):
-                    hci[cnt+j, i] = coeff.flat[j]
+                    hci[cnt + j, i] = coeff.flat[j]
                 cnt += coeff.size
 
         self.assertTrue(numpy.std(hci - hci.T.conj()) < 1.0e-8)
@@ -210,10 +216,10 @@ class EvolutionTest(unittest.TestCase):
         wfn = fqe.get_number_conserving_wavefunction(4, norb)
 
         cnt = 0
-        for nbeta in range(minb, maxb+1):
-            coeff = wfn.get_coeff((nele, nele-2*nbeta))
+        for nbeta in range(minb, maxb + 1):
+            coeff = wfn.get_coeff((nele, nele - 2 * nbeta))
             for i in range(coeff.size):
-                coeff.flat[i] = fci_vec[i+cnt, 0]
+                coeff.flat[i] = fci_vec[i + cnt, 0]
             cnt += coeff.size
 
         tr_op = fqe.get_time_reversal_operator()
@@ -235,14 +241,14 @@ class EvolutionTest(unittest.TestCase):
 
         for key in polywfn.sectors():
             with self.subTest(sector=key):
-                diff = linalg.norm(polywfn._civec[key].coeff - evolved._civec[key].coeff)
+                diff = linalg.norm(polywfn._civec[key].coeff -
+                                   evolved._civec[key].coeff)
                 self.assertTrue(diff < 1.0e-8)
 
         poly_energy = polywfn.expectationValue(hamil)
 
         err = numpy.abs(poly_energy - final_energy)
         self.assertTrue(err < 1.0e-8)
-
 
     def test_diagonal_coulomb(self):
         """Diagonal Coulomb evolution
@@ -256,15 +262,14 @@ class EvolutionTest(unittest.TestCase):
 
         lena = int(special.binom(norb, nalpha))
         lenb = int(special.binom(norb, nbeta))
-        cidim = lena*lenb
+        cidim = lena * lenb
 
         h1e = numpy.zeros((norb, norb), dtype=numpy.complex128)
         vijkl = numpy.zeros((norb, norb, norb, norb), dtype=numpy.complex128)
 
         for i in range(norb):
             for j in range(norb):
-                vijkl[i, j, i, j] += 4*(i%norb+1)*(j%norb+1)*0.21
-
+                vijkl[i, j, i, j] += 4 * (i % norb + 1) * (j % norb + 1) * 0.21
 
         h_wrap = tuple([h1e, vijkl])
 
@@ -292,27 +297,29 @@ class EvolutionTest(unittest.TestCase):
         phase = numpy.zeros(cidim, dtype=numpy.complex128)
 
         for i in range(cidim):
-            phase[i] = numpy.exp(-1.j*time*fci_eig[i])*proj_coeff[i]
+            phase[i] = numpy.exp(-1.j * time * fci_eig[i]) * proj_coeff[i]
 
         reference = fci_vec @ phase
 
         test_wfn = Wavefunction([[nele, m_s, norb]])
-        test_wfn._civec[(nele, m_s)].coeff = numpy.reshape(test_state, (lena, lenb))
+        test_wfn._civec[(nele,
+                         m_s)].coeff = numpy.reshape(test_state, (lena, lenb))
 
         hamil = fqe.get_diagonalcoulomb_hamiltonian(vijkl)
         coul_evol = test_wfn.time_evolve(time, hamil)
 
         coeff = coul_evol._civec[(nele, m_s)].coeff
 
-        err = numpy.std(reference / reference.flat[0] - coeff.flatten() / coeff.flat[0])
+        err = numpy.std(reference / reference.flat[0] -
+                        coeff.flatten() / coeff.flat[0])
         self.assertTrue(err < 1.e-8)
 
         test_wfn.time_evolve(time, hamil, True)
         coeff = test_wfn._civec[(nele, m_s)].coeff
 
-        err = numpy.std(reference / reference.flat[0] - coeff.flatten() / coeff.flat[0])
+        err = numpy.std(reference / reference.flat[0] -
+                        coeff.flatten() / coeff.flat[0])
         self.assertTrue(err < 1.e-8)
-
 
     def test_diagonal_spin(self):
         """Evolution of diagonal hamiltonian with different spin components
@@ -324,13 +331,13 @@ class EvolutionTest(unittest.TestCase):
         nele = nalpha + nbeta
         lena = int(special.binom(norb, nalpha))
         lenb = int(special.binom(norb, nbeta))
-        cidim = lena*lenb
+        cidim = lena * lenb
 
-        h1e = numpy.zeros((2*norb, 2*norb), dtype=numpy.complex128)
+        h1e = numpy.zeros((2 * norb, 2 * norb), dtype=numpy.complex128)
 
-        for i in range(2*norb):
-            for j in range(2*norb):
-                h1e[i, j] += (i+j) * 0.02
+        for i in range(2 * norb):
+            for j in range(2 * norb):
+                h1e[i, j] += (i + j) * 0.02
             h1e[i, i] += i * 2.0
         h1e[:norb, norb:] = 0.0
         h1e[norb:, :norb] = 0.0
@@ -357,7 +364,7 @@ class EvolutionTest(unittest.TestCase):
         err = numpy.abs(numpy.linalg.norm(fci_rep - test_state))
         self.assertTrue(err < 1.e-8)
 
-        phase = numpy.multiply(numpy.exp(-1.j*time*fci_eig), proj_coeff)
+        phase = numpy.multiply(numpy.exp(-1.j * time * fci_eig), proj_coeff)
 
         reference = fci_vec @ phase
 
@@ -365,16 +372,16 @@ class EvolutionTest(unittest.TestCase):
 
         wfn = Wavefunction([[4, 0, norb]])
         test_state = numpy.reshape(test_state, (lena, lenb))
-        wfn.set_wfn(strategy='from_data', raw_data={(nele, nalpha-nbeta): test_state})
+        wfn.set_wfn(strategy='from_data',
+                    raw_data={(nele, nalpha - nbeta): test_state})
 
         evolwfn = wfn.time_evolve(time, hamil)
 
-        computed = numpy.reshape(evolwfn._civec[(nele, nalpha-nbeta)].coeff, (cidim))
+        computed = numpy.reshape(evolwfn._civec[(nele, nalpha - nbeta)].coeff,
+                                 (cidim))
 
         err = numpy.abs(linalg.norm(reference - computed))
         self.assertTrue(err < 1.e-8)
-
-
 
     def test_nbody(self):
         """Evolution of individual nbody operators
@@ -386,9 +393,9 @@ class EvolutionTest(unittest.TestCase):
         time = 0.001
 
         with self.subTest(nbody='one body'):
-            ops = FermionOperator('0^ 1', 2.2 - 0.1j) + FermionOperator('1^ 0', 2.2 + 0.1j)
-            sham = fqe.get_sparse_hamiltonian(ops,
-                                              conserve_spin=False)
+            ops = FermionOperator('0^ 1', 2.2 - 0.1j) + FermionOperator(
+                '1^ 0', 2.2 + 0.1j)
+            sham = fqe.get_sparse_hamiltonian(ops, conserve_spin=False)
 
             h1e = hamiltonian_utils.nbody_matrix(ops, norb)
 
@@ -399,15 +406,17 @@ class EvolutionTest(unittest.TestCase):
             result = wfn._evolve_individual_nbody(time, sham)
 
             hamil = general_hamiltonian.General(tuple([h1e]))
-            nbody_evol = wfn.apply_generated_unitary(time, 'taylor', hamil, accuracy=1.0e-8)
+            nbody_evol = wfn.apply_generated_unitary(time,
+                                                     'taylor',
+                                                     hamil,
+                                                     accuracy=1.0e-8)
 
             result.ax_plus_y(-1.0, nbody_evol)
             self.assertTrue(result.norm() < 1.e-8)
 
-            wfn =  wfn._evolve_individual_nbody(time, sham, True)
+            wfn = wfn._evolve_individual_nbody(time, sham, True)
             wfn.ax_plus_y(-1.0, nbody_evol)
             self.assertTrue(wfn.norm() < 1.e-8)
-
 
         with self.subTest(nbody='two body'):
             ops = FermionOperator('1^ 3^ 1 2', 2.0 - 2.j)
@@ -425,13 +434,15 @@ class EvolutionTest(unittest.TestCase):
 
             result = wfn._evolve_individual_nbody(time, sham)
 
-            h1e = numpy.zeros((2*norb, 2*norb), dtype=numpy.complex128)
+            h1e = numpy.zeros((2 * norb, 2 * norb), dtype=numpy.complex128)
             hamil = general_hamiltonian.General(tuple([h1e, h2e]))
-            nbody_evol = wfn.apply_generated_unitary(time, 'taylor', hamil, accuracy=1.0e-8)
+            nbody_evol = wfn.apply_generated_unitary(time,
+                                                     'taylor',
+                                                     hamil,
+                                                     accuracy=1.0e-8)
 
             result.ax_plus_y(-1.0, nbody_evol)
             self.assertTrue(result.norm() < 1.e-8)
-
 
         with self.subTest(nbody='three body'):
             ops = FermionOperator('2^ 1^ 0^ 2 0 1', 1.0 - 1.j)
@@ -448,13 +459,16 @@ class EvolutionTest(unittest.TestCase):
 
             result = wfn._evolve_individual_nbody(time, sham)
 
-            h1e = numpy.zeros((2*norb, 2*norb), dtype=numpy.complex128)
-            h2e = numpy.zeros((2*norb, 2*norb, 2*norb, 2*norb), dtype=numpy.complex128)
+            h1e = numpy.zeros((2 * norb, 2 * norb), dtype=numpy.complex128)
+            h2e = numpy.zeros((2 * norb, 2 * norb, 2 * norb, 2 * norb),
+                              dtype=numpy.complex128)
             hamil = general_hamiltonian.General(tuple([h1e, h2e, h3e]))
-            nbody_evol = wfn.apply_generated_unitary(time, 'taylor', hamil, expansion=20)
+            nbody_evol = wfn.apply_generated_unitary(time,
+                                                     'taylor',
+                                                     hamil,
+                                                     expansion=20)
             result.ax_plus_y(-1.0, nbody_evol)
             self.assertTrue(result.norm() < 1.e-8)
-
 
         with self.subTest(nbody='four body'):
             ops = FermionOperator('0^ 1^ 3^ 4^ 2 1 3 4', 1.0 + 0.j)
@@ -471,20 +485,22 @@ class EvolutionTest(unittest.TestCase):
 
             result = wfn._evolve_individual_nbody(time, sham)
 
-            h1e = numpy.zeros((2*norb, 2*norb), dtype=numpy.complex128)
-            h2e = numpy.zeros((2*norb, 2*norb,
-                               2*norb, 2*norb), dtype=numpy.complex128)
-            h3e = numpy.zeros((2*norb, 2*norb, 2*norb,
-                               2*norb, 2*norb, 2*norb), dtype=numpy.complex128)
+            h1e = numpy.zeros((2 * norb, 2 * norb), dtype=numpy.complex128)
+            h2e = numpy.zeros((2 * norb, 2 * norb, 2 * norb, 2 * norb),
+                              dtype=numpy.complex128)
+            h3e = numpy.zeros(
+                (2 * norb, 2 * norb, 2 * norb, 2 * norb, 2 * norb, 2 * norb),
+                dtype=numpy.complex128)
 
             hamil = general_hamiltonian.General(tuple([h1e, h2e, h3e, h4e]))
-            nbody_evol = wfn.apply_generated_unitary(time, 'taylor', hamil, expansion=20)
+            nbody_evol = wfn.apply_generated_unitary(time,
+                                                     'taylor',
+                                                     hamil,
+                                                     expansion=20)
             result.print_wfn()
             nbody_evol.print_wfn()
             result.ax_plus_y(-1.0, nbody_evol)
             self.assertTrue(result.norm() < 1.e-8)
-
-
 
     def test_restricted(self):
         """Evolution of a Hamiltonian with identical alpha and beta interactions
@@ -497,14 +513,15 @@ class EvolutionTest(unittest.TestCase):
         lena = int(special.binom(norb, nalpha))
         lenb = int(special.binom(norb, nbeta))
 
-        cidim = lena*lenb
+        cidim = lena * lenb
 
         h1e, h2e, h3e, h4e = build_hamiltonian.build_restricted(norb, full=True)
 
-        h_wrap = tuple([h1e[:norb, :norb],
-                        h2e[:norb, :norb, :norb, :norb],
-                        h3e[:norb, :norb, :norb, :norb, :norb, :norb],
-                        h4e[:norb, :norb, :norb, :norb, :norb, :norb, :norb, :norb]])
+        h_wrap = tuple([
+            h1e[:norb, :norb], h2e[:norb, :norb, :norb, :norb],
+            h3e[:norb, :norb, :norb, :norb, :norb, :norb],
+            h4e[:norb, :norb, :norb, :norb, :norb, :norb, :norb, :norb]
+        ])
 
         hamil = restricted_hamiltonian.RestrictedHamiltonian(h_wrap)
 
@@ -536,22 +553,23 @@ class EvolutionTest(unittest.TestCase):
         err = numpy.abs(numpy.linalg.norm(fci_rep - test_state))
         self.assertTrue(err < 1.e-8)
 
-        phase = numpy.multiply(numpy.exp(-1.j*time*fci_eig), proj_coeff)
+        phase = numpy.multiply(numpy.exp(-1.j * time * fci_eig), proj_coeff)
 
         reference = fci_vec @ phase
 
         test_state = numpy.reshape(test_state, (lena, lenb))
 
-        wfn = Wavefunction([[nele, nalpha-nbeta, norb]])
-        wfn.set_wfn(strategy='from_data', raw_data={(nele, nalpha - nbeta): test_state})
+        wfn = Wavefunction([[nele, nalpha - nbeta, norb]])
+        wfn.set_wfn(strategy='from_data',
+                    raw_data={(nele, nalpha - nbeta): test_state})
 
         evol_wfn = wfn.time_evolve(time, hamil)
 
-        computed = numpy.reshape(evol_wfn._civec[(nele, nalpha-nbeta)].coeff, (cidim))
+        computed = numpy.reshape(evol_wfn._civec[(nele, nalpha - nbeta)].coeff,
+                                 (cidim))
 
         err = numpy.abs(linalg.norm(reference - computed))
         self.assertTrue(err < 1.e-8)
-
 
     def test_gso_four_body(self):
         """Evolution of four body hamiltonian with different alpha and beta
@@ -562,7 +580,7 @@ class EvolutionTest(unittest.TestCase):
         time = 0.001
         maxb = min(norb, nele)
         minb = nele - maxb
-        ndim = int(special.binom(norb*2, nele))
+        ndim = int(special.binom(norb * 2, nele))
 
         h1e, h2e, h3e, h4e = build_hamiltonian.build_gso(norb)
 
@@ -574,20 +592,20 @@ class EvolutionTest(unittest.TestCase):
         def unpack(inp: numpy.ndarray) -> 'Wavefunction':
             out = fqe.get_number_conserving_wavefunction(nele, norb)
             cnt = 0
-            for nbeta in range(minb, maxb+1):
-                coeff = out.get_coeff((nele, nele-2*nbeta))
+            for nbeta in range(minb, maxb + 1):
+                coeff = out.get_coeff((nele, nele - 2 * nbeta))
                 for i in range(coeff.size):
-                    coeff.flat[i] = inp[i+cnt]
+                    coeff.flat[i] = inp[i + cnt]
                 cnt += coeff.size
             return out
 
         def pack(inp: 'Wavefunction') -> numpy.ndarray:
             out = numpy.zeros((ndim,), dtype=numpy.complex128)
             cnt = 0
-            for nbeta in range(minb, maxb+1):
-                coeff = inp.get_coeff((nele, nele-2*nbeta))
+            for nbeta in range(minb, maxb + 1):
+                coeff = inp.get_coeff((nele, nele - 2 * nbeta))
                 for j in range(coeff.size):
-                    out[cnt+j] = coeff.flat[j]
+                    out[cnt + j] = coeff.flat[j]
                 cnt += coeff.size
 
             return out
@@ -595,18 +613,17 @@ class EvolutionTest(unittest.TestCase):
         for i in range(ndim):
             wfn = fqe.get_number_conserving_wavefunction(nele, norb)
             cnt = 0
-            for nbeta in range(minb, maxb+1):
-                coeff = wfn.get_coeff((nele, nele-2*nbeta))
+            for nbeta in range(minb, maxb + 1):
+                coeff = wfn.get_coeff((nele, nele - 2 * nbeta))
                 size = coeff.size
                 if cnt <= i < cnt + size:
-                    coeff.flat[i-cnt] = 1.0
+                    coeff.flat[i - cnt] = 1.0
                 cnt += size
 
             test_axpy = 1.0
             result = wfn._apply_array(h_wrap, test_axpy)
             result.ax_plus_y(-test_axpy, wfn)
             hci[:, i] = pack(result)
-
 
         fci_eig, fci_vec = linalg.eigh(hci)
 
@@ -644,7 +661,7 @@ class EvolutionTest(unittest.TestCase):
         err = numpy.abs(numpy.linalg.norm(fci_rep - test_state))
         self.assertTrue(err < 1.e-8)
 
-        phase = numpy.multiply(numpy.exp(-1.j*time*fci_eig), proj_coeff)
+        phase = numpy.multiply(numpy.exp(-1.j * time * fci_eig), proj_coeff)
         reference = fci_vec @ phase
         ref_wfn = unpack(reference)
 
@@ -681,7 +698,7 @@ class EvolutionTest(unittest.TestCase):
         lena = int(special.binom(norb, nalpha))
         lenb = int(special.binom(norb, nbeta))
 
-        cidim = lena*lenb
+        cidim = lena * lenb
         h1e, h2e, h3e, h4e = build_hamiltonian.build_sso(norb)
 
         h_wrap = tuple([h1e, h2e, h3e, h4e])
@@ -715,21 +732,22 @@ class EvolutionTest(unittest.TestCase):
         err = numpy.abs(numpy.linalg.norm(fci_rep - test_state))
         self.assertTrue(err < 1.e-8)
 
-        phase = numpy.multiply(numpy.exp(-1.j*time*fci_eig), proj_coeff)
+        phase = numpy.multiply(numpy.exp(-1.j * time * fci_eig), proj_coeff)
         reference = fci_vec @ phase
 
         test_state = numpy.reshape(test_state, (lena, lenb))
 
         wfn = Wavefunction([[nele, nalpha - nbeta, norb]])
-        wfn.set_wfn(strategy='from_data', raw_data={(nele, nalpha - nbeta): test_state})
+        wfn.set_wfn(strategy='from_data',
+                    raw_data={(nele, nalpha - nbeta): test_state})
 
         evol_wfn = wfn.time_evolve(time, hamil)
 
-        computed = numpy.reshape(evol_wfn._civec[(nele, nalpha-nbeta)].coeff, (cidim))
+        computed = numpy.reshape(evol_wfn._civec[(nele, nalpha - nbeta)].coeff,
+                                 (cidim))
 
         err = numpy.abs(linalg.norm(reference - computed))
         self.assertTrue(err < 1.e-8)
-
 
     def test_chebyshev(self):
         """Evolution using chebyshev polynomial expansion
@@ -740,11 +758,11 @@ class EvolutionTest(unittest.TestCase):
         nele = nalpha + nbeta
         time = 0.01
 
-        h1e = numpy.zeros((norb*2, norb*2), dtype=numpy.complex128)
+        h1e = numpy.zeros((norb * 2, norb * 2), dtype=numpy.complex128)
 
-        for i in range(2*norb):
-            for j in range(2*norb):
-                h1e[i, j] += (i+j) * 0.02
+        for i in range(2 * norb):
+            for j in range(2 * norb):
+                h1e[i, j] += (i + j) * 0.02
             h1e[i, i] += i * 2.0
 
         eig, _ = linalg.eigh(h1e)
@@ -762,7 +780,6 @@ class EvolutionTest(unittest.TestCase):
 
         err = (chebyshev - taylor).norm()
         self.assertTrue(err < 1.e-8)
-
 
     def test_few_nbody_evolution(self):
         """Check the evolution for very sparse hamiltonians
@@ -787,13 +804,12 @@ class EvolutionTest(unittest.TestCase):
 
         h2e = hamiltonian_utils.nbody_matrix(ops, norb)
         h2e += hamiltonian_utils.nbody_matrix(ops2, norb)
-        h1e = numpy.zeros((norb*2, norb*2), dtype=h2e.dtype)
+        h1e = numpy.zeros((norb * 2, norb * 2), dtype=h2e.dtype)
         hamiltest = general_hamiltonian.General(tuple([h1e, h2e]))
         nbody_evol = wfn.apply_generated_unitary(time, 'taylor', hamiltest)
 
         result.ax_plus_y(-1.0, nbody_evol)
         self.assertTrue(result.norm() < 1.e-8)
-
 
     def test_time_evolve_broken_symm(self):
         """Compare spin and number conserving
@@ -813,22 +829,25 @@ class EvolutionTest(unittest.TestCase):
         test = numpy.ones((4, 4))
         wfn_spin.set_wfn(strategy='from_data', raw_data={(4, -2): test})
         wfn_spin.normalize()
-        wfn_number.set_wfn(strategy='from_data', raw_data={(2, 0): numpy.flip(test, 1)})
+        wfn_number.set_wfn(strategy='from_data',
+                           raw_data={(2, 0): numpy.flip(test, 1)})
         wfn_number.normalize()
         spin_evolved = wfn_spin.time_evolve(time, h_noncon)
         number_evolved = wfn_number.time_evolve(time, h_con)
         ref = spin_evolved._copy_beta_inversion()
         hamil = general_hamiltonian.General(h_con.tensors(), e_0=h_noncon.e_0())
-        unitary_evolved = wfn_number.apply_generated_unitary(time, 'taylor', hamil)
+        unitary_evolved = wfn_number.apply_generated_unitary(
+            time, 'taylor', hamil)
         for key in number_evolved.sectors():
-            self.assertTrue(numpy.allclose(number_evolved._civec[key].coeff,
-                                           ref._civec[key].coeff))
-            self.assertTrue(numpy.allclose(number_evolved._civec[key].coeff,
-                                           unitary_evolved._civec[key].coeff))
+            self.assertTrue(
+                numpy.allclose(number_evolved._civec[key].coeff,
+                               ref._civec[key].coeff))
+            self.assertTrue(
+                numpy.allclose(number_evolved._civec[key].coeff,
+                               unitary_evolved._civec[key].coeff))
 
         self.assertAlmostEqual(spin_evolved.rdm('2^ 1^'),
-                               -0.004985346234592781-0.0049853462345928745j)
-
+                               -0.004985346234592781 - 0.0049853462345928745j)
 
     def test_broken_number_nbody(self):
         """Compare spin and number conserving
@@ -839,22 +858,27 @@ class EvolutionTest(unittest.TestCase):
 
         work = FermionOperator('0^ 1^ 2 3 4^ 6', 3.0 - 1.3j)
         work += hermitian_conjugated(work)
-        h_noncon = fqe_decorators.build_hamiltonian(work, norb=norb, conserve_number=False)
+        h_noncon = fqe_decorators.build_hamiltonian(work,
+                                                    norb=norb,
+                                                    conserve_number=False)
 
-        gen = fqe_decorators.normal_ordered(fqe_decorators.transform_to_spin_broken(work))
+        gen = fqe_decorators.normal_ordered(
+            fqe_decorators.transform_to_spin_broken(work))
         matrix = fqe_decorators.fermionops_tomatrix(gen, norb)
         wrap = tuple([
-            numpy.zeros((2*norb, 2*norb), dtype=numpy.complex128),
-            numpy.zeros((2*norb, 2*norb, 2*norb, 2*norb), dtype=numpy.complex128),
-            matrix
-            ])
+            numpy.zeros((2 * norb, 2 * norb), dtype=numpy.complex128),
+            numpy.zeros((2 * norb, 2 * norb, 2 * norb, 2 * norb),
+                        dtype=numpy.complex128), matrix
+        ])
 
         hamil = general_hamiltonian.General(wrap)
         hamil._conserve_number = False
 
         wfn_spin.set_wfn(strategy='random')
         nbody_evolved = wfn_spin.time_evolve(time, h_noncon)
-        unitary_evolved = wfn_spin.apply_generated_unitary(time, 'taylor', hamil)
+        unitary_evolved = wfn_spin.apply_generated_unitary(
+            time, 'taylor', hamil)
         for key in nbody_evolved.sectors():
-            self.assertTrue(numpy.allclose(nbody_evolved._civec[key].coeff,
-                                           unitary_evolved._civec[key].coeff))
+            self.assertTrue(
+                numpy.allclose(nbody_evolved._civec[key].coeff,
+                               unitary_evolved._civec[key].coeff))

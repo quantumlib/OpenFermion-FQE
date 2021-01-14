@@ -11,7 +11,6 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
-
 """Transformations between the various paradigms availible to OpenFermion
 that provide interoperability.
 """
@@ -30,14 +29,11 @@ from fqe.openfermion_utils import fci_qubit_representation
 from fqe.openfermion_utils import update_operator_coeff
 from fqe.openfermion_utils import fermion_opstring_to_bitstring
 
-
 if TYPE_CHECKING:
     from fqe.wavefunction import Wavefunction
 
 
-def cirq_to_fqe_single(cirq_wfn: numpy.ndarray,
-                       nele: int,
-                       m_s: int,
+def cirq_to_fqe_single(cirq_wfn: numpy.ndarray, nele: int, m_s: int,
                        qubin: int) -> FermionOperator:
     """Given a wavefunction from cirq, create a FermionOperator string which
     will create the same state in the basis of Fermionic modes such that
@@ -64,7 +60,7 @@ def cirq_to_fqe_single(cirq_wfn: numpy.ndarray,
         FermionOperator
     """
     if nele == 0:
-        return FermionOperator('', cirq_wfn[0]*1.)
+        return FermionOperator('', cirq_wfn[0] * 1.)
 
     if qubin:
         nqubits = qubin

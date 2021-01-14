@@ -57,16 +57,16 @@ def doubles_factorization(generator_tensor: np.ndarray, eig_cutoff=None):
         p, s = row_gem // nso, row_gem % nso
         q, r = col_gem // nso, col_gem % nso
         generator_mat[row_gem, col_gem] = generator_tensor[p, q, r, s]
-    test_generator_mat = np.reshape(np.transpose(generator_tensor, [0, 3, 1, 2]),
-                               (nso ** 2, nso ** 2)).astype(np.float)
+    test_generator_mat = np.reshape(
+        np.transpose(generator_tensor, [0, 3, 1, 2]),
+        (nso**2, nso**2)).astype(np.float)
     assert np.allclose(test_generator_mat, generator_mat)
 
     if not np.allclose(generator_mat, generator_mat.T):
         raise ValueError("generator tensor does not correspond to four-fold"
                          " antisymmetry")
 
-    one_body_residual = -np.einsum('pqrq->pr',
-                                   generator_tensor)
+    one_body_residual = -np.einsum('pqrq->pr', generator_tensor)
     u, sigma, vh = np.linalg.svd(generator_mat)
 
     ul = []
@@ -91,14 +91,18 @@ def doubles_factorization(generator_tensor: np.ndarray, eig_cutoff=None):
         op2 = S - 1j * of.hermitian_conjugated(S)
         op3 = D + 1j * of.hermitian_conjugated(D)
         op4 = D - 1j * of.hermitian_conjugated(D)
-        assert np.isclose(of.normal_ordered(
-            of.commutator(op1, of.hermitian_conjugated(op1))).induced_norm(), 0)
-        assert np.isclose(of.normal_ordered(
-            of.commutator(op2, of.hermitian_conjugated(op2))).induced_norm(), 0)
-        assert np.isclose(of.normal_ordered(
-            of.commutator(op3, of.hermitian_conjugated(op3))).induced_norm(), 0)
-        assert np.isclose(of.normal_ordered(
-            of.commutator(op4, of.hermitian_conjugated(op4))).induced_norm(), 0)
+        assert np.isclose(
+            of.normal_ordered(of.commutator(
+                op1, of.hermitian_conjugated(op1))).induced_norm(), 0)
+        assert np.isclose(
+            of.normal_ordered(of.commutator(
+                op2, of.hermitian_conjugated(op2))).induced_norm(), 0)
+        assert np.isclose(
+            of.normal_ordered(of.commutator(
+                op3, of.hermitian_conjugated(op3))).induced_norm(), 0)
+        assert np.isclose(
+            of.normal_ordered(of.commutator(
+                op4, of.hermitian_conjugated(op4))).induced_norm(), 0)
 
     one_body_op = of.FermionOperator()
     for p, q in product(range(nso), repeat=2):
@@ -107,4 +111,3 @@ def doubles_factorization(generator_tensor: np.ndarray, eig_cutoff=None):
                                           coefficient=one_body_residual[p, q])
 
     return ul, vl, one_body_residual, ul_ops, vl_ops, one_body_op
-

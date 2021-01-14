@@ -22,6 +22,7 @@ from fqe.hamiltonians import hamiltonian
 
 def test_base_hamiltonian():
     """Tests the base Hamiltonian class by subclassing it."""
+
     class Test(hamiltonian.Hamiltonian):
         """A testing dummy class."""
 

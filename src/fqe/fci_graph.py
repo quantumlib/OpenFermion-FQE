@@ -11,10 +11,8 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
-
 """FciGraph stores the addressing scheme for the fqe_data structures.
 """
-
 
 from typing import Dict, List, Tuple
 
@@ -35,6 +33,7 @@ class FciGraph:
     alpha orbitals and the beta orbitals.  From this information, any pointer
     into the wavefunction can be generated.
     """
+
     def __init__(self, nalpha: int, nbeta: int, norb: int) -> None:
         """
         Args:
@@ -63,9 +62,7 @@ class FciGraph:
 
         self._fci_map: Dict[Tuple[int, ...], Tuple[Spinmap, Spinmap]] = {}
 
-    def insert_mapping(self,
-                       dna: int,
-                       dnb: int,
+    def insert_mapping(self, dna: int, dnb: int,
                        mapping_pair: Tuple[Spinmap, Spinmap]) -> None:
         """
         Insert a new pair of alpha and beta mappings with a key that are the
@@ -97,8 +94,7 @@ class FciGraph:
         assert (dna, dnb) in self._fci_map
         return self._fci_map[(dna, dnb)]
 
-    def _build_mapping(self,
-                       strings: List[int],
+    def _build_mapping(self, strings: List[int],
                        index: Dict[int, int]) -> Spinmap:
         """Construct the mapping of alpha string and beta string excitations
         for :math:`a^\\dagger_i a_j` from the bitstrings contained in the fci_graph.
@@ -111,15 +107,16 @@ class FciGraph:
         """
         out: Dict[Tuple[int, ...], List[Tuple[int, int, int]]] = {}
         norb = self._norb
-        for iorb in range(norb): #excitation
-            for jorb in range(norb): #deexcitation
+        for iorb in range(norb):  #excitation
+            for jorb in range(norb):  #deexcitation
                 value = []
                 for string in strings:
                     if get_bit(string, jorb) and not get_bit(string, iorb):
                         parity = count_bits_between(string, iorb, jorb)
                         value.append((index[string],
-                                      index[unset_bit(set_bit(string, iorb), jorb)],
-                                      int((-1)**parity)))
+                                      index[unset_bit(set_bit(string, iorb),
+                                                      jorb)], int(
+                                                          (-1)**parity)))
                     elif iorb == jorb and get_bit(string, iorb):
                         value.append((index[string], index[string], 1))
                 out[(iorb, jorb)] = value
@@ -183,7 +180,8 @@ class FciGraph:
         """
         return self._norb
 
-    def _build_strings(self, nele: int, length: int) -> Tuple[List[int], Dict[int, int]]:
+    def _build_strings(self, nele: int,
+                       length: int) -> Tuple[List[int], Dict[int, int]]:
         """Build all bitstrings for index the FCI and their lexicographic index
            for a single spin case.
 
@@ -197,7 +195,8 @@ class FciGraph:
         """
         grs = init_bitstring_groundstate(nele)
         blist = lexicographic_bitstring_generator(grs, self._norb)
-        string_list = [0 for _ in range(length)]  # strings in lexicographic order
+        string_list = [0 for _ in range(length)
+                      ]  # strings in lexicographic order
         index_list = {}  # map bitsting to its lexicographic address
         for i in range(length):
             wbit = blist[i]  # integer that is the spin-bitstring
@@ -275,7 +274,8 @@ class FciGraph:
         """
         return self._bind
 
-    def _build_string_address(self, nele: int, norb: int, occupation: List[int]) -> int:
+    def _build_string_address(self, nele: int, norb: int,
+                              occupation: List[int]) -> int:
         """Given a list of occupied orbitals in ascending order generate the
         index into the CI matrix.
 
@@ -318,15 +318,16 @@ class FciGraph:
                     """Calculate a summand in the addressing array
                     """
                     assert nmk > 0, '-1 meaningless in binomial address'
-                    return binom(oc_i, nmk) - binom(oc_i-1, nmk-1)
+                    return binom(oc_i, nmk) - binom(oc_i - 1, nmk - 1)
 
-                for i in range(norb-or_i+1, norb-el_i+1):
-                    zar += _addressing_array_summand(i, nele-el_i)
+                for i in range(norb - or_i + 1, norb - el_i + 1):
+                    zar += _addressing_array_summand(i, nele - el_i)
 
             return int(zar)
 
-        for i in range(1, nele+1):
-            det_addr += _addressing_array_element(norb, nele, i, occupation[i-1]+1)
+        for i in range(1, nele + 1):
+            det_addr += _addressing_array_element(norb, nele, i,
+                                                  occupation[i - 1] + 1)
 
         return int(det_addr)
 

@@ -32,10 +32,10 @@ from fqe.fqe_ops.fqe_ops import (
 
 from fqe.unittest_data import build_lih_data, build_nh_data
 
+
 class TestFQE(unittest.TestCase):
     """Test class for properties
     """
-
 
     def test_lih_energy(self):
         """Checking total energy with LiH
@@ -49,7 +49,8 @@ class TestFQE(unittest.TestCase):
 
         elec_hamil = general_hamiltonian.General((h1e, h2e))
         wfn = Wavefunction([[nele, nalpha - nbeta, norb]])
-        wfn.set_wfn(strategy='from_data', raw_data={(nele, nalpha - nbeta): lih_ground})
+        wfn.set_wfn(strategy='from_data',
+                    raw_data={(nele, nalpha - nbeta): lih_ground})
 
         ecalc = wfn.expectationValue(elec_hamil)
         self.assertAlmostEqual(eref, ecalc, places=8)
@@ -66,11 +67,12 @@ class TestFQE(unittest.TestCase):
         dip_ref, dip_mat, lih_ground = build_lih_data.build_lih_data('dipole')
 
         wfn = Wavefunction([[nele, nalpha - nbeta, norb]])
-        wfn.set_wfn(strategy='from_data', raw_data={(nele, nalpha - nbeta): lih_ground})
+        wfn.set_wfn(strategy='from_data',
+                    raw_data={(nele, nalpha - nbeta): lih_ground})
 
-        hwfn_x = wfn._apply_array(tuple([dip_mat[0]]), e_0=0.+0.j)
-        hwfn_y = wfn._apply_array(tuple([dip_mat[1]]), e_0=0.+0.j)
-        hwfn_z = wfn._apply_array(tuple([dip_mat[2]]), e_0=0.+0.j)
+        hwfn_x = wfn._apply_array(tuple([dip_mat[0]]), e_0=0. + 0.j)
+        hwfn_y = wfn._apply_array(tuple([dip_mat[1]]), e_0=0. + 0.j)
+        hwfn_z = wfn._apply_array(tuple([dip_mat[2]]), e_0=0. + 0.j)
         calc_dip = numpy.array([fqe.vdot(wfn, hwfn_x).real, \
                               fqe.vdot(wfn, hwfn_y).real, \
                               fqe.vdot(wfn, hwfn_z).real])*au2debye
@@ -78,7 +80,6 @@ class TestFQE(unittest.TestCase):
             with self.subTest(dip=card):
                 err = abs(calc_dip[card] - dip_ref[card])
                 self.assertTrue(err < 1.e-5)
-
 
     def test_lih_ops(self):
         """Check the value of the operators on LiH
@@ -91,7 +92,8 @@ class TestFQE(unittest.TestCase):
         _, _, lih_ground = build_lih_data.build_lih_data('energy')
 
         wfn = Wavefunction([[nele, nalpha - nbeta, norb]])
-        wfn.set_wfn(strategy='from_data', raw_data={(nele, nalpha - nbeta): lih_ground})
+        wfn.set_wfn(strategy='from_data',
+                    raw_data={(nele, nalpha - nbeta): lih_ground})
 
         operator = S2Operator()
         self.assertAlmostEqual(wfn.expectationValue(operator), 0. + 0.j)
@@ -102,5 +104,3 @@ class TestFQE(unittest.TestCase):
         operator = NumberOperator()
         self.assertAlmostEqual(wfn.expectationValue(operator), 4. + 0.j)
         self.assertAlmostEqual(wfn.expectationValue(operator, wfn), 4. + 0.j)
-
-

@@ -11,7 +11,6 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
-
 """Test cases for transform
 """
 
@@ -32,7 +31,6 @@ class TransformTest(unittest.TestCase):
     """Unit tests
     """
 
-
     def test_cirq_to_fqe_error(self):
         """Wrap together all the routines to build a wavefuntion that can be
         read by the fqe by simply passing a cirq wavefunction.
@@ -41,7 +39,6 @@ class TransformTest(unittest.TestCase):
         self.assertRaises(ValueError, transform.cirq_to_fqe_single, cirq_wfn,
                           20, 1, None)
 
-
     def test_cirq_to_fqe_single(self):
         """Wrap together all the routines to build a wavefuntion that can be
         read by the fqe by simply passing a cirq wavefunction.
@@ -49,8 +46,9 @@ class TransformTest(unittest.TestCase):
         cof = numpy.array([0.3901112 - 0.1543j, 0.01213 + 0.79120j],
                           dtype=numpy.complex128)
         cof /= numpy.sqrt(numpy.vdot(cof, cof))
-        wfn_ops = cof[0]*(ladder_op(0, 1)*ladder_op(1, 1)*ladder_op(2, 1))
-        wfn_ops += cof[1]*(ladder_op(0, 1)*ladder_op(2, 1)*ladder_op(3, 1))
+        wfn_ops = cof[0] * (ladder_op(0, 1) * ladder_op(1, 1) * ladder_op(2, 1))
+        wfn_ops += cof[1] * (ladder_op(0, 1) * ladder_op(2, 1) *
+                             ladder_op(3, 1))
         qpu = LineQubit.range(count_qubits(wfn_ops))
         cirq_wfn = qubit_wavefunction_from_vacuum(wfn_ops, qpu)
         fqe_wfn = transform.cirq_to_fqe_single(cirq_wfn, 3, 1, None)
