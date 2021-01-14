@@ -109,11 +109,7 @@ def test_second_factorization():
     molecule = build_lih_moleculardata()
     oei, tei = molecule.get_integrals()
     lrt_obj = LowRankTrotter(oei=oei, tei=tei)
-    (
-        eigenvalues,
-        one_body_squares,
-        one_body_correction,
-    ) = lrt_obj.first_factorization()
+    eigenvalues, one_body_squares, _ = lrt_obj.first_factorization()
 
     s_rho_rho, basis_changes = lrt_obj.second_factorization(
         eigenvalues, one_body_squares

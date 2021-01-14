@@ -33,7 +33,7 @@ except ImportError:
 
 
 def get_fermion_op(coeff_tensor) -> of.FermionOperator:
-    """Returns an openfermion.FermionOperator from the given coeff_tensor.
+    r"""Returns an openfermion.FermionOperator from the given coeff_tensor.
 
     Given A[i, j, k, l] of A = \sum_{ijkl}A[i, j, k, l]i^ j^ k^ l
     return the FermionOperator A.
@@ -183,7 +183,7 @@ def get_acse_residual_fqe(fqe_wf: Wavefunction,
 
 
 def get_tpdm_grad_fqe(fqe_wf, acse_res_tensor, norbs):
-    """Compute the acse gradient  <psi [rdo, A] psi>
+    r"""Compute the acse gradient  <psi [rdo, A] psi>
 
     alpha-alpha, beta-beta, alpha-beta, and beta-alpha blocks
 
@@ -529,7 +529,7 @@ def _get_tpdm_grad_fqe_atomic(p, q, r, s, fqe_appS, fqe_wf):
 
 
 def get_tpdm_grad_fqe_parallel(fqe_wf, acse_res_tensor, norbs):
-    """Compute the acse gradient  <psi [rdo, A] psi>
+    r"""Compute the acse gradient  <psi [rdo, A] psi>
 
     d D^{pq}_{rs} / d \lambda = <psi(lamba)|[p^ q^ s r, A]| psi(lambda)>
 
@@ -615,7 +615,7 @@ def get_tpdm_grad_fqe_parallel(fqe_wf, acse_res_tensor, norbs):
 
 def two_rdo_commutator(two_body_tensor: np.ndarray, tpdm: np.ndarray,
                        d3: np.ndarray) -> np.ndarray:
-    """
+    r"""
     Calculate <psi | [p^ q^ r s, A] | psi>  where A two-body operator
 
     A = \sum_{ijkl}A^{ij}_{lk}i^ j^ k l
@@ -710,7 +710,7 @@ def two_rdo_commutator(two_body_tensor: np.ndarray, tpdm: np.ndarray,
 
 def two_rdo_commutator_symm(two_body_tensor: np.ndarray, tpdm: np.ndarray,
                             d3: np.ndarray) -> np.ndarray:
-    """
+    r"""
     Calculate <psi | [p^ q^ r s, A] | psi>  where A two-body operator
 
     A = \sum_{ijkl}A^{ij}_{lk}i^ j^ k l
@@ -757,7 +757,7 @@ def two_rdo_commutator_symm(two_body_tensor: np.ndarray, tpdm: np.ndarray,
 
 def two_rdo_commutator_antisymm(two_body_tensor: np.ndarray, tpdm: np.ndarray,
                                 d3: np.ndarray) -> np.ndarray:
-    """
+    r"""
     Calculate <psi | [p^ q^ r s, A] | psi>  where A two-body operator
 
     A = \sum_{ijkl}A^{ij}_{lk}i^ j^ k l
@@ -803,7 +803,7 @@ def two_rdo_commutator_antisymm(two_body_tensor: np.ndarray, tpdm: np.ndarray,
 
 def one_rdo_commutator_symm(two_body_tensor: np.ndarray,
                             tpdm: np.ndarray) -> np.ndarray:
-    """
+    r"""
     Calculate <psi | [p^ q, A] | psi> where A is a two-body operator
      A = \sum_{ijkl}A^{ij}_{lk}i^ j^ k l
 

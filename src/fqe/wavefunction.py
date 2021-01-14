@@ -949,10 +949,10 @@ class Wavefunction:
 
         if not self._conserve_number or not hamil.conserve_number():
             if self._conserve_number:
-                raise TypeError('Number non-conserving hamiltonian passed to' \
+                raise TypeError('Number non-conserving hamiltonian passed to'
                                 ' number conserving wavefunction')
             if hamil.conserve_number():
-                raise TypeError('Number conserving hamiltonian passed to' \
+                raise TypeError('Number conserving hamiltonian passed to'
                                 ' number non-conserving wavefunction')
 
         if isinstance(hamil, sparse_hamiltonian.SparseHamiltonian) and hamil.is_individual():
@@ -961,7 +961,7 @@ class Wavefunction:
 
         else:
             is_diag = ((hamil.quadratic() and hamil.diagonal()) or hamil.diagonal_coulomb())
-            if inplace and not is_diag: 
+            if inplace and not is_diag:
                 raise ValueError("Inplace is not implemented for this case")
 
             if self._conserve_spin and not self._conserve_number:

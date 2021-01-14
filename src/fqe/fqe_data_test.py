@@ -14,25 +14,23 @@
 
 """Unittesting for the fqe_data module
 """
+import copy
+from io import StringIO
+from itertools import product
 import os
 import sys
-import copy
-import pytest
-
-from itertools import product
 
 import unittest
-
-from io import StringIO
+import pytest
 
 import numpy
+
+import openfermion as of
 
 from fqe import fqe_data
 from fqe import fci_graph
 import fqe.unittest_data as fud
 import fqe
-
-import openfermion as of
 
 
 class FqeDataTest(unittest.TestCase):

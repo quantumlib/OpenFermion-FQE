@@ -39,6 +39,20 @@ jobs:
       - name: Run mypy
         run: dev/check/mypy
 
+  lint:
+    name: Lint check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.6'
+          architecture: 'x64'
+      - name: Install pylint
+        run: pip install pylint~=2.6.0
+      - name: Lint
+        run: dev/check/pylint
+
   build:
     runs-on: ubuntu-latest
     strategy:
