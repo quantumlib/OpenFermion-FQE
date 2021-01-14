@@ -25,6 +25,20 @@ on:
     branches: [ master ]
 
 jobs:
+  format:
+    name: Format check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.6'
+          architecture: 'x64'
+      - name: Install yapf
+        run: pip install yapf~=0.27.0
+      - name: Run yapf
+        run: dev/check/format
+
   mypy:
     name: Type check
     runs-on: ubuntu-latest
