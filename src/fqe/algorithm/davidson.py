@@ -295,15 +295,34 @@ def davidsonliu_fqe(
                     )
                 )
 
-            for idx in range(len(guess_vecs)):
-                f_k.sector(gv_sector).coeff -= (
-                    overlaps[idx] * guess_vecs[idx].sector(gv_sector).coeff
-                )
+    for idx in range(len(guess_vecs)):
+        f_k.sector(gv_sector).coeff -= (
+            overlaps[idx] * guess_vecs[idx].sector(gv_sector).coeff
+        )
 
-            f_k.normalize()
-            guess_vecs.append(f_k)
+    f_k.normalize()
+    guess_vecs.append(f_k)
 
-    raise ConvergenceError("Maximal number of steps exceeded")
+    eigenvectors = []
+    for i in range(nroots):
+        eigenvectors.append(
+            sum(
+                [
+                    v[j, i] * guess_vecs[j].sector(gv_sector).coeff
+                    for j in range(current_num_gv)
+                ]
+            )
+        )
+    eigfuncs = []
+    for eg in eigenvectors:
+        new_wfn = copy.deepcopy(guess_vecs[0])
+        new_wfn.set_wfn(strategy='from_data',
+                        raw_data={gv_sector: eg})
+        eigfuncs.append(new_wfn)
+
+    return w[:nroots], eigfuncs
+
+    # raise ConvergenceError("Maximal number of steps exceeded")
 
 
 def davidson_diagonalization(hamiltonian: fqe.restricted_hamiltonian.RestrictedHamiltonian,
@@ -337,7 +356,11 @@ def davidson_diagonalization(hamiltonian: fqe.restricted_hamiltonian.RestrictedH
             strategy="from_data",
             raw_data={(nele, sz): guess_vec2_coeffs},
         )
-        guess_vecs = [guess_wfn1, guess_wfn2]
+        fqe_random = fqe.Wavefunction([[nele, sz, norb]])
+        fqe_random.set_wfn(strategy='random')
+        fqe_random.sector((nele, sz)).coeff.imag = 0
+        fqe_random.normalize()
+        guess_vecs = [guess_wfn1, guess_wfn2, fqe_random]
 
     # run FQE-DL
     dl_w, dl_v = davidsonliu_fqe(
