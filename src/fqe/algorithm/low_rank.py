@@ -19,12 +19,11 @@ import numpy as np
 import openfermion as of
 from openfermion import givens_decomposition_square
 
-import fqe
 from fqe.wavefunction import Wavefunction
 from fqe.hamiltonians.diagonal_coulomb import DiagonalCoulomb
 
 
-def evolve_fqe_givens(wfn: fqe.Wavefunction, u: np.ndarray) -> fqe.Wavefunction:
+def evolve_fqe_givens(wfn: Wavefunction, u: np.ndarray) -> Wavefunction:
     """Evolve a wavefunction by u generated from a 1-body Hamiltonian.
 
     Args:
@@ -78,8 +77,8 @@ def evolve_fqe_givens(wfn: fqe.Wavefunction, u: np.ndarray) -> fqe.Wavefunction:
     return wfn
 
 
-def evolve_fqe_givens_unrestricted(wfn: fqe.Wavefunction,
-                                   u: np.ndarray) -> fqe.Wavefunction:
+def evolve_fqe_givens_unrestricted(wfn: Wavefunction,
+                                   u: np.ndarray) -> Wavefunction:
     """Evolve a wavefunction by u generated from a 1-body Hamiltonian.
 
     Args:
@@ -120,8 +119,8 @@ def evolve_fqe_givens_unrestricted(wfn: fqe.Wavefunction,
 
 
 def evolve_fqe_charge_charge_unrestricted(
-    wfn: fqe.Wavefunction, vij_mat: np.ndarray, time=1
-) -> fqe.Wavefunction:
+    wfn: Wavefunction, vij_mat: np.ndarray, time=1
+) -> Wavefunction:
     r"""Utility for testing evolution of a full 2^{n} wavefunction via
 
     :math:`exp{-i time * \sum_{i,j}v_{i, j}n_{i}n_{j}}.`

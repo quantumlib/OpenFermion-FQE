@@ -26,6 +26,7 @@ from openfermion import (make_reduced_hamiltonian,
 from openfermion.chem.molecular_data import spinorb_from_spatial
 
 import fqe
+from fqe.wavefunction import Wavefunction
 from fqe.hamiltonians.restricted_hamiltonian import RestrictedHamiltonian
 from fqe.hamiltonians.hamiltonian import Hamiltonian as ABCHamiltonian
 from fqe.fqe_decorators import build_hamiltonian
@@ -36,8 +37,6 @@ from fqe.algorithm.brillouin_calculator import (
 )
 from fqe.algorithm.generalized_doubles_factorization import \
     doubles_factorization, doubles_factorization2
-
-from fqe.wavefunction import Wavefunction
 
 
 def valdemaro_reconstruction_functional(tpdm, n_electrons, true_opdm=None):
@@ -253,8 +252,8 @@ class ADAPT:
             opt_options = {}
         self.num_opt_var = num_opt_var
         nso = 2 * self.sdim
-        operator_pool = []
-        operator_pool_fqe: List[ABCHamiltonian] = []
+        operator_pool: List[Union[ABCHamiltonian, SumOfSquaresTrotter]] = []
+        operator_pool_fqe: List[Union[ABCHamiltonian, SumOfSquaresTrotter]] = []
         existing_parameters: List[float] = []
         self.energies = []
         self.energies = [initial_wf.expectationValue(self.k2_fop)]
@@ -296,8 +295,8 @@ class ADAPT:
                     new_residual[p, q, r, s] = (acse_residual[p, q, r, s] -
                                                 acse_residual[s, r, q, p]) / 2
 
-                ul, vl, _ = doubles_factorization(new_residual,
-                                                  eig_cutoff=update_rank)
+                ul, vl, one_body_residual, _, _, one_body_op = \
+                    doubles_factorization(new_residual, eig_cutoff=update_rank)
 
                 if trotterize_lr:
                     fop = []
@@ -415,7 +414,7 @@ class ADAPT:
                 fop = [get_fermion_op(acse_residual)]
 
             operator_pool.extend(fop)
-            fqe_ops = []
+            fqe_ops: List[Union[ABCHamiltonian, SumOfSquaresTrotter]] = []
             for f_op in fop:
                 if isinstance(f_op, ABCHamiltonian):
                     fqe_ops.append(f_op)
@@ -473,7 +472,7 @@ class ADAPT:
                 break
             iteration += 1
 
-    def adapt_vqe(self, initial_wf: fqe.Wavefunction,
+    def adapt_vqe(self, initial_wf: Wavefunction,
                   opt_method: str='L-BFGS-B',
                   opt_options=None,
                   v_reconstruct: bool=True,
@@ -536,12 +535,12 @@ class ADAPT:
             pool_terms = [self.operator_pool.op_pool[i] for i in
                           max_grad_terms_idx]
             operator_pool.extend(pool_terms)
-            fqe_op = []
+            fqe_ops: List[ABCHamiltonian] = []
             for f_op in pool_terms:
-                fqe_op.append(build_hamiltonian(1j * f_op, self.sdim,
+                fqe_ops.append(build_hamiltonian(1j * f_op, self.sdim,
                                                 conserve_number=True))
-            operator_pool_fqe.extend(fqe_op)
-            existing_parameters.extend([0] * len(fqe_op))
+            operator_pool_fqe.extend(fqe_ops)
+            existing_parameters.extend([0] * len(fqe_ops))
 
             new_parameters, current_e = self.optimize_param(
                 operator_pool_fqe, existing_parameters, initial_wf, opt_method,
@@ -559,7 +558,7 @@ class ADAPT:
     def optimize_param(self, pool: Union[
         List[of.FermionOperator], List[ABCHamiltonian]],
                        existing_params: Union[List, np.ndarray],
-                       initial_wf: fqe.Wavefunction,
+                       initial_wf: Wavefunction,
                        opt_method: str,
                        opt_options=None) ->  Tuple[np.ndarray, float]:
         """Optimize a wavefunction given a list of generators
