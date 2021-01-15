@@ -21,6 +21,7 @@ import numpy as np
 
 import openfermion as of
 import fqe
+from fqe.wavefunction import Wavefunction
 from fqe.hamiltonians.restricted_hamiltonian import RestrictedHamiltonian
 
 try:
@@ -32,7 +33,7 @@ except ImportError:
 
 
 def get_fermion_op(coeff_tensor) -> of.FermionOperator:
-    """Returns an openfermion.FermionOperator from the given coeff_tensor.
+    r"""Returns an openfermion.FermionOperator from the given coeff_tensor.
 
     Given A[i, j, k, l] of A = \sum_{ijkl}A[i, j, k, l]i^ j^ k^ l
     return the FermionOperator A.
@@ -42,12 +43,6 @@ def get_fermion_op(coeff_tensor) -> of.FermionOperator:
     Returns:
         A FermionOperator object
     """
-    if len(coeff_tensor.shape) not in (2, 4):
-        raise ValueError(
-            "Arg `coeff_tensor` should have dimension 2 or 4 but has dimension"
-            f" {len(coeff_tensor.shape)}."
-        )
-
     if len(coeff_tensor.shape) == 4:
         nso = coeff_tensor.shape[0]
         fermion_op = of.FermionOperator()
@@ -59,17 +54,23 @@ def get_fermion_op(coeff_tensor) -> of.FermionOperator:
             fermion_op += fop
         return fermion_op
 
-    if len(coeff_tensor.shape) == 2:
+    elif len(coeff_tensor.shape) == 2:
         nso = coeff_tensor.shape[0]
         fermion_op = of.FermionOperator()
         for p, q in product(range(nso), repeat=2):
-            op = ((p, 1), (q, 0))
-            fop = of.FermionOperator(op, coefficient=coeff_tensor[p, q])
+            oper = ((p, 1), (q, 0))
+            fop = of.FermionOperator(oper, coefficient=coeff_tensor[p, q])
             fermion_op += fop
         return fermion_op
 
+    else:
+        raise ValueError(
+            "Arg `coeff_tensor` should have dimension 2 or 4 but has dimension"
+            f" {len(coeff_tensor.shape)}."
+        )
 
-def get_acse_residual_fqe(fqe_wf: fqe.Wavefunction,
+
+def get_acse_residual_fqe(fqe_wf: Wavefunction,
                           fqe_ham: RestrictedHamiltonian,
                           norbs: int) -> np.ndarray:
     """Get the ACSE block by using reduced density operators that are Sz spin
@@ -184,7 +185,7 @@ def get_acse_residual_fqe(fqe_wf: fqe.Wavefunction,
 
 
 def get_tpdm_grad_fqe(fqe_wf, acse_res_tensor, norbs):
-    """Compute the acse gradient  <psi [rdo, A] psi>
+    r"""Compute the acse gradient  <psi [rdo, A] psi>
 
     alpha-alpha, beta-beta, alpha-beta, and beta-alpha blocks
 
@@ -530,7 +531,7 @@ def _get_tpdm_grad_fqe_atomic(p, q, r, s, fqe_appS, fqe_wf):
 
 
 def get_tpdm_grad_fqe_parallel(fqe_wf, acse_res_tensor, norbs):
-    """Compute the acse gradient  <psi [rdo, A] psi>
+    r"""Compute the acse gradient  <psi [rdo, A] psi>
 
     d D^{pq}_{rs} / d \lambda = <psi(lamba)|[p^ q^ s r, A]| psi(lambda)>
 
@@ -616,7 +617,7 @@ def get_tpdm_grad_fqe_parallel(fqe_wf, acse_res_tensor, norbs):
 
 def two_rdo_commutator(two_body_tensor: np.ndarray, tpdm: np.ndarray,
                        d3: np.ndarray) -> np.ndarray:
-    """
+    r"""
     Calculate <psi | [p^ q^ r s, A] | psi>  where A two-body operator
 
     A = \sum_{ijkl}A^{ij}_{lk}i^ j^ k l
@@ -711,7 +712,7 @@ def two_rdo_commutator(two_body_tensor: np.ndarray, tpdm: np.ndarray,
 
 def two_rdo_commutator_symm(two_body_tensor: np.ndarray, tpdm: np.ndarray,
                             d3: np.ndarray) -> np.ndarray:
-    """
+    r"""
     Calculate <psi | [p^ q^ r s, A] | psi>  where A two-body operator
 
     A = \sum_{ijkl}A^{ij}_{lk}i^ j^ k l
@@ -758,7 +759,7 @@ def two_rdo_commutator_symm(two_body_tensor: np.ndarray, tpdm: np.ndarray,
 
 def two_rdo_commutator_antisymm(two_body_tensor: np.ndarray, tpdm: np.ndarray,
                                 d3: np.ndarray) -> np.ndarray:
-    """
+    r"""
     Calculate <psi | [p^ q^ r s, A] | psi>  where A two-body operator
 
     A = \sum_{ijkl}A^{ij}_{lk}i^ j^ k l
@@ -804,7 +805,7 @@ def two_rdo_commutator_antisymm(two_body_tensor: np.ndarray, tpdm: np.ndarray,
 
 def one_rdo_commutator_symm(two_body_tensor: np.ndarray,
                             tpdm: np.ndarray) -> np.ndarray:
-    """
+    r"""
     Calculate <psi | [p^ q, A] | psi> where A is a two-body operator
      A = \sum_{ijkl}A^{ij}_{lk}i^ j^ k l
 

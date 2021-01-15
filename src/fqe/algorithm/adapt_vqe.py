@@ -1,19 +1,31 @@
+#   Copyright 2020 Google LLC
+
+#   Licensed under the Apache License, Version 2.0 (the "License");
+#   you may not use this file except in compliance with the License.
+#   You may obtain a copy of the License at
+#
+#       http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in writing, software
+#   distributed under the License is distributed on an "AS IS" BASIS,
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#   See the License for the specific language governing permissions and
+#   limitations under the License.
+
 """Infrastructure for ADAPT VQE algorithm"""
-from typing import List, Union, Dict
+from typing import List, Tuple, Union
 import copy
-import openfermion as of
-import fqe
+
 from itertools import product
 import numpy as np
 import scipy as sp
 
+import openfermion as of
 from openfermion import (make_reduced_hamiltonian,
                          InteractionOperator, )
 from openfermion.chem.molecular_data import spinorb_from_spatial
 
 from fqe.hamiltonians.restricted_hamiltonian import RestrictedHamiltonian
-from fqe.hamiltonians.general_hamiltonian import General as \
-    GeneralFQEHamiltonian
 from fqe.hamiltonians.hamiltonian import Hamiltonian as ABCHamiltonian
 from fqe.fqe_decorators import build_hamiltonian
 from fqe.algorithm.brillouin_calculator import (
@@ -24,10 +36,7 @@ from fqe.algorithm.brillouin_calculator import (
 from fqe.algorithm.generalized_doubles_factorization import \
     doubles_factorization
 
-import time
-
-from uthc.thc import UTHC
-from uthc.jax_givens import GivensNetwork
+from fqe.wavefunction import Wavefunction
 
 
 def valdemaro_reconstruction_functional(tpdm, n_electrons, true_opdm=None):
@@ -61,7 +70,7 @@ class OperatorPool:
         self.norbs = norbs
         self.occ = occ
         self.virt = virt
-        self.op_pool = []
+        self.op_pool: List[of.FermionOperator] = []
 
     def singlet_t2(self):
         """
@@ -73,10 +82,10 @@ class OperatorPool:
         indices of the occupied orbitals with respect to the Hartree-Fock
         reference.
         """
-        for oidx, oo_i in enumerate(self.occ):
-            for ojdx, oo_j in enumerate(self.occ):
-                for vadx, vv_a in enumerate(self.virt):
-                    for vbdx, vv_b in enumerate(self.virt):
+        for oo_i in self.occ:
+            for oo_j in self.occ:
+                for vv_a in self.virt:
+                    for vv_b in self.virt:
                         term = of.FermionOperator()
                         for sigma, tau in product(range(2), repeat=2):
                             op = ((2 * vv_a + sigma, 1), (2 * vv_b + tau, 1),
@@ -204,8 +213,7 @@ class ADAPT:
         self.stopping_eps = stopping_epsilon
         self.delta_e_eps = delta_e_eps
 
-    def vbc(self, initial_wf: fqe.Wavefunction,
-            update_rank=None,
+    def vbc(self, initial_wf: Wavefunction, update_rank=None,
             opt_method: str='L-BFGS-B',
             opt_options: Dict={},
             num_opt_var=None,
@@ -243,8 +251,9 @@ class ADAPT:
         self.num_opt_var = num_opt_var
         nso = 2 * self.sdim
         operator_pool = []
-        operator_pool_fqe = []
-        existing_parameters = []
+        operator_pool_fqe: List[ABCHamiltonian] = []
+        existing_parameters: List[float] = []
+        self.energies = []
         self.energies = [initial_wf.expectationValue(self.k2_fop)]
         self.residuals = []
         iteration = 0
@@ -264,11 +273,12 @@ class ADAPT:
                     wf = wf.time_evolve(coeff, fqe_op)
 
             # calculate rdms for grad
-            opdm, tpdm = wf.sector((self.nele, self.sz)).get_openfermion_rdms()
+            _, tpdm = wf.sector((self.nele, self.sz)).get_openfermion_rdms()
             if v_reconstruct:
                 d3 = 6 * valdemaro_reconstruction_functional(tpdm / 2, self.nele)
             else:
                 d3 = wf.sector((self.nele, self.sz)).get_three_pdm()
+
             # get ACSE Residual and 2-RDM gradient
             acse_residual = two_rdo_commutator_symm(
                 self.reduced_ham.two_body_tensor, tpdm,
@@ -283,8 +293,7 @@ class ADAPT:
                     new_residual[p, q, r, s] = (acse_residual[p, q, r, s] -
                                                 acse_residual[s, r, q, p]) / 2
 
-                ul, vl, one_body_residual, ul_ops, vl_ops, one_body_op = \
-                    doubles_factorization(new_residual, eig_cutoff=update_rank)
+                ul, vl, _ = doubles_factorization(new_residual, eig_cutoff=update_rank)
 
                 if trotterize_lr:
                     fop = []
@@ -477,8 +486,8 @@ class ADAPT:
                          wavefunction
         """
         operator_pool = []
-        operator_pool_fqe = []
-        existing_parameters = []
+        operator_pool_fqe: List[ABCHamiltonian] = []
+        existing_parameters: List[float] = []
         self.gradients = []
         self.energies = [initial_wf.expectationValue(self.k2_fop)]
         iteration = 0
@@ -489,11 +498,12 @@ class ADAPT:
                 wf = wf.time_evolve(coeff, fqe_op)
 
             # calculate rdms for grad
-            opdm, tpdm = wf.sector((self.nele, self.sz)).get_openfermion_rdms()
+            _, tpdm = wf.sector((self.nele, self.sz)).get_openfermion_rdms()
             if v_reconstruct:
                 d3 = 6 * valdemaro_reconstruction_functional(tpdm / 2, self.nele)
             else:
                 d3 = wf.sector((self.nele, self.sz)).get_three_pdm()
+
             # get ACSE Residual and 2-RDM gradient
             acse_residual = two_rdo_commutator_symm(
                 self.reduced_ham.two_body_tensor, tpdm,
@@ -546,11 +556,11 @@ class ADAPT:
             iteration += 1
 
     def optimize_param(self, pool: Union[
-        List[of.FermionOperator], List[GeneralFQEHamiltonian]],
+        List[of.FermionOperator], List[ABCHamiltonian]],
                        existing_params: Union[List, np.ndarray],
                        initial_wf: fqe.Wavefunction,
                        opt_method: str,
-                       opt_options: Dict={}) -> fqe.wavefunction:
+                       opt_options: Dict={}) ->  Tuple[np.ndarray, float]:
         """Optimize a wavefunction given a list of generators
 
         Args:
@@ -618,8 +628,8 @@ class ADAPT:
             #       "\tgtol {: 5.5f}".format(np.linalg.norm(grad_vec)))
             # return wf.expectationValue(self.elec_hamil).real, np.array(
             #     grad_vec.real, order='F')
-            return wf.expectationValue(self.k2_fop).real, np.array(
-                grad_vec.real, order='F')
+            return (wf.expectationValue(self.k2_fop).real,
+                    np.array(grad_vec.real, order='F'))
 
         total_start = time.time()
         res = sp.optimize.minimize(cost_func, existing_params,

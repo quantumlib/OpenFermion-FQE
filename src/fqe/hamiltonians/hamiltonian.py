@@ -20,7 +20,7 @@
 #  This will be corrected in a future version.
 
 from abc import ABCMeta, abstractmethod
-from typing import Tuple
+from typing import Any, Tuple
 
 import numpy as np
 
@@ -83,7 +83,7 @@ class Hamiltonian(metaclass=ABCMeta):
         """Returns the scalar potential of the Hamiltonian."""
         return self._e_0
 
-    def iht(self, time: float) -> Tuple[np.ndarray, ...]:
+    def iht(self, time: float) -> Any:
         """Return the matrices of the Hamiltonian prepared for time evolution.
 
         Args:

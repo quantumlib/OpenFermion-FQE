@@ -266,25 +266,62 @@ class FqeData:
 
     def _apply_array_spatial1(self, h1e: 'Nparray') -> 'Nparray':
         """
-        API for application of 1- and 2-body spatial operators to the
+        API for application of 1-body spatial operators to the
         wavefunction self.  It returns array that corresponds to the
-        output wave function data.
+        output wave function data. If h1e only contains a single column,
+        it goes to a special code path
         """
         assert h1e.shape == (self.norb(), self.norb())
-        dvec = self.calculate_dvec_spatial()
-        return numpy.einsum("ij,ijkl->kl", h1e, dvec)
+
+        ncol = 0
+        jorb = 0
+        for j in range(self.norb()):
+            if numpy.any(h1e[:, j]):
+                ncol += 1
+                jorb = j
+            if ncol > 1:
+                break
+
+        if ncol > 1:
+            dvec = self.calculate_dvec_spatial()
+            out = numpy.einsum("ij,ijkl->kl", h1e, dvec)
+        else:
+            dvec = self.calculate_dvec_spatial_fixed_j(jorb)
+            out = numpy.einsum("i,ikl->kl", h1e[:, jorb], dvec)
+
+        return out
 
     def _apply_array_spin1(self, h1e: 'Nparray') -> 'Nparray':
         """
-        API for application of 1- and 2-body spatial operators to the
+        API for application of 1-body spatial operators to the
         wavefunction self. It returns numpy.ndarray that corresponds to the
         output wave function data.
         """
         norb = self.norb()
         assert h1e.shape == (norb*2, norb*2)
-        (dveca, dvecb) = self.calculate_dvec_spin()
-        return numpy.einsum("ij,ijkl->kl", h1e[:norb, :norb], dveca) \
-             + numpy.einsum("ij,ijkl->kl", h1e[norb:, norb:], dvecb)
+
+        ncol = 0
+        jorb = 0
+        for j in range(self.norb()*2):
+            if numpy.any(h1e[:, j]):
+                ncol += 1
+                jorb = j
+            if ncol > 1:
+                break
+
+        if ncol > 1:
+            (dveca, dvecb) = self.calculate_dvec_spin()
+            out = numpy.einsum("ij,ijkl->kl", h1e[:norb, :norb], dveca) \
+                + numpy.einsum("ij,ijkl->kl", h1e[norb:, norb:], dvecb)
+        else:
+            dvec = self.calculate_dvec_spin_fixed_j(jorb)
+            if jorb < norb:
+                h1eview = h1e[:norb, jorb]
+            else:
+                h1eview = h1e[norb:, jorb]
+            out = numpy.einsum("i,ikl->kl", h1eview, dvec)
+
+        return out
 
     def _apply_array_spatial12(self,
                                h1e: 'Nparray',
@@ -703,7 +740,7 @@ class FqeData:
         if not from1234:
             (dveca, dvecb) = self.calculate_dvec_spin()
         else:
-            dveca, dvecb = dvec[0], dvec[1]
+            dveca, dvecb = dvec  # type: ignore
 
         if not from1234:
             evecaa = numpy.zeros((norb, norb, norb, norb, lena, lenb),
@@ -724,7 +761,7 @@ class FqeData:
                     evecab[:, :, i, j, :, :] = tmp[0][:, :, :, :]
                     evecbb[:, :, i, j, :, :] = tmp[1][:, :, :, :]
         else:
-            evecaa, evecab, evecba, evecbb = evec[0], evec[1], evec[2], evec[3]
+            evecaa, evecab, evecba, evecbb = evec  # type: ignore
 
         symfac = 2.0 if not from1234 else 1.0
 
@@ -1267,6 +1304,27 @@ class FqeData:
         """
         return self._calculate_dvec_spin_with_coeff(self.coeff)
 
+    def calculate_dvec_spatial_fixed_j(self, jorb: int) -> 'Nparray':
+        """Generate, for a fixed j,
+
+        .. math::
+            D^J_{ij} = \\sum_I \\langle J|a^\\dagger_i a_j|I\\rangle C_I
+
+        using self.coeff as an input
+        """
+        return self._calculate_dvec_spatial_with_coeff_fixed_j(self.coeff, jorb)
+
+    def calculate_dvec_spin_fixed_j(self, jorb: int) -> 'Nparray':
+        """Generate a pair of the following, for a fixed j
+
+        .. math::
+            D^J_{ij} = \\sum_I \\langle J|a^\\dagger_i a_j|I\\rangle C_I
+
+        using self.coeff as an input. Alpha and beta are seperately packed in
+        the tuple to be returned
+        """
+        return self._calculate_dvec_spin_with_coeff_fixed_j(self.coeff, jorb)
+
     def _calculate_dvec_spatial_with_coeff(self, coeff: 'Nparray') -> 'Nparray':
         """Generate
 
@@ -1312,6 +1370,48 @@ class FqeData:
                     # sum_{Ia, Ib} <Jb|ib^ jb| Ib> delta(Ja, Ia) C(IaIb)
                     dvecb[i, j, :, target] += coeff[:, source] * parity
         return (dveca, dvecb)
+
+    def _calculate_dvec_spatial_with_coeff_fixed_j(self,
+                                                   coeff: 'Nparray',
+                                                   jorb: int) -> 'Nparray':
+        """Generate, for fixed j,
+
+        .. math::
+            D^J_{ij} = \\sum_I \\langle J|a^\\dagger_i a_j|I\\rangle C_I
+
+        """
+        norb = self.norb()
+        assert(jorb < norb and jorb >= 0)
+        dvec = numpy.zeros((norb, self.lena(), self.lenb()), dtype=self._dtype)
+        for i in range(norb):
+            for source, target, parity in self.alpha_map(i, jorb):
+                dvec[i, target, :] += coeff[source, :] * parity
+            for source, target, parity in self.beta_map(i, jorb):
+                dvec[i, :, target] += coeff[:, source] * parity
+        return dvec
+
+    def _calculate_dvec_spin_with_coeff_fixed_j(self,
+                                                coeff: 'Nparray',
+                                                jorb: int) -> 'Nparray':
+        """Generate, fixed j,
+
+        .. math::
+
+            D^J_{ij} = \\sum_I \\langle J|a^\\dagger_i a_j|I\\rangle C_I
+
+        in the spin-orbital case
+        """
+        norb = self.norb()
+        assert(jorb < norb*2 and jorb >= 0)
+        dvec = numpy.zeros((norb, self.lena(), self.lenb()), dtype=self._dtype)
+        for i in range(norb):
+            if jorb < norb:
+                for source, target, parity in self.alpha_map(i, jorb):
+                    dvec[i, target, :] += coeff[source, :] * parity
+            else:
+                for source, target, parity in self.beta_map(i, jorb - norb):
+                    dvec[i, :, target] += coeff[:, source] * parity
+        return dvec
 
     def _calculate_coeff_spatial_with_dvec(self, dvec: 'Nparray') -> 'Nparray':
         """Generate
@@ -1382,8 +1482,8 @@ class FqeData:
 
         amap = set()
         bmap = set()
-        amask = reverse_integer_index(opa) 
-        bmask = reverse_integer_index(opb) 
+        amask = reverse_integer_index(opa)
+        bmask = reverse_integer_index(opb)
         for index in range(self.lena()):
             current = self._core.string_alpha(index)
             if (~current) & amask == 0:
@@ -1507,7 +1607,7 @@ class FqeData:
         """
         amap = set()
         bmap = set()
-        apmask = reverse_integer_index(opa) 
+        apmask = reverse_integer_index(opa)
         ahmask = reverse_integer_index(oha)
         bpmask = reverse_integer_index(opb)
         bhmask = reverse_integer_index(ohb)
@@ -1725,7 +1825,7 @@ class FqeData:
         new_data.coeff[:, :] = self.coeff[:, :]
         return new_data
 
-    def __deepcopy__(self, memodict={}):
+    def __deepcopy__(self, memodict={}):  # pylint: disable=dangerous-default-value
         # FCIGraph is passed as by reference
         new_data = FqeData(nalpha=self._core.nalpha(),
                            nbeta=self._core.nbeta(),
@@ -1805,7 +1905,7 @@ class FqeData:
         return opdm, tpdm
 
     def get_three_spin_blocks_rdm(self):
-        """
+        r"""
         Generate 3-RDM in the spin-orbital basis.
 
         3-RDM has Sz spin-blocks (aaa, aab, abb, bbb).  The strategy is to
@@ -1846,7 +1946,7 @@ class FqeData:
         krond = numpy.eye(opdm.shape[0] // 2)
         # alpha-alpha-alpha
         for t, u in itertools.product(range(self.norb()), repeat=2):
-            tdveca_a, tdvecb_a = self._calculate_dvec_spin_with_coeff(dveca[t, u, :, :])
+            tdveca_a, _ = self._calculate_dvec_spin_with_coeff(dveca[t, u, :, :])
             tdveca_b, tdvecb_b = self._calculate_dvec_spin_with_coeff(dvecb[t, u, :, :])
             for r, s in itertools.product(range(self.norb()), repeat=2):
                 # p(:)^ q(:) r^ s t^ u

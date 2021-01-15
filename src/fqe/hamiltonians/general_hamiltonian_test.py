@@ -28,6 +28,7 @@ def test_general_hamiltonian():
     assert test.dim() == 5
     assert test.rank() == 2
     assert np.allclose(h1e, test.tensor(2))
+    assert test.quadratic()
 
     trans = test.calc_diag_transform()
     h1e = trans.T.conj() @ h1e @ trans

@@ -76,7 +76,7 @@ def qubit_op_to_gate(operation: 'QubitOperator',
 def qubit_projection(ops: QubitOperator,
                      qubits: List[LineQubit],
                      state: numpy.ndarray,
-                     coeff: numpy.ndarray) -> numpy.ndarray:
+                     coeff: numpy.ndarray) -> None:
     """Find the projection of each set of qubit operators on a
     wavefunction.
 
@@ -89,12 +89,8 @@ def qubit_projection(ops: QubitOperator,
         state (numpy.array(dtype=numpy.complex64)) - a cirq wavefunction that \
             is being projected
 
-        coeff (numpy.array(dtype=numpy.complex64)) - a coeffcient array that \
+        coeff (numpy.array(dtype=numpy.complex64)) - a coefficient array that \
             will store the result of the projection.
-
-    Returns:
-        coeff (numpy.array(dtype=numpy.complex64)) - the coefficients modified \
-            in place.
     """
     qpu = Simulator(dtype=numpy.complex128)
     for indx, cluster in enumerate(ops.terms):

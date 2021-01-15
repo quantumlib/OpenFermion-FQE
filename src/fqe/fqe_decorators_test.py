@@ -14,17 +14,14 @@
 """Unittest for the fqe decorators
 """
 
-import unittest
-
 import copy
+from itertools import product
+import unittest
 
 import numpy
 
 import scipy
 
-from itertools import product
-
-from openfermion.utils import hermitian_conjugated
 from openfermion.transforms import normal_ordered
 from openfermion import (FermionOperator, hermitian_conjugated,
                          get_sparse_operator)
@@ -104,7 +101,6 @@ class TestFqedecorators(unittest.TestCase):
 
     def test_process_rank2_matrix(self):
         numpy.random.seed(seed=409)
-        norb = 2
         raw = numpy.random.rand(8, 8) + 1.j*numpy.random.rand(8, 8)
         self.assertRaises(ValueError, process_rank2_matrix, raw, 0)
 
