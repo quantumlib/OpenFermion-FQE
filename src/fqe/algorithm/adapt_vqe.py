@@ -362,16 +362,40 @@ class ADAPT:
                     one_body_residual[1::2, 1::2] = one_body_residual[::2, ::2]
                     fop.extend([get_fermion_op(one_body_residual)])
 
-                givens = GivensNetwork(dim=nso)
-                uthc = UTHC(t2_amplitudes=acse_residual, dim=nso,
-                            rank=update_utc, givens_network=givens)
-                uthc.optimize()
-                param_mats = uthc.params_to_mats(uthc.optimized_params)
-                for u, jj in param_mats:
-                    gt = np.array(uthc.guess_tensor([[u, jj]]))
-                    fop_t = get_fermion_op(gt)
-                    assert of.is_hermitian(1j * fop_t)
-                    fop.extend([get_fermion_op(gt)])
+                # givens = GivensNetwork(dim=nso)
+                # uthc = UTHC(t2_amplitudes=acse_residual, dim=nso,
+                #             rank=update_utc, givens_network=givens)
+                # uthc.optimize()
+                # param_mats = uthc.params_to_mats(uthc.optimized_params)
+                # for u, jj in param_mats:
+                #     gt = np.array(uthc.guess_tensor([[u, jj]]))
+                #     fop_t = get_fermion_op(gt)
+                #     assert of.is_hermitian(1j * fop_t)
+                #     fop.extend([get_fermion_op(gt)])
+
+                from fqe.algorithm.generalized_doubles_factorization import doubles_factorization2
+                Zlp, Zlm, Zl, one_body_residual = doubles_factorization2(
+                    acse_residual)
+                for ll in range(update_utc):
+                    op1mat = Zlp[ll]
+                    op2mat = Zlm[ll]
+                    w1, v1 = sp.linalg.schur(op1mat)
+                    w1 = np.diagonal(w1)
+                    v1c = v1.conj()
+                    w2, v2 = sp.linalg.schur(op2mat)
+                    w2 = np.diagonal(w2)
+                    v2c = v2.conj()
+                    oww1 = np.outer(w1, w1)
+                    oww2 = np.outer(w2, w2)
+
+                    new_generator = np.einsum('pi,si,ij,qj,rj->pqrs', v1,
+                                                 v1c,
+                                                 (1 / 4) * oww1, v1, v1c) + \
+                                       np.einsum('pi,si,ij,qj,rj->pqrs', v2,
+                                                 v2c,
+                                                 (1 / 4) * oww2, v2, v2c)
+                    fop.extend([get_fermion_op(new_generator)])
+
                 # construct the fop to add to the pool
                 # Since we are doing tensor fitting  we don't want to do
                 # trotterization. Thus =1.

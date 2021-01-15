@@ -894,12 +894,40 @@ def test_generalized_doubles_takagi():
 
     Zlp, Zlm, Zl, one_body_residual = doubles_factorization2(acse_residual)
     test_fop = get_fermion_op(one_body_residual)
+    test_generator = np.zeros_like(acse_residual)
+    test_generator2 = np.zeros_like(acse_residual)
     for ll in range(len(Zlp)):
         test_fop += 0.25 * get_fermion_op(Zlp[ll]) ** 2
         test_fop += 0.25 * get_fermion_op(Zlm[ll]) ** 2
+        for p, q, r, s in product(range(nso), repeat=4):
+            test_generator[p, q, r, s] += Zl[ll][p, s] * Zl[ll][q, r]
+
+        op1mat = Zlp[ll]
+        op2mat = Zlm[ll]
+        w1, v1 = sp.linalg.schur(op1mat)
+        w1 = np.diagonal(w1)
+        v1c = v1.conj()
+        w2, v2 = sp.linalg.schur(op2mat)
+        w2 = np.diagonal(w2)
+        v2c = v2.conj()
+        oww1 = np.outer(w1, w1)
+        oww2 = np.outer(w2, w2)
+
+        test_generator2 += np.einsum('pi,si,ij,qj,rj->pqrs', v1, v1c,
+                                    (1 / 4) * oww1, v1, v1c) + \
+                          np.einsum('pi,si,ij,qj,rj->pqrs', v2, v2c,
+                                    (1 / 4) * oww2, v2, v2c)
+        assert of.is_hermitian(1j * get_fermion_op(np.einsum('pi,si,ij,qj,rj->pqrs', v1, v1c,
+                                    (1 / 4) * oww1, v1, v1c) + \
+                          np.einsum('pi,si,ij,qj,rj->pqrs', v2, v2c,
+                                    (1 / 4) * oww2, v2, v2c)))
+
     assert np.isclose(of.normal_ordered(
         test_fop - get_fermion_op(acse_residual)).induced_norm(), 0,
                       atol=1.0E-6)
+
+    assert np.allclose(test_generator, acse_residual)
+    assert np.allclose(test_generator2, acse_residual)
 
 def test_takagi():
     A = np.random.randn(36).reshape((6, 6))
@@ -921,5 +949,5 @@ if __name__ == "__main__":
     # test_normal_op_tensor_reconstruction2()
     # test_trotter_error()
     # test_reconstruction_error()
-    # test_generalized_doubles_takagi()
-    test_takagi()
+    test_generalized_doubles_takagi()
+    # test_takagi()
