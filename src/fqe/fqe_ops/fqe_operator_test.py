@@ -30,9 +30,9 @@ class TestFqeOperator(unittest.TestCase):
             """A testing dummy class."""
 
             def contract(
-                self,
-                brastate: "wavefunction.Wavefunction",
-                ketstate: "wavefunction.Wavefunction",
+                    self,
+                    brastate: "wavefunction.Wavefunction",
+                    ketstate: "wavefunction.Wavefunction",
             ) -> complex:
                 return super().contract(brastate, ketstate)
 

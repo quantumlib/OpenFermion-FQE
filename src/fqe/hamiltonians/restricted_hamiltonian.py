@@ -26,9 +26,9 @@ class RestrictedHamiltonian(hamiltonian.Hamiltonian):
     non-relativistic molecular Hamiltonians in the RHF basis
     """
 
-    def __init__(
-        self, tensors: Tuple[np.ndarray, ...], e_0: complex = 0.0 + 0.0j
-    ) -> None:
+    def __init__(self,
+                 tensors: Tuple[np.ndarray, ...],
+                 e_0: complex = 0.0 + 0.0j) -> None:
         """Initializes a RestrictedHamiltonian.
 
         Arguments:
@@ -49,8 +49,7 @@ class RestrictedHamiltonian(hamiltonian.Hamiltonian):
             self._tensor[2 * (rank + 1)] = matrix
 
         assert self._tensor, (
-            "No matrix elements passed into the RestrictedHamiltonian."
-        )
+            "No matrix elements passed into the RestrictedHamiltonian.")
 
         self._quadratic = False
         if len(self._tensor) == 1:

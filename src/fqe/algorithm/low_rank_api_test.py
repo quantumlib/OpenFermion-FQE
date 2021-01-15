@@ -22,8 +22,7 @@ import openfermion as of
 from openfermion.config import EQ_TOLERANCE
 from fqe.algorithm.low_rank_api import LowRankTrotter
 from fqe.unittest_data.generate_openfermion_molecule import (
-    build_lih_moleculardata,
-)
+    build_lih_moleculardata,)
 
 
 def test_initialization():
@@ -71,9 +70,8 @@ def test_first_factorization():
                 (2 * s + sigma, 0),
             )
             fermion_tei += of.FermionOperator(term, coefficient=coefficient)
-            test_tei_tensor[
-                2 * p + sigma, 2 * q + tau, 2 * r + tau, 2 * s + sigma
-            ] = coefficient
+            test_tei_tensor[2 * p + sigma, 2 * q + tau, 2 * r + tau, 2 * s +
+                            sigma] = coefficient
 
     mol_ham = of.InteractionOperator(
         one_body_tensor=np.zeros((n_qubits, n_qubits)),
@@ -84,8 +82,8 @@ def test_first_factorization():
     # check induced norm on operator
     checked_op = of.FermionOperator()
     for (
-        p,
-        q,
+            p,
+            q,
     ) in product(range(n_qubits), repeat=2):
         term = ((p, 1), (q, 0))
         coefficient = one_body_correction[p, q]
@@ -98,7 +96,7 @@ def test_first_factorization():
             term = ((p, 1), (q, 0))
             coefficient = one_body_squares[l, p, q]
             one_body_operator += of.FermionOperator(term, coefficient)
-        checked_op += eigenvalues[l] * (one_body_operator ** 2)
+        checked_op += eigenvalues[l] * (one_body_operator**2)
 
     true_fop = of.normal_ordered(of.get_fermion_operator(mol_ham))
     difference = of.normal_ordered(checked_op - true_fop)
@@ -112,8 +110,7 @@ def test_second_factorization():
     eigenvalues, one_body_squares, _ = lrt_obj.first_factorization()
 
     s_rho_rho, basis_changes = lrt_obj.second_factorization(
-        eigenvalues, one_body_squares
-    )
+        eigenvalues, one_body_squares)
     true_basis_changes = []
     for l in range(one_body_squares.shape[0]):
         w, v = np.linalg.eigh(one_body_squares[l][::2, ::2])
@@ -144,21 +141,17 @@ def test_trotter_prep():
 
         # compute true values
         trotter_basis_change = [
-            basis_change_matrices[0]
-            @ expm(-1j * tt * (lrt_obj.oei + one_body_correction[::2, ::2]))
+            basis_change_matrices[0] @ expm(
+                -1j * tt * (lrt_obj.oei + one_body_correction[::2, ::2]))
         ]
         time_scaled_rho_rho_matrices = []
         for ii in range(len(basis_change_matrices) - 1):
-            trotter_basis_change.append(
-                basis_change_matrices[ii + 1]
-                @ basis_change_matrices[ii].conj().T
-            )
+            trotter_basis_change.append(basis_change_matrices[ii + 1]
+                                        @ basis_change_matrices[ii].conj().T)
             time_scaled_rho_rho_matrices.append(
-                tt * scaled_density_density_matrices[ii]
-            )
-        time_scaled_rho_rho_matrices.append(
-            tt * scaled_density_density_matrices[-1]
-        )
+                tt * scaled_density_density_matrices[ii])
+        time_scaled_rho_rho_matrices.append(tt *
+                                            scaled_density_density_matrices[-1])
         trotter_basis_change.append(basis_change_matrices[ii + 1].conj().T)
 
         assert len(trotter_basis_change) == len(test_tbasis)

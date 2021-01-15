@@ -11,7 +11,6 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
-
 """ General Utilities
 """
 
@@ -64,9 +63,9 @@ def reverse_bubble_list(arr: List[Any]) -> int:
     swap_count = 0
     for i in range(larr):
         swapped = False
-        for j in range(0, larr-i-1):
-            if arr[j][0] < arr[j+1][0]:
-                arr[j], arr[j+1] = arr[j+1], arr[j]
+        for j in range(0, larr - i - 1):
+            if arr[j][0] < arr[j + 1][0]:
+                arr[j], arr[j + 1] = arr[j + 1], arr[j]
                 swapped = True
                 swap_count += 1
 
@@ -92,9 +91,9 @@ def bubblesort(arr: List[Any]) -> int:
     swap_count = 0
     for i in range(larr):
         swapped = False
-        for j in range(0, larr-i-1):
-            if arr[j] > arr[j+1]:
-                arr[j], arr[j+1] = arr[j+1], arr[j]
+        for j in range(0, larr - i - 1):
+            if arr[j] > arr[j + 1]:
+                arr[j], arr[j + 1] = arr[j + 1], arr[j]
                 swapped = True
                 swap_count += 1
         if not swapped:
@@ -102,7 +101,8 @@ def bubblesort(arr: List[Any]) -> int:
     return swap_count
 
 
-def configuration_key_union(*argv: KeysView[Tuple[int, int]]) -> List[Tuple[int, int]]:
+def configuration_key_union(*argv: KeysView[Tuple[int, int]]
+                           ) -> List[Tuple[int, int]]:
     """Given a list of configuration keys, build a list which is the union of
     all configuration keys in the list
 
@@ -119,7 +119,8 @@ def configuration_key_union(*argv: KeysView[Tuple[int, int]]) -> List[Tuple[int,
     return list(keyunion)
 
 
-def configuration_key_intersection(*argv: List[Tuple[int, int]]) -> List[Tuple[int, int]]:
+def configuration_key_intersection(*argv: List[Tuple[int, int]]
+                                  ) -> List[Tuple[int, int]]:
     """Return the intersection of the passed configuration key lists.
 
     Args:
@@ -148,7 +149,7 @@ def init_bitstring_groundstate(occ_num: int) -> int:
     Returns:
         (integer) - bitstring representation of the ground state
     """
-    return (1<<occ_num)-1
+    return (1 << occ_num) - 1
 
 
 def init_qubit_vacuum(nqubits: int) -> numpy.ndarray:
@@ -165,7 +166,8 @@ def init_qubit_vacuum(nqubits: int) -> numpy.ndarray:
     return ground_state
 
 
-def ltlt_index_generator(dim: int) -> Generator[Tuple[int, int, int, int], None, None]:
+def ltlt_index_generator(dim: int
+                        ) -> Generator[Tuple[int, int, int, int], None, None]:
     """Generate index sets into a lower triangle, lower triangle matrix
 
     Args:
@@ -176,12 +178,12 @@ def ltlt_index_generator(dim: int) -> Generator[Tuple[int, int, int, int], None,
     """
     lim = dim
     for i in range(lim):
-        for j in range(i+1):
-            for k in range(i+1):
+        for j in range(i + 1):
+            for k in range(i + 1):
                 if k == i:
-                    _ull = j+1
+                    _ull = j + 1
                 else:
-                    _ull = k+1
+                    _ull = k + 1
                 for lst in range(_ull):
                     yield i, j, k, lst
 
@@ -216,9 +218,9 @@ def paritysort_int(arr: List[int]) -> Tuple[int, List[int]]:
     swap_count = 0
     for i in range(larr):
         swapped = False
-        for j in range(0, larr-i-1):
-            if parr[j][0] > parr[j+1][0]:
-                parr[j], parr[j+1] = parr[j+1], parr[j]
+        for j in range(0, larr - i - 1):
+            if parr[j][0] > parr[j + 1][0]:
+                parr[j], parr[j + 1] = parr[j + 1], parr[j]
                 swapped = True
                 swap_count += 1
         if not swapped:
@@ -246,9 +248,9 @@ def paritysort_list(arr):
     swap_count = 0
     for i in range(larr):
         swapped = False
-        for j in range(0, larr-i-1):
-            if parr[j][0] > parr[j+1][0]:
-                parr[j], parr[j+1] = parr[j+1], parr[j]
+        for j in range(0, larr - i - 1):
+            if parr[j][0] > parr[j + 1][0]:
+                parr[j], parr[j + 1] = parr[j + 1], parr[j]
                 swapped = True
                 swap_count += 1
         if not swapped:
@@ -260,7 +262,8 @@ def paritysort_list(arr):
     return swap_count, arr
 
 
-def qubit_particle_number_sector(nqubits: int, pnum: int) -> List[numpy.ndarray]:
+def qubit_particle_number_sector(nqubits: int,
+                                 pnum: int) -> List[numpy.ndarray]:
     """Generate the basis vectors into the qubit basis representing all states
     which have a definite particle number.
 
@@ -281,19 +284,18 @@ def qubit_particle_number_sector(nqubits: int, pnum: int) -> List[numpy.ndarray]
             vec = occ
         else:
             vec = uno
-        orbocc = orbocc>>1
-        for _ in range(nqubits-1):
+        orbocc = orbocc >> 1
+        for _ in range(nqubits - 1):
             if orbocc & 1:
                 vec = numpy.kron(vec, occ)
             else:
                 vec = numpy.kron(vec, uno)
-            orbocc = orbocc>>1
+            orbocc = orbocc >> 1
         vectors.append(vec)
     return vectors
 
 
-def qubit_config_sector(nqubits: int,
-                        pnum: int,
+def qubit_config_sector(nqubits: int, pnum: int,
                         m_s: int) -> List[numpy.ndarray]:
     """Generate the basis vectors into the qubit basis representing all states
     which have a definite particle number and spin.
@@ -330,13 +332,13 @@ def qubit_config_sector(nqubits: int,
             vec = occ
         else:
             vec = uno
-        orbocc = orbocc>>1
-        for _ in range(nqubits-1):
+        orbocc = orbocc >> 1
+        for _ in range(nqubits - 1):
             if orbocc & 1:
                 vec = numpy.kron(vec, occ)
             else:
                 vec = numpy.kron(vec, uno)
-            orbocc = orbocc>>1
+            orbocc = orbocc >> 1
         vectors.append(vec)
     return vectors
 
@@ -361,9 +363,9 @@ def qubit_particle_number_index(nqubits: int, pnum: int) -> List[int]:
             index = 1
         else:
             index = 0
-        orbocc = orbocc>>1
+        orbocc = orbocc >> 1
         veclen = 2
-        for _ in range(nqubits-1):
+        for _ in range(nqubits - 1):
             if orbocc & 1:
                 index = index + veclen
             orbocc = orbocc >> 1
@@ -399,7 +401,7 @@ def qubit_particle_number_index_spin(nqubits: int,
             index = 0
         orbocc = orbocc >> 1
         veclen = 2
-        for _ in range(nqubits-1):
+        for _ in range(nqubits - 1):
             curspn *= -1
             if orbocc & 1:
                 index = index + veclen
@@ -438,7 +440,7 @@ def map_broken_symmetry(s_z, norb):
     maxb = min(norb, nele)
     minb = nele - maxb
 
-    for nbeta in range(minb, maxb+1):
+    for nbeta in range(minb, maxb + 1):
         nb_beta = norb - nbeta
         nalpha = nele - nbeta
         spin_to_number[(nalpha, nb_beta)] = (nele - nbeta, nbeta)
@@ -446,8 +448,8 @@ def map_broken_symmetry(s_z, norb):
     return spin_to_number
 
 
-def sort_configuration_keys(configs:
-                            KeysView[Tuple[int, int]]) -> List[Tuple[int, int]]:
+def sort_configuration_keys(configs: KeysView[Tuple[int, int]]
+                           ) -> List[Tuple[int, int]]:
     """Return a standard sorting of configuration keys in a wavefunction for
     comparison.  The configurations are sorted first by the number of particles
     and then by the spin quantum number.
@@ -492,10 +494,11 @@ def validate_tuple(matrices) -> None:
     assert isinstance(matrices, tuple)
     for rank, term in enumerate(matrices):
         assert isinstance(term, numpy.ndarray)
-        assert 2*(rank + 1) == term.ndim
+        assert 2 * (rank + 1) == term.ndim
 
 
-def dot(wfn1: 'wavefunction.Wavefunction', wfn2: 'wavefunction.Wavefunction') -> complex:
+def dot(wfn1: 'wavefunction.Wavefunction',
+        wfn2: 'wavefunction.Wavefunction') -> complex:
     """Calculate the dot product of two wavefunctions.  Note that this does
     not use the conjugate.  See vdot for the similar conjugate functionality.
 
@@ -513,12 +516,14 @@ def dot(wfn1: 'wavefunction.Wavefunction', wfn2: 'wavefunction.Wavefunction') ->
     keylist = [config for config in brakeys if config in ketkeys]
     ipval = .0 + .0j
     for sector in keylist:
-        ipval += numpy.dot(wfn1.get_coeff(sector).flatten(),
-                           wfn2.get_coeff(sector).flatten())
+        ipval += numpy.dot(
+            wfn1.get_coeff(sector).flatten(),
+            wfn2.get_coeff(sector).flatten())
     return ipval
 
 
-def vdot(wfn1: 'wavefunction.Wavefunction', wfn2: 'wavefunction.Wavefunction') -> complex:
+def vdot(wfn1: 'wavefunction.Wavefunction',
+         wfn2: 'wavefunction.Wavefunction') -> complex:
     """Calculate the inner product of two wavefunctions using conjugation on
     the elements of wfn1.
 
@@ -536,8 +541,9 @@ def vdot(wfn1: 'wavefunction.Wavefunction', wfn2: 'wavefunction.Wavefunction') -
     keylist = [config for config in brakeys if config in ketkeys]
     ipval = .0 + .0j
     for config in keylist:
-        ipval += numpy.vdot(wfn1.get_coeff(config).flatten(),
-                            wfn2.get_coeff(config).flatten())
+        ipval += numpy.vdot(
+            wfn1.get_coeff(config).flatten(),
+            wfn2.get_coeff(config).flatten())
     return ipval
 
 

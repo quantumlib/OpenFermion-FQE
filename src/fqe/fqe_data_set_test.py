@@ -11,7 +11,6 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
-
 """Unittesting for the fqe_data module
 """
 
@@ -21,6 +20,7 @@ import numpy
 
 from fqe import fqe_data
 from fqe import fqe_data_set
+
 
 class FqeDataSetTest(unittest.TestCase):
     """Unit tests for FqeDataSet

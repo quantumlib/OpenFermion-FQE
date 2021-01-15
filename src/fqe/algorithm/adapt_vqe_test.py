@@ -22,8 +22,7 @@ from openfermion.chem.molecular_data import spinorb_from_spatial
 import fqe
 from fqe.algorithm.adapt_vqe import OperatorPool, ADAPT
 from fqe.unittest_data.generate_openfermion_molecule import (
-    build_lih_moleculardata,
-)
+    build_lih_moleculardata,)
 
 
 def test_op_pool():
@@ -70,11 +69,9 @@ def test_adapt():
     virt = list(range(nalpha, norbs))
     soei, stei = spinorb_from_spatial(oei, tei)
     astei = np.einsum('ijkl', stei) - np.einsum('ijlk', stei)
-    molecular_hamiltonian = of.InteractionOperator(
-        0, soei, 0.25 * astei)
-    reduced_ham = of.chem.make_reduced_hamiltonian(
-        molecular_hamiltonian, molecule.n_electrons
-    )
+    molecular_hamiltonian = of.InteractionOperator(0, soei, 0.25 * astei)
+    reduced_ham = of.chem.make_reduced_hamiltonian(molecular_hamiltonian,
+                                                   molecule.n_electrons)
 
     fqe_wf = fqe.Wavefunction([[n_electrons, sz, molecule.n_orbitals]])
     fqe_wf.set_wfn(strategy='hartree-fock')
@@ -82,8 +79,9 @@ def test_adapt():
     sop = OperatorPool(norbs, occ, virt)
     sop.two_body_sz_adapted()  # initialize pool
     adapt = ADAPT(oei, tei, sop, nalpha, nbeta, iter_max=1, verbose=False)
-    assert np.isclose(np.linalg.norm(
-        adapt.reduced_ham.two_body_tensor - reduced_ham.two_body_tensor), 0)
+    assert np.isclose(
+        np.linalg.norm(adapt.reduced_ham.two_body_tensor -
+                       reduced_ham.two_body_tensor), 0)
 
     adapt.adapt_vqe(fqe_wf)
     assert np.isclose(adapt.energies[0], -8.957417182801091)
@@ -91,8 +89,14 @@ def test_adapt():
 
     sop = OperatorPool(norbs, occ, virt)
     sop.one_body_sz_adapted()
-    adapt = ADAPT(oei, tei, sop, nalpha, nbeta, iter_max=10,
-                  stopping_epsilon=10, verbose=True)
+    adapt = ADAPT(oei,
+                  tei,
+                  sop,
+                  nalpha,
+                  nbeta,
+                  iter_max=10,
+                  stopping_epsilon=10,
+                  verbose=True)
     adapt.adapt_vqe(fqe_wf)
     assert np.isclose(adapt.energies[-1], -8.957417182801091)
     assert np.isclose(adapt.energies[0], -8.95741717733075)

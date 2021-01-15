@@ -51,16 +51,14 @@ class TestFqeUtils(unittest.TestCase):
         representation.
         """
         unchanged = "0^ 2 10^ 4 6^ 18"
-        self.assertEqual(
-            unchanged, fqe_ops_utils.switch_broken_symmetry(unchanged)
-        )
+        self.assertEqual(unchanged,
+                         fqe_ops_utils.switch_broken_symmetry(unchanged))
         numberbroken = "0^ 1^ 4^ 6 5^ 7"
         self.assertEqual(
             "0^ 1 4^ 6 5 7^",
             fqe_ops_utils.switch_broken_symmetry(numberbroken),
         )
         spinbroken = "0^ 6 7^ 2 10^ 5"
-        self.assertEqual(
-            "0^ 6 7 2 10^ 5^", fqe_ops_utils.switch_broken_symmetry(spinbroken)
-        )
+        self.assertEqual("0^ 6 7 2 10^ 5^",
+                         fqe_ops_utils.switch_broken_symmetry(spinbroken))
         self.assertEqual("t^ s", fqe_ops_utils.switch_broken_symmetry("t^ s"))

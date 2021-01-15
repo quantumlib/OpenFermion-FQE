@@ -11,7 +11,6 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
-
 """FciGraphSet manages global bitstring mapping between different sectors.
    The data itself are stored in each FciGraph
 """
@@ -32,6 +31,7 @@ class FciGraphSet:
     FciGraghSet is the global manager for string mapping. It generalizes
     alphamapping and betamapping in FciGraph and maps between different sectors.
     """
+
     def __init__(self,
                  maxparticle: int,
                  maxspin: int,
@@ -62,7 +62,8 @@ class FciGraphSet:
             for param in params:
                 assert len(param) == 3
                 nalpha, nbeta = alpha_beta_electrons(param[0], param[1])
-                self._dataset[(nalpha, nbeta)] = FciGraph(nalpha, nbeta, param[2])
+                self._dataset[(nalpha,
+                               nbeta)] = FciGraph(nalpha, nbeta, param[2])
             self.link()
 
     def link(self) -> None:
@@ -118,9 +119,10 @@ class FciGraphSet:
                     # print("bits to be removed ", ops)
                     parity = (count_bits_above(source, ops[-1]) * len(ops)) % 2
                     target = unset_bit(source, ops[-1])
-                    for iop in reversed(range(len(ops)-1)):
+                    for iop in reversed(range(len(ops) - 1)):
                         # print("inside removing bit", ops[iop])
-                        parity += ((iop+1) * count_bits_between(source, ops[iop], ops[iop+1])) % 2
+                        parity += ((iop + 1) * count_bits_between(
+                            source, ops[iop], ops[iop + 1])) % 2
                         target = unset_bit(target, ops[iop])
 
                     # print("Target ", target, np.binary_repr(target, width=isec.norb()), "parity", parity)
@@ -132,7 +134,8 @@ class FciGraphSet:
                     if key not in mapping_down:
                         mapping_down[key] = []
                         mapping_up[key] = []
-                    mapping_down[key].append((source_index, target_index, factor))
+                    mapping_down[key].append(
+                        (source_index, target_index, factor))
                     mapping_up[key].append((target_index, source_index, factor))
             return mapping_down, mapping_up
 
@@ -154,8 +157,7 @@ class FciGraphSet:
 
             downa, upa = make_mapping_each(iasec.string_alpha_all(),
                                            iasec.index_alpha_all(),
-                                           jasec.index_alpha_all(),
-                                           abs(dna))
+                                           jasec.index_alpha_all(), abs(dna))
             if dna > 0:
                 downa, upa = upa, downa
 
@@ -163,8 +165,7 @@ class FciGraphSet:
             (ibsec, jbsec) = (isec, jsec) if dnb < 0 else (jsec, isec)
             downb, upb = make_mapping_each(ibsec.string_beta_all(),
                                            ibsec.index_beta_all(),
-                                           jbsec.index_beta_all(),
-                                           abs(dnb))
+                                           jbsec.index_beta_all(), abs(dnb))
             if dnb > 0:
                 downb, upb = upb, downb
 
@@ -175,11 +176,5 @@ class FciGraphSet:
 
 if __name__ == "__main__":
     import numpy as np
-    params = [
-        [3, 3, 6],
-        [3, 1, 6],
-        [3, -1, 6],
-        [2, 0, 6]
-    ]
+    params = [[3, 3, 6], [3, 1, 6], [3, -1, 6], [2, 0, 6]]
     test = FciGraphSet(3, 3, params)
-

@@ -25,9 +25,9 @@ class General(hamiltonian.Hamiltonian):
     supported and has no unique considerations.
     """
 
-    def __init__(
-        self, tensors: Tuple[np.ndarray, ...], e_0: complex = 0.0 + 0.0j
-    ) -> None:
+    def __init__(self,
+                 tensors: Tuple[np.ndarray, ...],
+                 e_0: complex = 0.0 + 0.0j) -> None:
         """Initializes a General Hamiltonian.
 
         Args:
@@ -46,15 +46,13 @@ class General(hamiltonian.Hamiltonian):
             if not isinstance(matrix, np.ndarray):
                 raise TypeError(
                     "Arg tensors should be a tuple of numpy.ndarray, but "
-                    f"tensors[{rank}] = {type(tensors[rank])}."
-                )
+                    f"tensors[{rank}] = {type(tensors[rank])}.")
             assert (matrix.ndim % 2) == 0
 
             self._tensor[2 * (rank + 1)] = matrix
 
         assert self._tensor, (
-            "No matrix elements passed into the GeneralHamiltonian."
-        )
+            "No matrix elements passed into the GeneralHamiltonian.")
 
         self._quadratic = False
         if len(self._tensor) == 1:

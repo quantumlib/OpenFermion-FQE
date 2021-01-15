@@ -26,7 +26,6 @@ import copy
 
 import numpy
 
-
 Mapping = Tuple[List[Tuple[str, str]], List[Tuple[str, bool, int]], float]
 
 
@@ -70,7 +69,7 @@ def wick(target: str,
         assert len(rawinp) % 2 != 1
 
         nrank = len(rawinp) // 2
-        for index in range(nrank*2):
+        for index in range(nrank * 2):
             iop = rawinp[index]
             if not (len(iop) == 1 or (len(iop) == 2 and iop[1] == "^")):
                 raise ValueError('unrecognized input in wick')
@@ -89,7 +88,7 @@ def wick(target: str,
     targ = process_string(target)
 
     assert len(targ) % 2 == 0
-    rank = len(targ)//2
+    rank = len(targ) // 2
 
     assert len(data) >= rank
 
@@ -104,27 +103,26 @@ def wick(target: str,
                     # swap
                     newdelta = copy.deepcopy(delta)
                     newops = copy.deepcopy(ops)
-                    newops[i-1], newops[i] = newops[i], newops[i-1]
-                    out.append((newdelta, newops, factor*(-1)))
+                    newops[i - 1], newops[i] = newops[i], newops[i - 1]
+                    out.append((newdelta, newops, factor * (-1)))
 
                     # add deltas
                     newdelta = copy.deepcopy(delta)
-                    newdelta.append((ops[i-1][0], ops[i][0]))
+                    newdelta.append((ops[i - 1][0], ops[i][0]))
                     newops = copy.deepcopy(ops)
-                    newops.remove(ops[i-1])
+                    newops.remove(ops[i - 1])
                     newops.remove(ops[i])
                     newfactor = copy.deepcopy(factor)
                     if spinfree:
                         sourcespin = ops[i][2]
-                        targetspin = ops[i-1][2]
+                        targetspin = ops[i - 1][2]
                         if sourcespin == targetspin:
                             newfactor *= 2.0
                         else:
                             for ind in range(len(newops)):
                                 if newops[ind][2] == sourcespin:
                                     newops[ind] = (newops[ind][0],
-                                                   newops[ind][1],
-                                                   targetspin)
+                                                   newops[ind][1], targetspin)
                     out.append((newdelta, newops, newfactor))
                     processed = True
                     break
@@ -152,11 +150,11 @@ def wick(target: str,
             while processed:
                 processed = False
                 for j in range(1, nterms):
-                    if cops[j-1][2] > cops[j][2]:
-                        cops[j-1], cops[j] = cops[j], cops[j-1]
+                    if cops[j - 1][2] > cops[j][2]:
+                        cops[j - 1], cops[j] = cops[j], cops[j - 1]
                         factor *= -1.0
                         processed = True
-                    if cops[j-1+nterms][2] > cops[j+nterms][2]:
+                    if cops[j - 1 + nterms][2] > cops[j + nterms][2]:
                         cops[j-1+nterms], cops[j+nterms] = \
                             cops[j+nterms], cops[j-1+nterms]
 
@@ -165,7 +163,7 @@ def wick(target: str,
             current[i] = (current[i][0], cops, factor)
 
     # now construct a copy that adds the RDMs
-    out = numpy.zeros_like(data[rank-1])
+    out = numpy.zeros_like(data[rank - 1])
 
     indices = {}
     for i in range(len(targ)):
@@ -173,7 +171,7 @@ def wick(target: str,
 
     for term in current:
         assert len(term[1]) % 2 == 0
-        irank = len(term[1])//2
+        irank = len(term[1]) // 2
         sources = []
         for i_t in term[1]:
             sources.append(indices[i_t[0]])
@@ -183,18 +181,15 @@ def wick(target: str,
             delta.append((indices[j_t[0]], indices[j_t[1]]))
 
         if irank > 0:
-            wickfill(out, data[irank-1], sources, term[2], delta)
+            wickfill(out, data[irank - 1], sources, term[2], delta)
         else:
             wickfill(out, None, sources, term[2], delta)
 
     return out
 
 
-def wickfill(target: numpy.ndarray,
-             source: numpy.ndarray,
-             indices: List[int],
-             factor: float,
-             delta: List[Tuple[int, int]]) -> None:
+def wickfill(target: numpy.ndarray, source: numpy.ndarray, indices: List[int],
+             factor: float, delta: List[Tuple[int, int]]) -> None:
     """
     This function is an internal utility that fills in custom RDMs using
     particle RDMs. The result of Wick's theorem is passed as lists (indices
@@ -213,9 +208,9 @@ def wickfill(target: numpy.ndarray,
         delta (List[Tuple[int, int]]) - Kronecker delta's due to Wick's theorem
     """
     norb = target.shape[0]
-    srank = len(source.shape)//2 if source is not None else 0
-    trank = len(target.shape)//2
-    assert srank*2 == len(indices)
+    srank = len(source.shape) // 2 if source is not None else 0
+    trank = len(target.shape) // 2
+    assert srank * 2 == len(indices)
     if srank == 0 and trank == 1:
         assert len(delta) == 1
         for i in range(norb):
@@ -227,7 +222,8 @@ def wickfill(target: numpy.ndarray,
             mat[0] = i
             for j in range(norb):
                 mat[1] = j
-                target[i, j] += factor * source[mat[indices[0]], mat[indices[1]]]
+                target[i,
+                       j] += factor * source[mat[indices[0]], mat[indices[1]]]
     elif srank == 0 and trank == 2:
         assert len(delta) == 2
         mat = {}

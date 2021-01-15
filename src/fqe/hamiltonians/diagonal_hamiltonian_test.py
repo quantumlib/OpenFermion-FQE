@@ -25,7 +25,7 @@ def test_diagonal():
     bad_diag = np.zeros((5, 5), dtype=np.complex128)
     with pytest.raises(ValueError):
         diagonal_hamiltonian.Diagonal(bad_diag)
-    diag = np.zeros((5, ), dtype=np.complex128)
+    diag = np.zeros((5,), dtype=np.complex128)
     test = diagonal_hamiltonian.Diagonal(diag)
     assert test.dim() == 5
     assert test.rank() == 2

@@ -66,12 +66,10 @@ def get_fermion_op(coeff_tensor) -> of.FermionOperator:
     else:
         raise ValueError(
             "Arg `coeff_tensor` should have dimension 2 or 4 but has dimension"
-            f" {len(coeff_tensor.shape)}."
-        )
+            f" {len(coeff_tensor.shape)}.")
 
 
-def get_acse_residual_fqe(fqe_wf: Wavefunction,
-                          fqe_ham: RestrictedHamiltonian,
+def get_acse_residual_fqe(fqe_wf: Wavefunction, fqe_ham: RestrictedHamiltonian,
                           norbs: int) -> np.ndarray:
     """Get the ACSE block by using reduced density operators that are Sz spin
     adapted
@@ -103,10 +101,8 @@ def get_acse_residual_fqe(fqe_wf: Wavefunction,
         # alpha-alpha block real
         if p != q and r != s:
             rdo = ((2 * p, 1), (2 * q, 1), (2 * r, 0), (2 * s, 0))
-            rdo = 1j * (
-                of.FermionOperator(rdo)
-                - of.hermitian_conjugated(of.FermionOperator(rdo))
-            )
+            rdo = 1j * (of.FermionOperator(rdo) -
+                        of.hermitian_conjugated(of.FermionOperator(rdo)))
             val1 = fqe.util.vdot(fqe_appA, fqe_wf.apply(rdo))
             val2 = np.conjugate(val1)
             acse_aa[p, q, r, s] = (val2 - val1) / 2j
@@ -114,8 +110,7 @@ def get_acse_residual_fqe(fqe_wf: Wavefunction,
             # alpha-alpha block imag
             rdo = ((2 * p, 1), (2 * q, 1), (2 * r, 0), (2 * s, 0))
             rdo = of.FermionOperator(rdo) + of.hermitian_conjugated(
-                of.FermionOperator(rdo)
-            )
+                of.FermionOperator(rdo))
             val1 = fqe.util.vdot(fqe_appA, fqe_wf.apply(rdo))
             val2 = np.conjugate(val1)
             acse_aa[p, q, r, s] += (val2 - val1) / 2
@@ -127,10 +122,8 @@ def get_acse_residual_fqe(fqe_wf: Wavefunction,
                 (2 * r + 1, 0),
                 (2 * s + 1, 0),
             )
-            rdo = 1j * (
-                of.FermionOperator(rdo)
-                - of.hermitian_conjugated(of.FermionOperator(rdo))
-            )
+            rdo = 1j * (of.FermionOperator(rdo) -
+                        of.hermitian_conjugated(of.FermionOperator(rdo)))
             val1 = fqe.util.vdot(fqe_appA, fqe_wf.apply(rdo))
             val2 = np.conjugate(val1)
             acse_bb[p, q, r, s] += (val2 - val1) / 2j
@@ -143,18 +136,15 @@ def get_acse_residual_fqe(fqe_wf: Wavefunction,
                 (2 * s + 1, 0),
             )
             rdo = of.FermionOperator(rdo) + of.hermitian_conjugated(
-                of.FermionOperator(rdo)
-            )
+                of.FermionOperator(rdo))
             val1 = fqe.util.vdot(fqe_appA, fqe_wf.apply(rdo))
             val2 = np.conjugate(val1)
             acse_bb[p, q, r, s] += (val2 - val1) / 2
 
         # alpha-beta block real
         rdo = ((2 * p, 1), (2 * q + 1, 1), (2 * r + 1, 0), (2 * s, 0))
-        rdo = 1j * (
-            of.FermionOperator(rdo)
-            - of.hermitian_conjugated(of.FermionOperator(rdo))
-        )
+        rdo = 1j * (of.FermionOperator(rdo) -
+                    of.hermitian_conjugated(of.FermionOperator(rdo)))
         val1 = fqe.util.vdot(fqe_appA, fqe_wf.apply(rdo))
         val2 = np.conjugate(val1)
         acse_ab[p, q, r, s] += (val2 - val1) / 2j
@@ -162,24 +152,21 @@ def get_acse_residual_fqe(fqe_wf: Wavefunction,
         # alpha-beta block imag
         rdo = ((2 * p, 1), (2 * q + 1, 1), (2 * r + 1, 0), (2 * s, 0))
         rdo = of.FermionOperator(rdo) + of.hermitian_conjugated(
-            of.FermionOperator(rdo)
-        )
+            of.FermionOperator(rdo))
         val1 = fqe.util.vdot(fqe_appA, fqe_wf.apply(rdo))
         val2 = np.conjugate(val1)  # fqe.util.vdot(fqe_wf.apply(rdo), fqe_appA)
         acse_ab[p, q, r, s] += (val2 - val1) / 2
 
     # unroll residual blocks into full matrix
-    acse_residual = np.zeros(
-        (2 * norbs, 2 * norbs, 2 * norbs, 2 * norbs), dtype=np.complex128
-    )
+    acse_residual = np.zeros((2 * norbs, 2 * norbs, 2 * norbs, 2 * norbs),
+                             dtype=np.complex128)
     acse_residual[::2, ::2, ::2, ::2] = acse_aa
     acse_residual[1::2, 1::2, 1::2, 1::2] = acse_bb
     acse_residual[::2, 1::2, 1::2, ::2] = acse_ab
     acse_residual[::2, 1::2, ::2, 1::2] = np.einsum("ijkl->ijlk", -acse_ab)
     acse_residual[1::2, ::2, ::2, 1::2] = np.einsum("ijkl->jilk", acse_ab)
     acse_residual[1::2, ::2, 1::2, ::2] = np.einsum(
-        "ijkl->ijlk", -acse_residual[1::2, ::2, ::2, 1::2]
-    )
+        "ijkl->ijlk", -acse_residual[1::2, ::2, ::2, 1::2])
 
     return acse_residual
 
@@ -211,12 +198,10 @@ def get_tpdm_grad_fqe(fqe_wf, acse_res_tensor, norbs):
                 if abs(acse_res_tensor[p, q, r, s]) > 1.0e-12:
                     op = ((p, 1), (q, 1), (r, 0), (s, 0))
                     fop1 = of.FermionOperator(
-                        op, coefficient=acse_res_tensor[p, q, r, s]
-                    )
+                        op, coefficient=acse_res_tensor[p, q, r, s])
                     op = ((s, 1), (r, 1), (q, 0), (p, 0))
                     fop2 = of.FermionOperator(
-                        op, coefficient=acse_res_tensor[s, r, q, p]
-                    )
+                        op, coefficient=acse_res_tensor[s, r, q, p])
                     s_ops.append((fop1, fop2))
                     s_op_total += fop2
                     s_op_total += fop1
@@ -225,8 +210,7 @@ def get_tpdm_grad_fqe(fqe_wf, acse_res_tensor, norbs):
                 if abs(acse_res_tensor[p, q, r, s]) > 1.0e-12:
                     op = ((p, 1), (q, 1), (r, 0), (s, 0))
                     fop1 = of.FermionOperator(
-                        op, coefficient=acse_res_tensor[p, q, r, s]
-                    )
+                        op, coefficient=acse_res_tensor[p, q, r, s])
                     s_ops.append((fop1, of.FermionOperator()))
                     s_op_total += fop1
 
@@ -244,8 +228,7 @@ def get_tpdm_grad_fqe(fqe_wf, acse_res_tensor, norbs):
         # alpha-beta block real
         rdo = ((2 * p, 1), (2 * q + 1, 1), (2 * r + 1, 0), (2 * s, 0))
         rdo = of.FermionOperator(rdo) + of.hermitian_conjugated(
-            of.FermionOperator(rdo)
-        )
+            of.FermionOperator(rdo))
         fqe_wf_rdo = fqe_wf.apply(rdo)
         val1 = fqe.util.vdot(fqe_appS, fqe_wf_rdo)
         val2 = fqe.util.vdot(fqe_wf_rdo, fqe_appS)
@@ -253,10 +236,8 @@ def get_tpdm_grad_fqe(fqe_wf, acse_res_tensor, norbs):
 
         # alpha-beta block imag
         rdo = ((2 * p, 1), (2 * q + 1, 1), (2 * r + 1, 0), (2 * s, 0))
-        rdo = 1j * (
-            of.FermionOperator(rdo)
-            - of.hermitian_conjugated(of.FermionOperator(rdo))
-        )
+        rdo = 1j * (of.FermionOperator(rdo) -
+                    of.hermitian_conjugated(of.FermionOperator(rdo)))
         fqe_wf_rdo = fqe_wf.apply(rdo)
         val3 = fqe.util.vdot(fqe_appS, fqe_wf_rdo)
         val4 = fqe.util.vdot(fqe_wf_rdo, fqe_appS)
@@ -265,8 +246,7 @@ def get_tpdm_grad_fqe(fqe_wf, acse_res_tensor, norbs):
         # alpha-alpha block real
         rdo = ((2 * p, 1), (2 * q, 1), (2 * r, 0), (2 * s, 0))
         rdo = of.FermionOperator(rdo) + of.hermitian_conjugated(
-            of.FermionOperator(rdo)
-        )
+            of.FermionOperator(rdo))
         fqe_wf_rdo = fqe_wf.apply(rdo)
         val1 = fqe.util.vdot(fqe_appS, fqe_wf_rdo)
         val2 = fqe.util.vdot(fqe_wf_rdo, fqe_appS)
@@ -274,10 +254,8 @@ def get_tpdm_grad_fqe(fqe_wf, acse_res_tensor, norbs):
 
         # alpha-alpha block imag
         rdo = ((2 * p, 1), (2 * q, 1), (2 * r, 0), (2 * s, 0))
-        rdo = 1j * (
-            of.FermionOperator(rdo)
-            - of.hermitian_conjugated(of.FermionOperator(rdo))
-        )
+        rdo = 1j * (of.FermionOperator(rdo) -
+                    of.hermitian_conjugated(of.FermionOperator(rdo)))
         fqe_wf_rdo = fqe_wf.apply(rdo)
         val3 = fqe.util.vdot(fqe_appS, fqe_wf_rdo)
         val4 = fqe.util.vdot(fqe_wf_rdo, fqe_appS)
@@ -286,8 +264,7 @@ def get_tpdm_grad_fqe(fqe_wf, acse_res_tensor, norbs):
         # beta-beta block real
         rdo = ((2 * p + 1, 1), (2 * q + 1, 1), (2 * r + 1, 0), (2 * s + 1, 0))
         rdo = of.FermionOperator(rdo) + of.hermitian_conjugated(
-            of.FermionOperator(rdo)
-        )
+            of.FermionOperator(rdo))
 
         fqe_wf_rdo = fqe_wf.apply(rdo)
         val1 = fqe.util.vdot(fqe_appS, fqe_wf_rdo)
@@ -296,27 +273,23 @@ def get_tpdm_grad_fqe(fqe_wf, acse_res_tensor, norbs):
 
         # beta-beta block imag
         rdo = ((2 * p + 1, 1), (2 * q + 1, 1), (2 * r + 1, 0), (2 * s + 1, 0))
-        rdo = 1j * (
-            of.FermionOperator(rdo)
-            - of.hermitian_conjugated(of.FermionOperator(rdo))
-        )
+        rdo = 1j * (of.FermionOperator(rdo) -
+                    of.hermitian_conjugated(of.FermionOperator(rdo)))
         fqe_wf_rdo = fqe_wf.apply(rdo)
         val3 = fqe.util.vdot(fqe_appS, fqe_wf_rdo)
         val4 = fqe.util.vdot(fqe_wf_rdo, fqe_appS)
         acse_bb[p, q, r, s] += (val4 - val3) / -2
 
     # unroll residual blocks into full matrix
-    acse_residual = np.zeros(
-        (2 * norbs, 2 * norbs, 2 * norbs, 2 * norbs), dtype=np.complex128
-    )
+    acse_residual = np.zeros((2 * norbs, 2 * norbs, 2 * norbs, 2 * norbs),
+                             dtype=np.complex128)
     acse_residual[::2, ::2, ::2, ::2] = acse_aa
     acse_residual[1::2, 1::2, 1::2, 1::2] = acse_bb
     acse_residual[::2, 1::2, 1::2, ::2] = acse_ab
     acse_residual[::2, 1::2, ::2, 1::2] = np.einsum("ijkl->ijlk", -acse_ab)
     acse_residual[1::2, ::2, ::2, 1::2] = np.einsum("ijkl->jilk", acse_ab)
     acse_residual[1::2, ::2, 1::2, ::2] = np.einsum(
-        "ijkl->ijlk", -acse_residual[1::2, ::2, ::2, 1::2]
-    )
+        "ijkl->ijlk", -acse_residual[1::2, ::2, ::2, 1::2])
 
     return acse_residual
 
@@ -324,10 +297,8 @@ def get_tpdm_grad_fqe(fqe_wf, acse_res_tensor, norbs):
 def _acse_residual_atomic(p, q, r, s, fqe_appA, fqe_wf):
     """Internal function for comuting the residual"""
     rdo = ((2 * p, 1), (2 * q, 1), (2 * r, 0), (2 * s, 0))
-    rdo = 1j * (
-        of.FermionOperator(rdo)
-        - of.hermitian_conjugated(of.FermionOperator(rdo))
-    )
+    rdo = 1j * (of.FermionOperator(rdo) -
+                of.hermitian_conjugated(of.FermionOperator(rdo)))
     val1 = fqe.util.vdot(fqe_appA, fqe_wf.apply(rdo))
     val2 = fqe.util.vdot(fqe_wf.apply(rdo), fqe_appA)
     acse_aa_i = (val2 - val1) / 2j
@@ -335,18 +306,15 @@ def _acse_residual_atomic(p, q, r, s, fqe_appA, fqe_wf):
     # alpha-alpha block imag
     rdo = ((2 * p, 1), (2 * q, 1), (2 * r, 0), (2 * s, 0))
     rdo = of.FermionOperator(rdo) + of.hermitian_conjugated(
-        of.FermionOperator(rdo)
-    )
+        of.FermionOperator(rdo))
     val1 = fqe.util.vdot(fqe_appA, fqe_wf.apply(rdo))
     val2 = fqe.util.vdot(fqe_wf.apply(rdo), fqe_appA)
     acse_aa_r = (val2 - val1) / 2
 
     # beta-beta block real
     rdo = ((2 * p + 1, 1), (2 * q + 1, 1), (2 * r + 1, 0), (2 * s + 1, 0))
-    rdo = 1j * (
-        of.FermionOperator(rdo)
-        - of.hermitian_conjugated(of.FermionOperator(rdo))
-    )
+    rdo = 1j * (of.FermionOperator(rdo) -
+                of.hermitian_conjugated(of.FermionOperator(rdo)))
     val1 = fqe.util.vdot(fqe_appA, fqe_wf.apply(rdo))
     val2 = fqe.util.vdot(fqe_wf.apply(rdo), fqe_appA)
     acse_bb_i = (val2 - val1) / 2j
@@ -354,18 +322,15 @@ def _acse_residual_atomic(p, q, r, s, fqe_appA, fqe_wf):
     # beta-beta block imag
     rdo = ((2 * p + 1, 1), (2 * q + 1, 1), (2 * r + 1, 0), (2 * s + 1, 0))
     rdo = of.FermionOperator(rdo) + of.hermitian_conjugated(
-        of.FermionOperator(rdo)
-    )
+        of.FermionOperator(rdo))
     val1 = fqe.util.vdot(fqe_appA, fqe_wf.apply(rdo))
     val2 = fqe.util.vdot(fqe_wf.apply(rdo), fqe_appA)
     acse_bb_r = (val2 - val1) / 2
 
     # alpha-beta block real
     rdo = ((2 * p, 1), (2 * q + 1, 1), (2 * r + 1, 0), (2 * s, 0))
-    rdo = 1j * (
-        of.FermionOperator(rdo)
-        - of.hermitian_conjugated(of.FermionOperator(rdo))
-    )
+    rdo = 1j * (of.FermionOperator(rdo) -
+                of.hermitian_conjugated(of.FermionOperator(rdo)))
     val1 = fqe.util.vdot(fqe_appA, fqe_wf.apply(rdo))
     val2 = fqe.util.vdot(fqe_wf.apply(rdo), fqe_appA)
     acse_ab_i = (val2 - val1) / 2j
@@ -373,8 +338,7 @@ def _acse_residual_atomic(p, q, r, s, fqe_appA, fqe_wf):
     # alpha-beta block imag
     rdo = ((2 * p, 1), (2 * q + 1, 1), (2 * r + 1, 0), (2 * s, 0))
     rdo = of.FermionOperator(rdo) + of.hermitian_conjugated(
-        of.FermionOperator(rdo)
-    )
+        of.FermionOperator(rdo))
     val1 = fqe.util.vdot(fqe_appA, fqe_wf.apply(rdo))
     val2 = fqe.util.vdot(fqe_wf.apply(rdo), fqe_appA)
     acse_ab_r = (val2 - val1) / 2
@@ -425,8 +389,7 @@ def get_acse_residual_fqe_parallel(fqe_wf, fqe_ham, norbs):
     with Parallel(n_jobs=11, batch_size=norbs) as parallel:
         result = parallel(
             delayed(_acse_residual_atomic)(p, q, r, s, fqe_appA, fqe_wf)
-            for p, q, r, s in product(range(norbs), repeat=4)
-        )
+            for p, q, r, s in product(range(norbs), repeat=4))
 
     for resval in result:
         p, q, r, s = resval[:4]
@@ -436,17 +399,15 @@ def get_acse_residual_fqe_parallel(fqe_wf, fqe_ham, norbs):
         # alpha-alpha block real
 
     # unroll residual blocks into full matrix
-    acse_residual = np.zeros(
-        (2 * norbs, 2 * norbs, 2 * norbs, 2 * norbs), dtype=np.complex128
-    )
+    acse_residual = np.zeros((2 * norbs, 2 * norbs, 2 * norbs, 2 * norbs),
+                             dtype=np.complex128)
     acse_residual[::2, ::2, ::2, ::2] = acse_aa
     acse_residual[1::2, 1::2, 1::2, 1::2] = acse_bb
     acse_residual[::2, 1::2, 1::2, ::2] = acse_ab
     acse_residual[::2, 1::2, ::2, 1::2] = np.einsum("ijkl->ijlk", -acse_ab)
     acse_residual[1::2, ::2, ::2, 1::2] = np.einsum("ijkl->jilk", acse_ab)
     acse_residual[1::2, ::2, 1::2, ::2] = np.einsum(
-        "ijkl->ijlk", -acse_residual[1::2, ::2, ::2, 1::2]
-    )
+        "ijkl->ijlk", -acse_residual[1::2, ::2, ::2, 1::2])
 
     return acse_residual
 
@@ -456,8 +417,7 @@ def _get_tpdm_grad_fqe_atomic(p, q, r, s, fqe_appS, fqe_wf):
     # alpha-beta block real
     rdo = ((2 * p, 1), (2 * q + 1, 1), (2 * r + 1, 0), (2 * s, 0))
     rdo = of.FermionOperator(rdo) + of.hermitian_conjugated(
-        of.FermionOperator(rdo)
-    )
+        of.FermionOperator(rdo))
     fqe_wf_rdo = fqe_wf.apply(rdo)
     val1 = fqe.util.vdot(fqe_appS, fqe_wf_rdo)
     val2 = fqe.util.vdot(fqe_wf_rdo, fqe_appS)
@@ -465,10 +425,8 @@ def _get_tpdm_grad_fqe_atomic(p, q, r, s, fqe_appS, fqe_wf):
 
     # alpha-beta block imag
     rdo = ((2 * p, 1), (2 * q + 1, 1), (2 * r + 1, 0), (2 * s, 0))
-    rdo = 1j * (
-        of.FermionOperator(rdo)
-        - of.hermitian_conjugated(of.FermionOperator(rdo))
-    )
+    rdo = 1j * (of.FermionOperator(rdo) -
+                of.hermitian_conjugated(of.FermionOperator(rdo)))
     fqe_wf_rdo = fqe_wf.apply(rdo)
     val3 = fqe.util.vdot(fqe_appS, fqe_wf_rdo)
     val4 = fqe.util.vdot(fqe_wf_rdo, fqe_appS)
@@ -477,8 +435,7 @@ def _get_tpdm_grad_fqe_atomic(p, q, r, s, fqe_appS, fqe_wf):
     # alpha-alpha block real
     rdo = ((2 * p, 1), (2 * q, 1), (2 * r, 0), (2 * s, 0))
     rdo = of.FermionOperator(rdo) + of.hermitian_conjugated(
-        of.FermionOperator(rdo)
-    )
+        of.FermionOperator(rdo))
     fqe_wf_rdo = fqe_wf.apply(rdo)
     val1 = fqe.util.vdot(fqe_appS, fqe_wf_rdo)
     val2 = fqe.util.vdot(fqe_wf_rdo, fqe_appS)
@@ -486,10 +443,8 @@ def _get_tpdm_grad_fqe_atomic(p, q, r, s, fqe_appS, fqe_wf):
 
     # alpha-alpha block imag
     rdo = ((2 * p, 1), (2 * q, 1), (2 * r, 0), (2 * s, 0))
-    rdo = 1j * (
-        of.FermionOperator(rdo)
-        - of.hermitian_conjugated(of.FermionOperator(rdo))
-    )
+    rdo = 1j * (of.FermionOperator(rdo) -
+                of.hermitian_conjugated(of.FermionOperator(rdo)))
     fqe_wf_rdo = fqe_wf.apply(rdo)
     val3 = fqe.util.vdot(fqe_appS, fqe_wf_rdo)
     val4 = fqe.util.vdot(fqe_wf_rdo, fqe_appS)
@@ -498,8 +453,7 @@ def _get_tpdm_grad_fqe_atomic(p, q, r, s, fqe_appS, fqe_wf):
     # beta-beta block real
     rdo = ((2 * p + 1, 1), (2 * q + 1, 1), (2 * r + 1, 0), (2 * s + 1, 0))
     rdo = of.FermionOperator(rdo) + of.hermitian_conjugated(
-        of.FermionOperator(rdo)
-    )
+        of.FermionOperator(rdo))
 
     fqe_wf_rdo = fqe_wf.apply(rdo)
     val1 = fqe.util.vdot(fqe_appS, fqe_wf_rdo)
@@ -508,10 +462,8 @@ def _get_tpdm_grad_fqe_atomic(p, q, r, s, fqe_appS, fqe_wf):
 
     # beta-beta block imag
     rdo = ((2 * p + 1, 1), (2 * q + 1, 1), (2 * r + 1, 0), (2 * s + 1, 0))
-    rdo = 1j * (
-        of.FermionOperator(rdo)
-        - of.hermitian_conjugated(of.FermionOperator(rdo))
-    )
+    rdo = 1j * (of.FermionOperator(rdo) -
+                of.hermitian_conjugated(of.FermionOperator(rdo)))
     fqe_wf_rdo = fqe_wf.apply(rdo)
     val3 = fqe.util.vdot(fqe_appS, fqe_wf_rdo)
     val4 = fqe.util.vdot(fqe_wf_rdo, fqe_appS)
@@ -557,12 +509,10 @@ def get_tpdm_grad_fqe_parallel(fqe_wf, acse_res_tensor, norbs):
                 if abs(acse_res_tensor[p, q, r, s]) > 1.0e-12:
                     op = ((p, 1), (q, 1), (r, 0), (s, 0))
                     fop1 = of.FermionOperator(
-                        op, coefficient=acse_res_tensor[p, q, r, s]
-                    )
+                        op, coefficient=acse_res_tensor[p, q, r, s])
                     op = ((s, 1), (r, 1), (q, 0), (p, 0))
                     fop2 = of.FermionOperator(
-                        op, coefficient=acse_res_tensor[s, r, q, p]
-                    )
+                        op, coefficient=acse_res_tensor[s, r, q, p])
                     s_ops.append((fop1, fop2))
                     # s_op_total += fop2
                     # s_op_total += fop1
@@ -571,8 +521,7 @@ def get_tpdm_grad_fqe_parallel(fqe_wf, acse_res_tensor, norbs):
                 if abs(acse_res_tensor[p, q, r, s]) > 1.0e-12:
                     op = ((p, 1), (q, 1), (r, 0), (s, 0))
                     fop1 = of.FermionOperator(
-                        op, coefficient=acse_res_tensor[p, q, r, s]
-                    )
+                        op, coefficient=acse_res_tensor[p, q, r, s])
                     s_ops.append((fop1, of.FermionOperator()))
                     # s_op_total += fop1
 
@@ -589,8 +538,7 @@ def get_tpdm_grad_fqe_parallel(fqe_wf, acse_res_tensor, norbs):
     with Parallel(n_jobs=-1) as parallel:
         result = parallel(
             delayed(_get_tpdm_grad_fqe_atomic)(p, q, r, s, fqe_appS, fqe_wf)
-            for p, q, r, s in product(range(norbs), repeat=4)
-        )
+            for p, q, r, s in product(range(norbs), repeat=4))
 
     for resval in result:
         p, q, r, s = resval[:4]
@@ -600,17 +548,15 @@ def get_tpdm_grad_fqe_parallel(fqe_wf, acse_res_tensor, norbs):
         # alpha-alpha block real
 
     # unroll residual blocks into full matrix
-    acse_residual = np.zeros(
-        (2 * norbs, 2 * norbs, 2 * norbs, 2 * norbs), dtype=np.complex128
-    )
+    acse_residual = np.zeros((2 * norbs, 2 * norbs, 2 * norbs, 2 * norbs),
+                             dtype=np.complex128)
     acse_residual[::2, ::2, ::2, ::2] = acse_aa
     acse_residual[1::2, 1::2, 1::2, 1::2] = acse_bb
     acse_residual[::2, 1::2, 1::2, ::2] = acse_ab
     acse_residual[::2, 1::2, ::2, 1::2] = np.einsum("ijkl->ijlk", -acse_ab)
     acse_residual[1::2, ::2, ::2, 1::2] = np.einsum("ijkl->jilk", acse_ab)
     acse_residual[1::2, ::2, 1::2, ::2] = np.einsum(
-        "ijkl->ijlk", -acse_residual[1::2, ::2, ::2, 1::2]
-    )
+        "ijkl->ijlk", -acse_residual[1::2, ::2, ::2, 1::2])
 
     return acse_residual
 

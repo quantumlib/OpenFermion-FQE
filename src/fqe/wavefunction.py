@@ -22,14 +22,7 @@
 import copy
 import os
 import math
-from typing import (Any,
-                    Callable,
-                    cast,
-                    Dict,
-                    KeysView,
-                    List,
-                    Optional,
-                    Tuple,
+from typing import (Any, Callable, cast, Dict, KeysView, List, Optional, Tuple,
                     Union)
 
 import numpy
@@ -55,7 +48,9 @@ class Wavefunction:
     """Wavefunction is the central object for manipulaion in the
     OpenFermion-FQE.
     """
-    def __init__(self, param: Optional[List[List[int]]] = None,
+
+    def __init__(self,
+                 param: Optional[List[List[int]]] = None,
                  broken: Optional[Union[List[str], str]] = None) -> None:
         """
         Args:
@@ -115,7 +110,8 @@ class Wavefunction:
                 self._conserved['s_z'] = param[0][1]
 
                 if not self._conserve_number:
-                    self._symmetry_map = map_broken_symmetry(param[0][1], param[0][2])
+                    self._symmetry_map = map_broken_symmetry(
+                        param[0][1], param[0][2])
 
     def __add__(self, other: 'Wavefunction') -> 'Wavefunction':
         """Intrinsic addition function to combine two wavefunctions.  This acts \
@@ -190,10 +186,9 @@ class Wavefunction:
                   count_bits(astr) - count_bits(bstr))
         self._civec[sector][key] = value
 
-    def _copy_beta_restore(self, s_z: int,
-                           norb: int,
+    def _copy_beta_restore(self, s_z: int, norb: int,
                            map_symm: Dict[Tuple[int, int], Tuple[int, int]]
-                           ) -> 'Wavefunction':
+                          ) -> 'Wavefunction':
         """Return a copy of the wavefunction with beta restored back to number
         breaking/spin conserving.
 
@@ -214,13 +209,13 @@ class Wavefunction:
             min_ele = 0
 
         for nalpha in range(min_ele, max_ele):
-            param.append([2*nalpha - s_z, s_z, norb])
+            param.append([2 * nalpha - s_z, s_z, norb])
 
         restored = Wavefunction(param, broken=['number'])
 
         data = {}
         for key in param:
-            work = ((key[0] + key[1])//2, (key[0] - key[1])//2)
+            work = ((key[0] + key[1]) // 2, (key[0] - key[1]) // 2)
             nkey = map_symm[work]
             other = (nkey[0] + nkey[1], nkey[0] - nkey[1])
             data[(key[0], key[1])] = self._civec[other].beta_inversion()
@@ -240,17 +235,18 @@ class Wavefunction:
         param = []
         maxb = min(norb, nele)
         minb = nele - maxb
-        for nbeta in range(minb, maxb+1):
-            m_s = nele - nbeta*2
+        for nbeta in range(minb, maxb + 1):
+            m_s = nele - nbeta * 2
             param.append([nele, m_s, norb])
 
         inverted = Wavefunction(param, broken=['spin'])
 
         data = {}
         for key, sector in self._civec.items():
-            work = ((key[0] + key[1])//2, (key[0] - key[1])//2)
+            work = ((key[0] + key[1]) // 2, (key[0] - key[1]) // 2)
             nkey = self._symmetry_map[work]
-            data[(nkey[0] + nkey[1], nkey[0] - nkey[1])] = sector.beta_inversion()
+            data[(nkey[0] + nkey[1],
+                  nkey[0] - nkey[1])] = sector.beta_inversion()
 
         inverted.set_wfn(strategy='from_data', raw_data=data)
 
@@ -301,7 +297,7 @@ class Wavefunction:
         """
         normall = 0.0
         for sector in self._civec.values():
-            normall += sector.norm() ** 2
+            normall += sector.norm()**2
         normall = math.sqrt(normall)
         return normall
 
@@ -309,7 +305,7 @@ class Wavefunction:
         """Generte the wavefunction norm and then scale each element by that
         value.
         """
-        self.scale(1.0/self.norm())
+        self.scale(1.0 / self.norm())
 
     def _number_sectors(self) -> Dict[int, FqeDataSet]:
         """An internal utility function that groups FqeData into
@@ -328,19 +324,18 @@ class Wavefunction:
             minalpha = nele - maxalpha
             check = True
             sectors = {}
-            for nalpha in range(minalpha, maxalpha+1):
+            for nalpha in range(minalpha, maxalpha + 1):
                 nbeta = nele - nalpha
-                check &= (nele, nalpha-nbeta) in self._civec.keys()
+                check &= (nele, nalpha - nbeta) in self._civec.keys()
 
             assert check
 
-            for nalpha in range(minalpha, maxalpha+1):
+            for nalpha in range(minalpha, maxalpha + 1):
                 nbeta = nele - nalpha
                 sectors[(nalpha, nbeta)] = self._civec[(nele, nalpha - nbeta)]
             dataset = FqeDataSet(nele, norb, sectors)
             numbersectors[nele] = dataset
         return numbersectors
-
 
     @wrap_apply
     def apply(self, hamil: 'hamiltonian.Hamiltonian') -> 'Wavefunction':
@@ -377,13 +372,13 @@ class Wavefunction:
                 transformed = out._apply_array(hamil.tensors(), hamil.e_0())
 
             if self._conserve_spin and not self._conserve_number:
-                transformed = transformed._copy_beta_restore(self._conserved['s_z'],
-                                                             self._norb,
-                                                             self._symmetry_map)
+                transformed = transformed._copy_beta_restore(
+                    self._conserved['s_z'], self._norb, self._symmetry_map)
 
         return transformed
 
-    def _apply_array(self, array: Tuple[numpy.ndarray, ...], e_0: complex) -> 'Wavefunction':
+    def _apply_array(self, array: Tuple[numpy.ndarray, ...],
+                     e_0: complex) -> 'Wavefunction':
         """Return a wavefunction subject to application of the numpy array as
 
         .. math::
@@ -398,7 +393,8 @@ class Wavefunction:
 
         """
         if self._conserve_spin:
-            assert array[0].shape[0] == self._norb or array[0].shape[0] == self._norb * 2
+            assert array[0].shape[0] == self._norb or array[0].shape[
+                0] == self._norb * 2
             out = copy.deepcopy(self)
             for _, sector in out._civec.items():
                 sector.apply_inplace(array)
@@ -414,7 +410,8 @@ class Wavefunction:
 
         return out
 
-    def _apply_diagonal(self, hamil: 'diagonal_hamiltonian.Diagonal') -> 'Wavefunction':
+    def _apply_diagonal(self, hamil: 'diagonal_hamiltonian.Diagonal'
+                       ) -> 'Wavefunction':
         """Applies the diagonal operator to the wavefunction
 
         Args:
@@ -433,9 +430,8 @@ class Wavefunction:
 
         return out
 
-    def _compute_rdm(self,
-                     rank: int,
-                     brawfn: 'Wavefunction' = None) -> Tuple[numpy.ndarray, ...]:
+    def _compute_rdm(self, rank: int, brawfn: 'Wavefunction' = None
+                    ) -> Tuple[numpy.ndarray, ...]:
         """Internal function that computes RDM up to rank = rank
 
         Args:
@@ -498,7 +494,8 @@ class Wavefunction:
                                 hamil: 'hamiltonian.Hamiltonian',
                                 accuracy: float = 0.0,
                                 expansion: int = 30,
-                                spec_lim: Optional[List[float]] = None) -> 'Wavefunction':
+                                spec_lim: Optional[List[float]] = None
+                               ) -> 'Wavefunction':
         """Perform the exponentiation of fermionic algebras to the
         wavefunction according the method and accuracy.
 
@@ -522,10 +519,7 @@ class Wavefunction:
 
         assert isinstance(hamil, hamiltonian.Hamiltonian)
 
-        algo_avail = [
-            'taylor',
-            'chebyshev'
-            ]
+        algo_avail = ['taylor', 'chebyshev']
 
         assert algo in algo_avail
 
@@ -557,7 +551,7 @@ class Wavefunction:
 
             wprime = 0.9875
             ascale = (spec_lim[1] - spec_lim[0]) / (2.0 * wprime)
-            eshift = - (spec_lim[0] + ascale * wprime)
+            eshift = -(spec_lim[0] + ascale * wprime)
 
             time_evol = copy.deepcopy(base)
             time_evol.scale(jv(0, ascale * time))
@@ -583,7 +577,7 @@ class Wavefunction:
             time_evol.scale(numpy.exp(eshift * time * 1.j))
 
         if numpy.abs(hamil.e_0() * time) > 1.e-15:
-            time_evol.scale(numpy.exp(-1.j*time*hamil.e_0()))
+            time_evol.scale(numpy.exp(-1.j * time * hamil.e_0()))
 
         if self._conserve_spin and not self._conserve_number:
             time_evol = time_evol._copy_beta_restore(self._conserved['s_z'],
@@ -611,7 +605,9 @@ class Wavefunction:
         """
         maxval = 0.0
         for config in self._civec.values():
-            configmax = max(config.coeff.max(), config.coeff.min(), key=numpy.abs)
+            configmax = max(config.coeff.max(),
+                            config.coeff.min(),
+                            key=numpy.abs)
             maxval = max(configmax, maxval)
 
         return maxval
@@ -628,18 +624,22 @@ class Wavefunction:
             states (int of list[int]) - an index or indexes indicating which \
               states to print.
         """
+
         def _print_format(fmt: str) -> Callable[[int, int], str]:
             """ Select the function which will perform formatted printing
             """
             if fmt == 'occ':
+
                 def _occupation_format(astring: int, bstring: int):
                     """occ - Prints a string indicating occupation state of each spatial
                     orbital.  A doubly occupied orbital will be indicated with "2",
                     a singly occupied orbital will get "a" or "b" depending on the
                     spin state.  An empy orbital will be ".".
                     """
-                    occstr = ['.' for _ in range(max(astring.bit_length(),
-                                                     bstring.bit_length()))]
+                    occstr = [
+                        '.' for _ in range(
+                            max(astring.bit_length(), bstring.bit_length()))
+                    ]
                     docc = astring & bstring
 
                     def build_occ_value(bstr: int, char: str,
@@ -682,12 +682,12 @@ class Wavefunction:
 
             return _string_format
 
-
         print_format = _print_format(fmt)
 
         config_in_order = sort_configuration_keys(self.sectors())
         for key in config_in_order:
-            self._civec[key].print_sector(pformat=print_format, threshold=threshold)
+            self._civec[key].print_sector(pformat=print_format,
+                                          threshold=threshold)
 
     def read(self, filename: str, path: str = os.getcwd()) -> None:
         """Initialize a wavefunction from a binary file.
@@ -719,11 +719,10 @@ class Wavefunction:
             path (str) - the path to save the file.  If no path is given, then \
               it is saved in the current working directory.
         """
-        wfn_data = [self._symmetry_map,
-                    self._conserved,
-                    self._conserve_spin,
-                    self._conserve_number,
-                    self._norb]
+        wfn_data = [
+            self._symmetry_map, self._conserved, self._conserve_spin,
+            self._conserve_number, self._norb
+        ]
 
         for key in self._civec:
             wfn_data.append([key, self._civec[key]])
@@ -743,8 +742,10 @@ class Wavefunction:
         for sector in self._civec.values():
             sector.scale(sval)
 
-    def set_wfn(self, strategy: str = 'ones',
-                raw_data: Optional[Dict[Tuple[int, int], numpy.ndarray]] = None) -> None:
+    def set_wfn(self,
+                strategy: str = 'ones',
+                raw_data: Optional[Dict[Tuple[int, int], numpy.ndarray]] = None
+               ) -> None:
         """Set the values of the ciwfn based on an argument or data to
         initalize from.
 
@@ -771,12 +772,12 @@ class Wavefunction:
             for sector in self._civec.values():
                 sector.set_wfn(strategy=strategy)
 
-    def transform(self, rotation: numpy.ndarray,
-                  low: Optional[numpy.ndarray] = None,
-                  upp: Optional[numpy.ndarray] = None) -> Tuple[numpy.ndarray,
-                                                                numpy.ndarray,
-                                                                numpy.ndarray,
-                                                                'Wavefunction']:
+    def transform(
+            self,
+            rotation: numpy.ndarray,
+            low: Optional[numpy.ndarray] = None,
+            upp: Optional[numpy.ndarray] = None
+    ) -> Tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray, 'Wavefunction']:
         """Transform the wavefunction using the orbtial rotation matrix and
         return the new wavefunction and the permutation matrix for the unitary
         transformation. This is an internal code, so performs minimal checking
@@ -798,9 +799,8 @@ class Wavefunction:
         if external:
             assert numpy.allclose(rotation, low @ upp)  # type: ignore
 
-        def ludecomp(rotmat: numpy.ndarray) -> Tuple[numpy.ndarray,
-                                                     numpy.ndarray,
-                                                     numpy.ndarray]:
+        def ludecomp(rotmat: numpy.ndarray
+                    ) -> Tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray]:
             """Returns permutation, lower triangular, and upper triangular
             matrices from the LU decomposition. Note that the rotation matrix
             is Hermitian conjugated.
@@ -814,9 +814,8 @@ class Wavefunction:
             tmat = rotmat.transpose().conjugate()
             return linalg.lu(tmat)
 
-        def transpose_matrix(low: numpy.ndarray,
-                             upp: numpy.ndarray) -> Tuple[numpy.ndarray,
-                                                          numpy.ndarray]:
+        def transpose_matrix(low: numpy.ndarray, upp: numpy.ndarray
+                            ) -> Tuple[numpy.ndarray, numpy.ndarray]:
             """Returns Hermitian conjugate of the L and U factors. The diagonal
             elements are in the upper triagular matrix. This transposition seeks to
             compensate the transposition in ludecomp above.
@@ -837,12 +836,14 @@ class Wavefunction:
             for irow in range(ndim):
                 for icol in range(irow + 1, ndim):
                     uppt[irow, icol] /= uppt[irow, irow]
-                lowt[irow, irow], uppt[irow, irow] = uppt[irow, irow], lowt[irow, irow]
+                lowt[irow, irow], uppt[irow, irow] = uppt[irow, irow], lowt[
+                    irow, irow]
                 for icol in range(irow):
                     lowt[irow, icol] *= lowt[icol, icol]
             return uppt.T.conj(), lowt.T.conj()
 
-        def process_matrix(low: numpy.ndarray, upp: numpy.ndarray) -> numpy.ndarray:
+        def process_matrix(low: numpy.ndarray,
+                           upp: numpy.ndarray) -> numpy.ndarray:
             """Returns an operator using which the wavefuction will be transformed.
 
             Args:
@@ -894,7 +895,7 @@ class Wavefunction:
                     twofwfn = onefwfn.apply((work,))
                     current.ax_plus_y(1.0 - 0.5 * work[icol, icol], onefwfn)
                     current.ax_plus_y(0.5, twofwfn)
-            elif rotation.shape[0] == norb*2:
+            elif rotation.shape[0] == norb * 2:
                 assert numpy.std(rotation[:norb, norb:]) \
                        + numpy.std(rotation[norb:, :norb]) < 1.0e-8
                 if not external:
@@ -916,7 +917,7 @@ class Wavefunction:
                     current.ax_plus_y(1.0, onefwfn)
                 for icol in range(norb):
                     work = numpy.zeros_like(rotation)
-                    work[norb:, icol+norb] = output2[:, icol]
+                    work[norb:, icol + norb] = output2[:, icol]
                     onefwfn = current.apply((work,))
                     current.ax_plus_y(1.0, onefwfn)
                 if not external:
@@ -933,7 +934,8 @@ class Wavefunction:
         return perm, low, upp, current
 
     @wrap_time_evolve
-    def time_evolve(self, time: float, hamil, inplace: bool = False) -> 'Wavefunction':
+    def time_evolve(self, time: float, hamil,
+                    inplace: bool = False) -> 'Wavefunction':
         """Perform time evolution of the wavefunction given Fermion Operators
         either as raw operations or wrapped up in a Hamiltonian.
 
@@ -955,12 +957,15 @@ class Wavefunction:
                 raise TypeError('Number conserving hamiltonian passed to'
                                 ' number non-conserving wavefunction')
 
-        if isinstance(hamil, sparse_hamiltonian.SparseHamiltonian) and hamil.is_individual():
+        if isinstance(
+                hamil,
+                sparse_hamiltonian.SparseHamiltonian) and hamil.is_individual():
 
             final_wfn = self._evolve_individual_nbody(time, hamil, inplace)
 
         else:
-            is_diag = ((hamil.quadratic() and hamil.diagonal()) or hamil.diagonal_coulomb())
+            is_diag = ((hamil.quadratic() and hamil.diagonal()) or
+                       hamil.diagonal_coulomb())
             if inplace and not is_diag:
                 raise ValueError("Inplace is not implemented for this case")
 
@@ -971,49 +976,51 @@ class Wavefunction:
             else:
                 work_wfn = copy.deepcopy(self)
 
-
             if hamil.quadratic():
                 if hamil.diagonal():
 
-                    ihtdiag = -1.j*time*hamil.diag_values()
+                    ihtdiag = -1.j * time * hamil.diag_values()
                     final_wfn = work_wfn._evolve_diagonal(ihtdiag, inplace)
 
                 else:
                     transformation = hamil.calc_diag_transform()
 
-                    permu, low, upp, work_wfn = work_wfn.transform(transformation)
+                    permu, low, upp, work_wfn = work_wfn.transform(
+                        transformation)
 
                     ci_trans = transformation @ permu
 
                     h1e = hamil.transform(ci_trans)
 
-                    ihtdiag = -1.j*time*h1e.diagonal()
+                    ihtdiag = -1.j * time * h1e.diagonal()
                     evolved_wfn = work_wfn._evolve_diagonal(ihtdiag)
 
-                    _, _, _, final_wfn = evolved_wfn.transform(ci_trans.T.conj(), low, upp)
-
+                    _, _, _, final_wfn = evolved_wfn.transform(
+                        ci_trans.T.conj(), low, upp)
 
             elif hamil.diagonal_coulomb():
 
                 diag, vij = hamil.iht(time)
 
-                final_wfn = work_wfn._evolve_diagonal_coulomb(diag, vij, inplace)
+                final_wfn = work_wfn._evolve_diagonal_coulomb(
+                    diag, vij, inplace)
 
             else:
 
-                final_wfn = work_wfn.apply_generated_unitary(time, 'taylor', hamil)
+                final_wfn = work_wfn.apply_generated_unitary(
+                    time, 'taylor', hamil)
 
             if self._conserve_spin and not self._conserve_number:
-                final_wfn = final_wfn._copy_beta_restore(self._conserved['s_z'],
-                                                         self._norb,
-                                                         self._symmetry_map)
+                final_wfn = final_wfn._copy_beta_restore(
+                    self._conserved['s_z'], self._norb, self._symmetry_map)
 
         if numpy.abs(hamil.e_0()) > 1.0e-15:
-            final_wfn.scale(numpy.exp(-1.j*time*hamil.e_0()))
+            final_wfn.scale(numpy.exp(-1.j * time * hamil.e_0()))
 
         return final_wfn
 
-    def _evolve_diagonal(self, ithdiag: numpy.ndarray, inplace: bool = False) -> 'Wavefunction':
+    def _evolve_diagonal(self, ithdiag: numpy.ndarray,
+                         inplace: bool = False) -> 'Wavefunction':
         """Evolve a diagonal Hamiltonian on the wavefunction
         """
         if inplace:
@@ -1043,9 +1050,10 @@ class Wavefunction:
 
         return wfn
 
-    def expectationValue(self,
-                         ops: Union['fqe_operator.FqeOperator', 'hamiltonian.Hamiltonian'],
-                         brawfn: 'Wavefunction' = None) -> Union[complex, numpy.ndarray]:
+    def expectationValue(
+            self,
+            ops: Union['fqe_operator.FqeOperator', 'hamiltonian.Hamiltonian'],
+            brawfn: 'Wavefunction' = None) -> Union[complex, numpy.ndarray]:
         """Calculates expectation values given operators
 
         Args:
@@ -1078,7 +1086,8 @@ class Wavefunction:
         return vdot(self, workwfn)
 
     def _apply_individual_nbody(self,
-                                hamil: 'sparse_hamiltonian.SparseHamiltonian') -> 'Wavefunction':
+                                hamil: 'sparse_hamiltonian.SparseHamiltonian'
+                               ) -> 'Wavefunction':
         """
         Applies an individual n-body operator to the wave function self.
 
@@ -1112,15 +1121,14 @@ class Wavefunction:
             else:
                 undagb.append(oper[0])
 
-        if len(daga)+len(dagb) != len(undaga)+len(undagb):
+        if len(daga) + len(dagb) != len(undaga) + len(undagb):
             raise ValueError('Number non-conserving operators specified')
 
         out = copy.deepcopy(self)
         if len(daga) == len(undaga) and len(dagb) == len(undagb):
             for key, sector in self._civec.items():
-                out._civec[key] = sector.apply_individual_nbody(coeff, daga,
-                                                                undaga, dagb,
-                                                                undagb)
+                out._civec[key] = sector.apply_individual_nbody(
+                    coeff, daga, undaga, dagb, undagb)
         else:
             nsectors = out._number_sectors()
             for _, nsector in nsectors.items():
@@ -1128,7 +1136,8 @@ class Wavefunction:
                                                        dagb, undagb)
         return out
 
-    def _evolve_individual_nbody(self, time: float,
+    def _evolve_individual_nbody(self,
+                                 time: float,
                                  hamil: 'sparse_hamiltonian.SparseHamiltonian',
                                  inplace: bool = False) -> 'Wavefunction':
         """Apply up to 4-body individual operator.
@@ -1146,7 +1155,8 @@ class Wavefunction:
                             ' {}'.format(hamil))
 
         if hamil.nterms() > 2:
-            raise ValueError('Individual n-body code is called with multiple terms')
+            raise ValueError(
+                'Individual n-body code is called with multiple terms')
 
         # check if everything is paired
         if hamil.nterms() == 2:
@@ -1159,9 +1169,13 @@ class Wavefunction:
 
             if self._conserve_number:
                 if not check:
-                    raise ValueError('Operators in _evolve_individual_nbody is not Hermitian')
+                    raise ValueError(
+                        'Operators in _evolve_individual_nbody is not Hermitian'
+                    )
         else:
-            [(coeff0, alpha0, beta0), ] = hamil.terms()
+            [
+                (coeff0, alpha0, beta0),
+            ] = hamil.terms()
             check = True
             for aop in alpha0:
                 check &= (aop[0], aop[1] ^ 1) in alpha0
@@ -1170,7 +1184,9 @@ class Wavefunction:
 
             if self._conserve_number:
                 if not check:
-                    raise ValueError('Operators in _evolve_individual_nbody is not Hermitian')
+                    raise ValueError(
+                        'Operators in _evolve_individual_nbody is not Hermitian'
+                    )
             coeff0 *= 0.5
 
         daga = []
@@ -1197,8 +1213,9 @@ class Wavefunction:
                             + len(dagb) * (len(dagb) - 1) // 2 \
                             + len(undaga) * (len(undaga) - 1) // 2 \
                             + len(undagb) * (len(undagb) - 1) // 2)
-            if not numpy.abs(coeff0 - numpy.conj(coeff1)*parity) < 1.0e-8:
-                raise ValueError('Coefficients in _evolve_individual_nbody is not Hermitian')
+            if not numpy.abs(coeff0 - numpy.conj(coeff1) * parity) < 1.0e-8:
+                raise ValueError(
+                    'Coefficients in _evolve_individual_nbody is not Hermitian')
 
         if inplace:
             out = self
@@ -1207,7 +1224,8 @@ class Wavefunction:
 
         if daga == undaga and dagb == undagb:
             for _, sector in out._civec.items():
-                sector.evolve_inplace_individual_nbody_trivial(time, coeff0, daga, dagb)
+                sector.evolve_inplace_individual_nbody_trivial(
+                    time, coeff0, daga, dagb)
         else:
             if len(daga) == len(undaga) and len(dagb) == len(undagb):
                 for _, sector in out._civec.items():
@@ -1216,15 +1234,12 @@ class Wavefunction:
             else:
                 nsectors = out._number_sectors()
                 for _, nsector in nsectors.items():
-                    nsector.evolve_inplace_individual_nbody(time,
-                                                            coeff0,
-                                                            daga,
-                                                            undaga,
-                                                            dagb,
-                                                            undagb)
+                    nsector.evolve_inplace_individual_nbody(
+                        time, coeff0, daga, undaga, dagb, undagb)
         return out
 
-    def _apply_few_nbody(self, hamil: 'sparse_hamiltonian.SparseHamiltonian') -> 'Wavefunction':
+    def _apply_few_nbody(self, hamil: 'sparse_hamiltonian.SparseHamiltonian'
+                        ) -> 'Wavefunction':
         """ Applies SparseHamiltonian by looping over all of the operators.
         Useful when the operator is extremely sparse
 
@@ -1245,9 +1260,8 @@ class Wavefunction:
         return out
 
     @wrap_rdm
-    def rdm(self,
-            string: str,
-            brawfn: Optional['Wavefunction'] = None) -> Union[complex, numpy.ndarray]:
+    def rdm(self, string: str, brawfn: Optional['Wavefunction'] = None
+           ) -> Union[complex, numpy.ndarray]:
         """ Returns rank-1 RDM. The operator order is specified by string.
         Note that, if the entire RDM is requested for N-broken wave function,
         this returns a packed format.
@@ -1279,12 +1293,16 @@ if __name__ == "__main__":
     import fqe
     from fqe.unittest_data import build_lih_data, build_hamiltonian
 
-    numpy.set_printoptions(floatmode='fixed', precision=6, linewidth=80,
+    numpy.set_printoptions(floatmode='fixed',
+                           precision=6,
+                           linewidth=80,
                            suppress=True)
     numpy.random.seed(seed=409)
 
     h1e, h2e, wfn = build_lih_data.build_lih_data('energy')
-    lih_hamiltonian = fqe.get_restricted_hamiltonian(([h1e, h2e]))  # type: ignore
+    lih_hamiltonian = fqe.get_restricted_hamiltonian(([  # type: ignore
+        h1e, h2e
+    ]))
     print(lih_hamiltonian._tensor)
     lihwfn = fqe.Wavefunction([[4, 0, 6]])
     lihwfn.set_wfn(strategy='from_data', raw_data={(4, 0): wfn})
@@ -1293,12 +1311,13 @@ if __name__ == "__main__":
     ops = FermionOperator('2^ 0', 3.0 - 1.j)
     ops += FermionOperator('0^ 2', 3.0 + 1.j)
     print(ops)
-    sham = fqe.get_sparse_hamiltonian(ops,
-                                      conserve_spin=False)
+    sham = fqe.get_sparse_hamiltonian(ops, conserve_spin=False)
     evolved = fqe.time_evolve(lihwfn, time, sham)
     evolved.print_wfn()
-    nbody_evol = lihwfn.apply_generated_unitary(time, 'taylor', sham,
-                                             accuracy=1.0e-8)
+    nbody_evol = lihwfn.apply_generated_unitary(time,
+                                                'taylor',
+                                                sham,
+                                                accuracy=1.0e-8)
     evolved.ax_plus_y(-1.0, nbody_evol)
     print(evolved.norm() < 1.e-8)
     print("END")

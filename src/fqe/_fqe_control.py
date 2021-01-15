@@ -11,7 +11,6 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
-
 """ FQE control is a wrapper to allow for convenient or more readable access
 to the emulator.
 """
@@ -52,13 +51,14 @@ if TYPE_CHECKING:
     from fqe.hamiltonians import hamiltonian
 
 
-def apply_generated_unitary(wfn: 'wavefunction.Wavefunction',
-                            time: float,
-                            algo: str,
-                            hamil: Union['hamiltonian.Hamiltonian', 'FermionOperator'],
-                            accuracy: float = 0.0,
-                            expansion: int = 30,
-                            spec_lim: Optional[List[float]] = None) -> 'wavefunction.Wavefunction':
+def apply_generated_unitary(
+        wfn: 'wavefunction.Wavefunction',
+        time: float,
+        algo: str,
+        hamil: Union['hamiltonian.Hamiltonian', 'FermionOperator'],
+        accuracy: float = 0.0,
+        expansion: int = 30,
+        spec_lim: Optional[List[float]] = None) -> 'wavefunction.Wavefunction':
     """APply the algebraic operators to the wavefunction with a specfiic
     algorithm and to the requested accuracy.
 
@@ -104,13 +104,13 @@ def get_spin_conserving_wavefunction(s_z: int,
         min_ele = 0
 
     for nalpha in range(min_ele, max_ele):
-        param.append([2*nalpha - s_z, s_z, norb])
+        param.append([2 * nalpha - s_z, s_z, norb])
 
     return wavefunction.Wavefunction(param, broken=['number'])
 
 
-def get_number_conserving_wavefunction(nele: int,
-                                       norb: int) -> 'wavefunction.Wavefunction':
+def get_number_conserving_wavefunction(nele: int, norb: int
+                                      ) -> 'wavefunction.Wavefunction':
     """Build a wavefunction
 
     Args:
@@ -125,8 +125,8 @@ def get_number_conserving_wavefunction(nele: int,
     param = []
     maxb = min(norb, nele)
     minb = nele - maxb
-    for nbeta in range(minb, maxb+1):
-        m_s = nele - nbeta*2
+    for nbeta in range(minb, maxb + 1):
+        m_s = nele - nbeta * 2
         param.append([nele, m_s, norb])
     return wavefunction.Wavefunction(param, broken=['spin'])
 
@@ -147,7 +147,8 @@ def Wavefunction(param: List[List[int]],
     return wavefunction.Wavefunction(param, broken=broken)
 
 
-def get_wavefunction(nele: int, m_s: int, norb: int) -> 'wavefunction.Wavefunction':
+def get_wavefunction(nele: int, m_s: int,
+                     norb: int) -> 'wavefunction.Wavefunction':
     """Build a wavefunction with definite particle number and spin.
 
     Args:
@@ -184,7 +185,8 @@ def time_evolve(wfn: 'wavefunction.Wavefunction',
     return wfn.time_evolve(time, hamil, inplace)
 
 
-def get_wavefunction_multiple(param: List[List[int]]) -> List['wavefunction.Wavefunction']:
+def get_wavefunction_multiple(param: List[List[int]]
+                             ) -> List['wavefunction.Wavefunction']:
     """Generate many different wavefunctions.
 
     Args:
@@ -216,14 +218,14 @@ def to_cirq(wfn: 'wavefunction.Wavefunction') -> numpy.ndarray:
         numpy.array(dtype=numpy.complex128) - a cirq wavefunction that can be \
             used in a simulator object.
     """
-    nqubit = wfn.norb()*2
+    nqubit = wfn.norb() * 2
     ops = jordan_wigner(fqe_to_fermion_operator(wfn))
     qid = cirq.LineQubit.range(nqubit)
     return qubit_wavefunction_from_vacuum(ops, qid)
 
 
 def to_cirq_ncr(wfn: 'wavefunction.Wavefunction') -> numpy.ndarray:
-    nqubit = wfn.norb()*2
+    nqubit = wfn.norb() * 2
     ops = normal_ordered(fqe_to_fermion_operator(wfn))
     wf = numpy.zeros(2**nqubit, dtype=numpy.complex128)
     for term, coeff in ops.terms.items():
@@ -232,7 +234,8 @@ def to_cirq_ncr(wfn: 'wavefunction.Wavefunction') -> numpy.ndarray:
     return wf
 
 
-def from_cirq(state: numpy.ndarray, thresh: float) -> 'wavefunction.Wavefunction':
+def from_cirq(state: numpy.ndarray,
+              thresh: float) -> 'wavefunction.Wavefunction':
     """Interoperability between cirq and the openfermion-fqe.  This takes a
     cirq wavefunction and creates an FQE wavefunction object initialized with
     the correct data.
@@ -281,7 +284,8 @@ def apply(ops: Union['hamiltonian.Hamiltonian', 'FermionOperator'],
 
 def expectationValue(wfn: 'wavefunction.Wavefunction',
                      ops: Union['hamiltonian.Hamiltonian', 'FermionOperator'],
-                     brawfn: Optional['wavefunction.Wavefunction'] = None) -> complex:
+                     brawfn: Optional['wavefunction.Wavefunction'] = None
+                    ) -> complex:
     """Return the expectation value for the passed operator and wavefunction
 
     Args:
@@ -363,7 +367,8 @@ def vdot(wfn1: 'wavefunction.Wavefunction',
 def get_hamiltonian_from_openfermion(ops: 'FermionOperator',
                                      norb: int = 0,
                                      conserve_number: bool = True,
-                                     e_0: complex = 0. + 0.j) -> 'hamiltonian.Hamiltonian':
+                                     e_0: complex = 0. + 0.j
+                                    ) -> 'hamiltonian.Hamiltonian':
     """Given an OpenFermion Hamiltonian return the fqe hamiltonian.
 
     Args:
@@ -391,15 +396,14 @@ def get_hamiltonian_from_openfermion(ops: 'FermionOperator',
 
 def get_diagonalcoulomb_hamiltonian(h2e: 'numpy.ndarray',
                                     e_0: complex = 0. + 0.j
-                                    ) -> 'diagonal_coulomb.DiagonalCoulomb':
+                                   ) -> 'diagonal_coulomb.DiagonalCoulomb':
     """Initialize a diagonal coulomb hamiltonian
     """
     return diagonal_coulomb.DiagonalCoulomb(h2e, e_0=e_0)
 
 
-def get_diagonal_hamiltonian(hdiag: 'numpy.ndarray',
-                             e_0: complex = 0. + 0.j
-                             ) -> 'diagonal_hamiltonian.Diagonal':
+def get_diagonal_hamiltonian(hdiag: 'numpy.ndarray', e_0: complex = 0. + 0.j
+                            ) -> 'diagonal_hamiltonian.Diagonal':
     """Initialize a diagonal hamiltonian
 
     Args:
@@ -411,7 +415,8 @@ def get_diagonal_hamiltonian(hdiag: 'numpy.ndarray',
 
 
 def get_general_hamiltonian(tensors: Tuple[numpy.ndarray, ...],
-                            e_0: complex = 0. + 0.j) -> 'general_hamiltonian.General':
+                            e_0: complex = 0. + 0.j
+                           ) -> 'general_hamiltonian.General':
     """Initialize the most general hamiltonian class.
 
     Args:
@@ -423,7 +428,8 @@ def get_general_hamiltonian(tensors: Tuple[numpy.ndarray, ...],
 
 
 def get_gso_hamiltonian(tensors: Tuple[numpy.ndarray, ...],
-                        e_0: complex = 0. + 0.j) -> 'gso_hamiltonian.GSOHamiltonian':
+                        e_0: complex = 0. + 0.j
+                       ) -> 'gso_hamiltonian.GSOHamiltonian':
     """Initialize the generalized spin orbital hamiltonian
 
     Args:
@@ -434,8 +440,9 @@ def get_gso_hamiltonian(tensors: Tuple[numpy.ndarray, ...],
     return gso_hamiltonian.GSOHamiltonian(tensors, e_0=e_0)
 
 
-def get_restricted_hamiltonian(tensors: Tuple[numpy.ndarray, ...],
-                               e_0: complex = 0. + 0.j) -> 'restricted_hamiltonian.RestrictedHamiltonian':
+def get_restricted_hamiltonian(
+        tensors: Tuple[numpy.ndarray, ...], e_0: complex = 0. + 0.j
+) -> 'restricted_hamiltonian.RestrictedHamiltonian':
     """Initialize spin conserving spin restricted hamiltonian
 
     Args:
@@ -449,7 +456,7 @@ def get_restricted_hamiltonian(tensors: Tuple[numpy.ndarray, ...],
 def get_sparse_hamiltonian(operators: Union['FermionOperator', str],
                            conserve_spin: bool = True,
                            e_0: complex = 0. + 0.j
-                           ) -> 'sparse_hamiltonian.SparseHamiltonian':
+                          ) -> 'sparse_hamiltonian.SparseHamiltonian':
     """Initialize the sparse hamiltonaian
 
     Args:
@@ -466,7 +473,8 @@ def get_sparse_hamiltonian(operators: Union['FermionOperator', str],
 
 
 def get_sso_hamiltonian(tensors: Tuple[numpy.ndarray, ...],
-                        e_0: complex = 0. + 0.j) -> 'sso_hamiltonian.SSOHamiltonian':
+                        e_0: complex = 0. + 0.j
+                       ) -> 'sso_hamiltonian.SSOHamiltonian':
     """Initialize the Spin-conserving Spin Orbital Hamiltonian
 
     Args:
@@ -474,5 +482,4 @@ def get_sso_hamiltonian(tensors: Tuple[numpy.ndarray, ...],
 
         e_0 (complex) - scalar part of the Hamiltonian
     """
-    return sso_hamiltonian.SSOHamiltonian(tensors,
-                                          e_0=e_0)
+    return sso_hamiltonian.SSOHamiltonian(tensors, e_0=e_0)

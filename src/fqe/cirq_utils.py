@@ -11,7 +11,6 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
-
 """Utilities which specifically require import from Cirq
 """
 #Type checking splits the imports
@@ -30,7 +29,8 @@ if TYPE_CHECKING:
     from cirq.ops.pauli_string import SingleQubitPauliStringGateOperation
 
 
-def qubit_ops_to_circuit(ops: 'QubitOperator', qpu: List[LineQubit]) -> 'Circuit':
+def qubit_ops_to_circuit(ops: 'QubitOperator',
+                         qpu: List[LineQubit]) -> 'Circuit':
     """Generate a circuit that can be run on a Cirq simulator from the ops
     passed
 
@@ -73,10 +73,8 @@ def qubit_op_to_gate(operation: 'QubitOperator',
     raise ValueError('No gate identified in qubit_op_to_gate')
 
 
-def qubit_projection(ops: QubitOperator,
-                     qubits: List[LineQubit],
-                     state: numpy.ndarray,
-                     coeff: numpy.ndarray) -> None:
+def qubit_projection(ops: QubitOperator, qubits: List[LineQubit],
+                     state: numpy.ndarray, coeff: numpy.ndarray) -> None:
     """Find the projection of each set of qubit operators on a
     wavefunction.
 
@@ -96,7 +94,8 @@ def qubit_projection(ops: QubitOperator,
     for indx, cluster in enumerate(ops.terms):
         circuit = qubit_ops_to_circuit(cluster, qubits)
         work_state = state.copy()
-        result = qpu.simulate(circuit, qubit_order=qubits,
+        result = qpu.simulate(circuit,
+                              qubit_order=qubits,
                               initial_state=work_state)
         coeff[indx] = result.final_state_vector[0]
 

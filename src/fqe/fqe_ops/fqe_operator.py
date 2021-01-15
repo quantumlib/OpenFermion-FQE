@@ -24,9 +24,8 @@ class FqeOperator(ABC):
     """FqeOperator base class."""
 
     @abstractmethod
-    def contract(
-        self, brastate: "Wavefunction", ketstate: "Wavefunction"
-    ) -> complex:
+    def contract(self, brastate: "Wavefunction",
+                 ketstate: "Wavefunction") -> complex:
         """Given two wavefunctions, generate the expectation value of the
         operator according to its representation.
 

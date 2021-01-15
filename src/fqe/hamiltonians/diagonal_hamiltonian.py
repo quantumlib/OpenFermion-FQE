@@ -39,8 +39,7 @@ class Diagonal(hamiltonian.Hamiltonian):
         if hdiag.ndim != 1:
             raise ValueError(
                 "Incorrect dimension passed for DiagonalHamiltonian elements. "
-                f"Must have hdiag.ndim = 1 but hdiag.ndim = {hdiag.ndim}."
-            )
+                f"Must have hdiag.ndim = 1 but hdiag.ndim = {hdiag.ndim}.")
         self._hdiag = hdiag
         self._dim = self._hdiag.shape[0]
 

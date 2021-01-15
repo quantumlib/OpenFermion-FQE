@@ -47,13 +47,11 @@ def number_nonconserving_fop(rank: int, norb: int) -> FermionOperator:
                     (i + 1 + j * 2) * 0.1 - (i + 1 + 2 * (j + 1)) * 0.1j,
                 )
                 opstring = str(i) + "^ " + str(j + 1) + "^ "
-                hamil += FermionOperator(
-                    opstring, (i + 1 + j) * 0.1 + (i + 1 + j) * 0.1j
-                )
+                hamil += FermionOperator(opstring,
+                                         (i + 1 + j) * 0.1 + (i + 1 + j) * 0.1j)
                 opstring = str(i + 1) + " " + str(j)
-                hamil += FermionOperator(
-                    opstring, (i + 1 + j) * 0.1 - (i + 1 + j) * 0.1j
-                )
+                hamil += FermionOperator(opstring,
+                                         (i + 1 + j) * 0.1 - (i + 1 + j) * 0.1j)
                 opstring = str(i + 1) + "^ " + str(j) + "^ "
                 hamil += FermionOperator(
                     opstring,
@@ -91,18 +89,15 @@ def build_restricted(norb: int, full: bool = False) -> Tuple[np.ndarray, ...]:
                     h2e[i, j, k, l] += (i + k) * (j + l) * 0.02
                     for m in range(norb):
                         for n in range(norb):
-                            h3e[i, j, k, l, m, n] += (
-                                (i + l) * (j + m) * (k + n) * 0.002
-                            )
+                            h3e[i, j, k, l, m, n] += ((i + l) * (j + m) *
+                                                      (k + n) * 0.002)
                             for o in range(norb):
                                 for p in range(norb):
-                                    h4e[i, j, k, l, m, n, o, p] += (
-                                        (i + m)
-                                        * (j + n)
-                                        * (k + o)
-                                        * (l + p)
-                                        * 0.001
-                                    )
+                                    h4e[i, j, k, l, m, n, o, p] += ((i + m) *
+                                                                    (j + n) *
+                                                                    (k + o) *
+                                                                    (l + p) *
+                                                                    0.001)
 
     # TODO: Simplify.
     if full:
@@ -112,73 +107,51 @@ def build_restricted(norb: int, full: bool = False) -> Tuple[np.ndarray, ...]:
         h2e[norb:, :norb, norb:, :norb] = h2e[:norb, :norb, :norb, :norb]
         h2e[norb:, norb:, norb:, norb:] = h2e[:norb, :norb, :norb, :norb]
 
-        h3e[:norb, norb:, :norb, :norb, norb:, :norb] = h3e[
-            :norb, :norb, :norb, :norb, :norb, :norb
-        ]
-        h3e[norb:, :norb, :norb, norb:, :norb, :norb] = h3e[
-            :norb, :norb, :norb, :norb, :norb, :norb
-        ]
-        h3e[:norb, :norb, norb:, :norb, :norb, norb:] = h3e[
-            :norb, :norb, :norb, :norb, :norb, :norb
-        ]
-        h3e[norb:, norb:, :norb, norb:, norb:, :norb] = h3e[
-            :norb, :norb, :norb, :norb, :norb, :norb
-        ]
-        h3e[:norb, norb:, norb:, :norb, norb:, norb:] = h3e[
-            :norb, :norb, :norb, :norb, :norb, :norb
-        ]
-        h3e[norb:, :norb, norb:, norb:, :norb, norb:] = h3e[
-            :norb, :norb, :norb, :norb, :norb, :norb
-        ]
-        h3e[norb:, norb:, norb:, norb:, norb:, norb:] = h3e[
-            :norb, :norb, :norb, :norb, :norb, :norb
-        ]
+        h3e[:norb, norb:, :norb, :norb, norb:, :
+            norb] = h3e[:norb, :norb, :norb, :norb, :norb, :norb]
+        h3e[norb:, :norb, :norb, norb:, :norb, :
+            norb] = h3e[:norb, :norb, :norb, :norb, :norb, :norb]
+        h3e[:norb, :norb, norb:, :norb, :norb,
+            norb:] = h3e[:norb, :norb, :norb, :norb, :norb, :norb]
+        h3e[norb:, norb:, :norb, norb:, norb:, :
+            norb] = h3e[:norb, :norb, :norb, :norb, :norb, :norb]
+        h3e[:norb, norb:, norb:, :norb, norb:,
+            norb:] = h3e[:norb, :norb, :norb, :norb, :norb, :norb]
+        h3e[norb:, :norb, norb:, norb:, :norb,
+            norb:] = h3e[:norb, :norb, :norb, :norb, :norb, :norb]
+        h3e[norb:, norb:, norb:, norb:, norb:,
+            norb:] = h3e[:norb, :norb, :norb, :norb, :norb, :norb]
 
-        h4e[:norb, norb:, :norb, :norb, :norb, norb:, :norb, :norb] = h4e[
-            :norb, :norb, :norb, :norb, :norb, :norb, :norb, :norb
-        ]
-        h4e[norb:, :norb, :norb, :norb, norb:, :norb, :norb, :norb] = h4e[
-            :norb, :norb, :norb, :norb, :norb, :norb, :norb, :norb
-        ]
-        h4e[:norb, :norb, norb:, :norb, :norb, :norb, norb:, :norb] = h4e[
-            :norb, :norb, :norb, :norb, :norb, :norb, :norb, :norb
-        ]
-        h4e[:norb, :norb, :norb, norb:, :norb, :norb, :norb, norb:] = h4e[
-            :norb, :norb, :norb, :norb, :norb, :norb, :norb, :norb
-        ]
-        h4e[norb:, norb:, :norb, :norb, norb:, norb:, :norb, :norb] = h4e[
-            :norb, :norb, :norb, :norb, :norb, :norb, :norb, :norb
-        ]
-        h4e[:norb, norb:, norb:, :norb, :norb, norb:, norb:, :norb] = h4e[
-            :norb, :norb, :norb, :norb, :norb, :norb, :norb, :norb
-        ]
-        h4e[norb:, :norb, norb:, :norb, norb:, :norb, norb:, :norb] = h4e[
-            :norb, :norb, :norb, :norb, :norb, :norb, :norb, :norb
-        ]
-        h4e[:norb, norb:, :norb, norb:, :norb, norb:, :norb, norb:] = h4e[
-            :norb, :norb, :norb, :norb, :norb, :norb, :norb, :norb
-        ]
-        h4e[norb:, :norb, :norb, norb:, norb:, :norb, :norb, norb:] = h4e[
-            :norb, :norb, :norb, :norb, :norb, :norb, :norb, :norb
-        ]
-        h4e[:norb, :norb, norb:, norb:, :norb, :norb, norb:, norb:] = h4e[
-            :norb, :norb, :norb, :norb, :norb, :norb, :norb, :norb
-        ]
-        h4e[norb:, norb:, norb:, :norb, norb:, norb:, norb:, :norb] = h4e[
-            :norb, :norb, :norb, :norb, :norb, :norb, :norb, :norb
-        ]
-        h4e[norb:, norb:, :norb, norb:, norb:, norb:, :norb, norb:] = h4e[
-            :norb, :norb, :norb, :norb, :norb, :norb, :norb, :norb
-        ]
-        h4e[:norb, norb:, norb:, norb:, :norb, norb:, norb:, norb:] = h4e[
-            :norb, :norb, :norb, :norb, :norb, :norb, :norb, :norb
-        ]
-        h4e[norb:, :norb, norb:, norb:, norb:, :norb, norb:, norb:] = h4e[
-            :norb, :norb, :norb, :norb, :norb, :norb, :norb, :norb
-        ]
-        h4e[norb:, norb:, norb:, norb:, norb:, norb:, norb:, norb:] = h4e[
-            :norb, :norb, :norb, :norb, :norb, :norb, :norb, :norb
-        ]
+        h4e[:norb, norb:, :norb, :norb, :norb, norb:, :norb, :
+            norb] = h4e[:norb, :norb, :norb, :norb, :norb, :norb, :norb, :norb]
+        h4e[norb:, :norb, :norb, :norb, norb:, :norb, :norb, :
+            norb] = h4e[:norb, :norb, :norb, :norb, :norb, :norb, :norb, :norb]
+        h4e[:norb, :norb, norb:, :norb, :norb, :norb, norb:, :
+            norb] = h4e[:norb, :norb, :norb, :norb, :norb, :norb, :norb, :norb]
+        h4e[:norb, :norb, :norb, norb:, :norb, :norb, :norb,
+            norb:] = h4e[:norb, :norb, :norb, :norb, :norb, :norb, :norb, :norb]
+        h4e[norb:, norb:, :norb, :norb, norb:, norb:, :norb, :
+            norb] = h4e[:norb, :norb, :norb, :norb, :norb, :norb, :norb, :norb]
+        h4e[:norb, norb:, norb:, :norb, :norb, norb:, norb:, :
+            norb] = h4e[:norb, :norb, :norb, :norb, :norb, :norb, :norb, :norb]
+        h4e[norb:, :norb, norb:, :norb, norb:, :norb, norb:, :
+            norb] = h4e[:norb, :norb, :norb, :norb, :norb, :norb, :norb, :norb]
+        h4e[:norb, norb:, :norb, norb:, :norb, norb:, :norb,
+            norb:] = h4e[:norb, :norb, :norb, :norb, :norb, :norb, :norb, :norb]
+        h4e[norb:, :norb, :norb, norb:, norb:, :norb, :norb,
+            norb:] = h4e[:norb, :norb, :norb, :norb, :norb, :norb, :norb, :norb]
+        h4e[:norb, :norb, norb:, norb:, :norb, :norb, norb:,
+            norb:] = h4e[:norb, :norb, :norb, :norb, :norb, :norb, :norb, :norb]
+        h4e[norb:, norb:, norb:, :norb, norb:, norb:, norb:, :
+            norb] = h4e[:norb, :norb, :norb, :norb, :norb, :norb, :norb, :norb]
+        h4e[norb:, norb:, :norb, norb:, norb:, norb:, :norb,
+            norb:] = h4e[:norb, :norb, :norb, :norb, :norb, :norb, :norb, :norb]
+        h4e[:norb, norb:, norb:, norb:, :norb, norb:, norb:,
+            norb:] = h4e[:norb, :norb, :norb, :norb, :norb, :norb, :norb, :norb]
+        h4e[norb:, :norb, norb:, norb:, norb:, :norb, norb:,
+            norb:] = h4e[:norb, :norb, :norb, :norb, :norb, :norb, :norb, :norb]
+        h4e[norb:, norb:, norb:, norb:, norb:, norb:, norb:,
+            norb:] = h4e[:norb, :norb, :norb, :norb, :norb, :norb, :norb, :norb]
 
     return h1e, h2e, h3e, h4e
 
@@ -203,18 +176,15 @@ def build_gso(norb: int) -> Tuple[np.ndarray, ...]:
                     h2e[i, j, k, l] += (i + k) * (j + l) * 0.02
                     for m in range(norb * 2):
                         for n in range(norb * 2):
-                            h3e[i, j, k, l, m, n] += (
-                                (i + l) * (j + m) * (k + n) * 0.002
-                            )
+                            h3e[i, j, k, l, m, n] += ((i + l) * (j + m) *
+                                                      (k + n) * 0.002)
                             for o in range(norb * 2):
                                 for p in range(norb * 2):
-                                    h4e[i, j, k, l, m, n, o, p] += (
-                                        (i + m)
-                                        * (j + n)
-                                        * (k + o)
-                                        * (l + p)
-                                        * 0.001
-                                    )
+                                    h4e[i, j, k, l, m, n, o, p] += ((i + m) *
+                                                                    (j + n) *
+                                                                    (k + o) *
+                                                                    (l + p) *
+                                                                    0.001)
     return h1e, h2e, h3e, h4e
 
 
@@ -236,18 +206,15 @@ def build_sso(norb: int):
                     h2e[i, j, k, l] += (i + k) * (j + l) * 0.02
                     for m in range(norb):
                         for n in range(norb):
-                            h3e[i, j, k, l, m, n] += (
-                                (i + l) * (j + m) * (k + n) * 0.002
-                            )
+                            h3e[i, j, k, l, m, n] += ((i + l) * (j + m) *
+                                                      (k + n) * 0.002)
                             for o in range(norb):
                                 for p in range(norb):
-                                    h4e[i, j, k, l, m, n, o, p] += (
-                                        (i + m)
-                                        * (j + n)
-                                        * (k + o)
-                                        * (l + p)
-                                        * 0.001
-                                    )
+                                    h4e[i, j, k, l, m, n, o, p] += ((i + m) *
+                                                                    (j + n) *
+                                                                    (k + o) *
+                                                                    (l + p) *
+                                                                    0.001)
 
     h1e[norb:, norb:] = 2.0 * h1e[:norb, :norb]
 
@@ -257,76 +224,54 @@ def build_sso(norb: int):
     h2e[norb:, norb:, norb:, norb:] = 4.0 * h2e[:norb, :norb, :norb, :norb]
 
     h3e[:norb, norb:, :norb, :norb, norb:, :norb] = (
-        2.0 * h3e[:norb, :norb, :norb, :norb, :norb, :norb]
-    )
+        2.0 * h3e[:norb, :norb, :norb, :norb, :norb, :norb])
     h3e[norb:, :norb, :norb, norb:, :norb, :norb] = (
-        2.0 * h3e[:norb, :norb, :norb, :norb, :norb, :norb]
-    )
+        2.0 * h3e[:norb, :norb, :norb, :norb, :norb, :norb])
     h3e[:norb, :norb, norb:, :norb, :norb, norb:] = (
-        2.0 * h3e[:norb, :norb, :norb, :norb, :norb, :norb]
-    )
+        2.0 * h3e[:norb, :norb, :norb, :norb, :norb, :norb])
 
     h3e[norb:, norb:, :norb, norb:, norb:, :norb] = (
-        4.0 * h3e[:norb, :norb, :norb, :norb, :norb, :norb]
-    )
+        4.0 * h3e[:norb, :norb, :norb, :norb, :norb, :norb])
     h3e[:norb, norb:, norb:, :norb, norb:, norb:] = (
-        4.0 * h3e[:norb, :norb, :norb, :norb, :norb, :norb]
-    )
+        4.0 * h3e[:norb, :norb, :norb, :norb, :norb, :norb])
     h3e[norb:, :norb, norb:, norb:, :norb, norb:] = (
-        4.0 * h3e[:norb, :norb, :norb, :norb, :norb, :norb]
-    )
+        4.0 * h3e[:norb, :norb, :norb, :norb, :norb, :norb])
 
     h3e[norb:, norb:, norb:, norb:, norb:, norb:] = (
-        6.0 * h3e[:norb, :norb, :norb, :norb, :norb, :norb]
-    )
+        6.0 * h3e[:norb, :norb, :norb, :norb, :norb, :norb])
 
     h4e[:norb, norb:, :norb, :norb, :norb, norb:, :norb, :norb] = (
-        2.0 * h4e[:norb, :norb, :norb, :norb, :norb, :norb, :norb, :norb]
-    )
+        2.0 * h4e[:norb, :norb, :norb, :norb, :norb, :norb, :norb, :norb])
     h4e[norb:, :norb, :norb, :norb, norb:, :norb, :norb, :norb] = (
-        2.0 * h4e[:norb, :norb, :norb, :norb, :norb, :norb, :norb, :norb]
-    )
+        2.0 * h4e[:norb, :norb, :norb, :norb, :norb, :norb, :norb, :norb])
     h4e[:norb, :norb, norb:, :norb, :norb, :norb, norb:, :norb] = (
-        2.0 * h4e[:norb, :norb, :norb, :norb, :norb, :norb, :norb, :norb]
-    )
+        2.0 * h4e[:norb, :norb, :norb, :norb, :norb, :norb, :norb, :norb])
     h4e[:norb, :norb, :norb, norb:, :norb, :norb, :norb, norb:] = (
-        2.0 * h4e[:norb, :norb, :norb, :norb, :norb, :norb, :norb, :norb]
-    )
+        2.0 * h4e[:norb, :norb, :norb, :norb, :norb, :norb, :norb, :norb])
 
     h4e[norb:, norb:, :norb, :norb, norb:, norb:, :norb, :norb] = (
-        4.0 * h4e[:norb, :norb, :norb, :norb, :norb, :norb, :norb, :norb]
-    )
+        4.0 * h4e[:norb, :norb, :norb, :norb, :norb, :norb, :norb, :norb])
     h4e[:norb, norb:, norb:, :norb, :norb, norb:, norb:, :norb] = (
-        4.0 * h4e[:norb, :norb, :norb, :norb, :norb, :norb, :norb, :norb]
-    )
+        4.0 * h4e[:norb, :norb, :norb, :norb, :norb, :norb, :norb, :norb])
     h4e[norb:, :norb, norb:, :norb, norb:, :norb, norb:, :norb] = (
-        4.0 * h4e[:norb, :norb, :norb, :norb, :norb, :norb, :norb, :norb]
-    )
+        4.0 * h4e[:norb, :norb, :norb, :norb, :norb, :norb, :norb, :norb])
     h4e[:norb, norb:, :norb, norb:, :norb, norb:, :norb, norb:] = (
-        4.0 * h4e[:norb, :norb, :norb, :norb, :norb, :norb, :norb, :norb]
-    )
+        4.0 * h4e[:norb, :norb, :norb, :norb, :norb, :norb, :norb, :norb])
     h4e[norb:, :norb, :norb, norb:, norb:, :norb, :norb, norb:] = (
-        4.0 * h4e[:norb, :norb, :norb, :norb, :norb, :norb, :norb, :norb]
-    )
+        4.0 * h4e[:norb, :norb, :norb, :norb, :norb, :norb, :norb, :norb])
     h4e[:norb, :norb, norb:, norb:, :norb, :norb, norb:, norb:] = (
-        4.0 * h4e[:norb, :norb, :norb, :norb, :norb, :norb, :norb, :norb]
-    )
+        4.0 * h4e[:norb, :norb, :norb, :norb, :norb, :norb, :norb, :norb])
 
     h4e[norb:, norb:, norb:, :norb, norb:, norb:, norb:, :norb] = (
-        6.0 * h4e[:norb, :norb, :norb, :norb, :norb, :norb, :norb, :norb]
-    )
+        6.0 * h4e[:norb, :norb, :norb, :norb, :norb, :norb, :norb, :norb])
     h4e[norb:, norb:, :norb, norb:, norb:, norb:, :norb, norb:] = (
-        6.0 * h4e[:norb, :norb, :norb, :norb, :norb, :norb, :norb, :norb]
-    )
+        6.0 * h4e[:norb, :norb, :norb, :norb, :norb, :norb, :norb, :norb])
     h4e[:norb, norb:, norb:, norb:, :norb, norb:, norb:, norb:] = (
-        6.0 * h4e[:norb, :norb, :norb, :norb, :norb, :norb, :norb, :norb]
-    )
+        6.0 * h4e[:norb, :norb, :norb, :norb, :norb, :norb, :norb, :norb])
     h4e[norb:, :norb, norb:, norb:, norb:, :norb, norb:, norb:] = (
-        6.0 * h4e[:norb, :norb, :norb, :norb, :norb, :norb, :norb, :norb]
-    )
+        6.0 * h4e[:norb, :norb, :norb, :norb, :norb, :norb, :norb, :norb])
 
     h4e[norb:, norb:, norb:, norb:, norb:, norb:, norb:, norb:] = (
-        8.0 * h4e[:norb, :norb, :norb, :norb, :norb, :norb, :norb, :norb]
-    )
+        8.0 * h4e[:norb, :norb, :norb, :norb, :norb, :norb, :norb, :norb])
 
     return h1e, h2e, h3e, h4e

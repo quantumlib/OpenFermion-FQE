@@ -66,7 +66,6 @@ def gbit_index(str0: int) -> Generator[int, None, None]:
         bit_index += 1
 
 
-
 def integer_index(str0: int) -> List[int]:
     """Generate integers indicating the position of occupied orbitals in a
     bitstring starting from 0.  This is a convience wrapper for the gbit_index
@@ -118,7 +117,8 @@ def lexicographic_bitstring_generator(str0: int, norb: int) -> List[int]:
     n_elec = sum(gs_bs)
     n_orbs = len(gs_bs)
     for ones_positions in combinations(range(n_orbs), n_elec):
-        out.append(sum([2**z for z in ones_positions]))  # convert directly to int
+        out.append(sum([2**z for z in ones_positions
+                       ]))  # convert directly to int
     return sorted(out)
 
 
@@ -177,7 +177,7 @@ def count_bits_above(string: int, pos: int) -> int:
 
         pos (int) - position in the bit string
     """
-    return count_bits(string & ~(2**(pos+1)-1))
+    return count_bits(string & ~(2**(pos + 1) - 1))
 
 
 def count_bits_below(string: int, pos: int) -> int:
@@ -188,7 +188,7 @@ def count_bits_below(string: int, pos: int) -> int:
 
         pos (int) - position in the bit string
     """
-    return count_bits(string & (2**pos-1))
+    return count_bits(string & (2**pos - 1))
 
 
 def count_bits_between(string: int, pos1: int, pos2: int) -> int:
@@ -201,7 +201,7 @@ def count_bits_between(string: int, pos1: int, pos2: int) -> int:
 
         pos2 (int) - the other position in the bit string
     """
-    mask = (2**max(pos1, pos2)-1) ^ (2**(min(pos1, pos2)+1)-1)
+    mask = (2**max(pos1, pos2) - 1) ^ (2**(min(pos1, pos2) + 1) - 1)
     return count_bits(string & mask)
 
 

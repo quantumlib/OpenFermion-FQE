@@ -24,7 +24,7 @@ def test_general_hamiltonian():
     """Test some of the functions in General."""
     h1e = np.random.rand(5, 5).astype(np.complex128)
     h1e += h1e.T.conj()
-    test = general_hamiltonian.General((h1e, ))
+    test = general_hamiltonian.General((h1e,))
     assert test.dim() == 5
     assert test.rank() == 2
     assert np.allclose(h1e, test.tensor(2))

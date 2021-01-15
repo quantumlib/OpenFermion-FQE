@@ -102,9 +102,7 @@ def build_hamiltonian(ops: Union[FermionOperator, hamiltonian.Hamiltonian],
             maxrank = max(index, maxrank)
 
         if len(ops_mat) == 1 and (0 in ops_mat):
-            out = process_rank2_matrix(ops_mat[0],
-                                       norb=norb,
-                                       e_0=e_0)
+            out = process_rank2_matrix(ops_mat[0], norb=norb, e_0=e_0)
         elif len(ops_mat) == 1 and \
             (1 in ops_mat) and \
             check_diagonal_coulomb(ops_mat[1]):
@@ -114,11 +112,12 @@ def build_hamiltonian(ops: Union[FermionOperator, hamiltonian.Hamiltonian],
             dtypes = [xx.dtype for xx in ops_mat.values()]
             dtypes = numpy.unique(dtypes)
             if len(dtypes) != 1:
-                raise TypeError("Non-unique coefficient types for input operator")
+                raise TypeError(
+                    "Non-unique coefficient types for input operator")
 
             for i in range(maxrank + 1):
                 if i not in ops_mat:
-                    mat_dim = tuple([2*norb for _ in range((i + 1)*2)])
+                    mat_dim = tuple([2 * norb for _ in range((i + 1) * 2)])
                     ops_mat[i] = numpy.zeros(mat_dim, dtype=dtypes[0])
 
             ops_mat2 = []
@@ -219,13 +218,12 @@ def fermionops_tomatrix(ops: 'FermionOperator', norb: int) -> numpy.ndarray:
     tensor_dim = [norb * 2 for _ in range(rank)]
     index_mask = [0 for _ in range(rank)]
 
-    index_dict_dagger = [[0, 0] for _ in range(rank//2)]
-    index_dict_nondagger = [[0, 0] for _ in range(rank//2)]
+    index_dict_dagger = [[0, 0] for _ in range(rank // 2)]
+    index_dict_nondagger = [[0, 0] for _ in range(rank // 2)]
 
     tensor = numpy.zeros(tensor_dim, dtype=numpy.complex128)
 
     for term in ops.terms:
-
 
         for i in range(rank):
             index = term[i][0]
@@ -261,13 +259,12 @@ def fermionops_tomatrix(ops: 'FermionOperator', norb: int) -> numpy.ndarray:
             else:
                 index_mask[i] = index_dict_nondagger[i - rank // 2][1]
 
-        tensor[tuple(index_mask)] += (-1) ** parity * ops.terms[term]
+        tensor[tuple(index_mask)] += (-1)**parity * ops.terms[term]
 
     return tensor
 
 
-def process_rank2_matrix(mat: numpy.ndarray,
-                         norb: int,
+def process_rank2_matrix(mat: numpy.ndarray, norb: int,
                          e_0: complex = 0. + 0.j) -> 'hamiltonian.Hamiltonian':
     """Look at the structure of the (1, 0) component of the one body matrix and
     determine the symmetries.
@@ -294,22 +291,19 @@ def process_rank2_matrix(mat: numpy.ndarray,
                 break
 
     if diagonal:
-        return diagonal_hamiltonian.Diagonal(mat.diagonal(),
-                                             e_0=e_0)
+        return diagonal_hamiltonian.Diagonal(mat.diagonal(), e_0=e_0)
 
-    if mat[norb:2*norb, :norb].any():
-        return gso_hamiltonian.GSOHamiltonian(tuple([mat]),
-                                              e_0=e_0)
+    if mat[norb:2 * norb, :norb].any():
+        return gso_hamiltonian.GSOHamiltonian(tuple([mat]), e_0=e_0)
 
     if numpy.allclose(mat[:norb, :norb], mat[norb:, norb:]):
         return restricted_hamiltonian.RestrictedHamiltonian(tuple([mat]),
                                                             e_0=e_0)
 
-    spin_mat = numpy.zeros((norb, 2*norb), dtype=mat.dtype)
+    spin_mat = numpy.zeros((norb, 2 * norb), dtype=mat.dtype)
     spin_mat[:, :norb] = mat[:norb, :norb]
-    spin_mat[:, norb: 2*norb] = mat[norb:, norb:]
-    return sso_hamiltonian.SSOHamiltonian(tuple([spin_mat]),
-                                          e_0=e_0)
+    spin_mat[:, norb:2 * norb] = mat[norb:, norb:]
+    return sso_hamiltonian.SSOHamiltonian(tuple([spin_mat]), e_0=e_0)
 
 
 def check_diagonal_coulomb(mat: numpy.ndarray) -> bool:
@@ -339,6 +333,7 @@ def check_diagonal_coulomb(mat: numpy.ndarray) -> bool:
 def wrap_rdm(rdm):
     """Decorator to convert arguments to the fqe internal classes
     """
+
     @wraps(rdm)
     def symmetry_process(self, string, brawfn=None):
         if self.conserve_spin() and not self.conserve_number():
@@ -351,12 +346,14 @@ def wrap_rdm(rdm):
                 string = fqe_ops_utils.switch_broken_symmetry(string)
 
         return rdm(wfn, string, brawfn=brawfn)
+
     return symmetry_process
 
 
 def wrap_apply(apply):
     """Decorator to convert arguments to the fqe internal classes
     """
+
     @wraps(apply)
     def convert(self, ops: Union['FermionOperator', 'hamiltonian.Hamiltonian']):
         """ Converts an FermionOperator to hamiltonian.Hamiltonian
@@ -366,12 +363,14 @@ def wrap_apply(apply):
         """
         hamil = build_hamiltonian(ops, conserve_number=self.conserve_number())
         return apply(self, hamil)
+
     return convert
 
 
 def wrap_time_evolve(time_evolve):
     """Decorator to convert arguments to the fqe internal classes
     """
+
     @wraps(time_evolve)
     def convert(self,
                 time: float,
@@ -386,12 +385,14 @@ def wrap_time_evolve(time_evolve):
         """
         hamil = build_hamiltonian(ops, conserve_number=self.conserve_number())
         return time_evolve(self, time, hamil, inplace)
+
     return convert
 
 
 def wrap_apply_generated_unitary(apply_generated_unitary):
     """Decorator to convert arguments to the fqe internal classes
     """
+
     @wraps(apply_generated_unitary)
     def convert(self,
                 time: float,
@@ -428,4 +429,5 @@ def wrap_apply_generated_unitary(apply_generated_unitary):
                                        accuracy=accuracy,
                                        expansion=expansion,
                                        spec_lim=spec_lim)
+
     return convert
