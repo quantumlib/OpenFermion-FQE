@@ -162,17 +162,23 @@ class SumOfSquaresTrotter:
     def build_fqe_hamiltonians(self):
         fqe_fops = []
         for fop in self.fops:
-            fqe_fops.append(build_hamiltonian(1j * fop, self.sdim,
-                                             conserve_number=True))
+            fqe_fops.append(
+                build_hamiltonian(1j * fop, self.sdim, conserve_number=True))
         self.fqe_fops = fqe_fops
 
 
 class ADAPT:
-    def __init__(self, oei: np.ndarray, tei: np.ndarray, operator_pool,
-                 n_alpha: int, n_beta: int,
-                 iter_max=30, verbose=True, stopping_epsilon=1.0E-3,
-                 delta_e_eps=1.0E-6
-                 ):
+
+    def __init__(self,
+                 oei: np.ndarray,
+                 tei: np.ndarray,
+                 operator_pool,
+                 n_alpha: int,
+                 n_beta: int,
+                 iter_max=30,
+                 verbose=True,
+                 stopping_epsilon=1.0E-3,
+                 delta_e_eps=1.0E-6):
         """
         ADAPT-VQE object.
 
@@ -197,7 +203,8 @@ class ADAPT:
                                                n_alpha + n_beta)
         self.reduced_ham = reduced_ham
         self.k2_ham = of.get_fermion_operator(reduced_ham)
-        self.k2_fop = build_hamiltonian(self.k2_ham, elec_hamil.dim(),
+        self.k2_fop = build_hamiltonian(self.k2_ham,
+                                        elec_hamil.dim(),
                                         conserve_number=True)
         self.elec_hamil = elec_hamil
         self.iter_max = iter_max
@@ -212,17 +219,17 @@ class ADAPT:
         self.stopping_eps = stopping_epsilon
         self.delta_e_eps = delta_e_eps
 
-
-    def vbc(self, initial_wf: Wavefunction, update_rank=None,
-            opt_method: str='L-BFGS-B',
+    def vbc(self,
+            initial_wf: Wavefunction,
+            update_rank=None,
+            opt_method: str = 'L-BFGS-B',
             opt_options=None,
             num_opt_var=None,
             v_reconstruct=False,
             trotterize_lr=False,
             group_trotter_steps=True,
             trotterization=1,
-            update_utc=None
-            ):
+            update_utc=None):
         """The variational Brillouin condition method
 
         Solve for the 2-body residual and then variationally determine
@@ -277,7 +284,8 @@ class ADAPT:
             # calculate rdms for grad
             _, tpdm = wf.sector((self.nele, self.sz)).get_openfermion_rdms()
             if v_reconstruct:
-                d3 = 6 * valdemaro_reconstruction_functional(tpdm / 2, self.nele)
+                d3 = 6 * valdemaro_reconstruction_functional(
+                    tpdm / 2, self.nele)
             else:
                 d3 = wf.sector((self.nele, self.sz)).get_three_pdm()
 
@@ -294,7 +302,6 @@ class ADAPT:
                     new_residual[p, q, r, s] = (acse_residual[p, q, r, s] -
                                                 acse_residual[s, r, q, p]) / 2
 
-
                 ul, vl, one_body_residual, _, _, one_body_op = \
                     doubles_factorization(new_residual, eig_cutoff=update_rank)
 
@@ -306,7 +313,8 @@ class ADAPT:
                         # enforce symmetry in one-body sector
                         one_body_residual[::2, ::2] = 0.5 * \
                     (one_body_residual[::2, ::2] + one_body_residual[1::2, 1::2])
-                        one_body_residual[1::2, 1::2] = one_body_residual[::2, ::2]
+                        one_body_residual[1::2, 1::
+                                          2] = one_body_residual[::2, ::2]
                         fop.extend([get_fermion_op(one_body_residual)])
 
                     for ll in range(len(ul)):
@@ -334,15 +342,19 @@ class ADAPT:
                         new_fop3 *= (1 / 16)
                         new_fop4 *= (1 / 16)
 
-                        fop.extend([get_fermion_op(new_fop1),
-                               get_fermion_op(new_fop2),
-                               get_fermion_op(new_fop3),
-                               get_fermion_op(new_fop4)])
+                        fop.extend([
+                            get_fermion_op(new_fop1),
+                            get_fermion_op(new_fop2),
+                            get_fermion_op(new_fop3),
+                            get_fermion_op(new_fop4)
+                        ])
 
                     if group_trotter_steps:
-                        fop = [SumOfSquaresTrotter(fop, self.sdim,
-                                                   trotterization=
-                                                   trotterization)]
+                        fop = [
+                            SumOfSquaresTrotter(fop,
+                                                self.sdim,
+                                                trotterization=trotterization)
+                        ]
 
                 else:
                     lr_new_residual = np.zeros_like(new_residual)
@@ -359,8 +371,7 @@ class ADAPT:
                         raise AssertionError("generator is not antihermitian")
             elif update_utc:
                 fop = []
-                one_body_residual = -np.einsum('pqrq->pr',
-                                               acse_residual)
+                one_body_residual = -np.einsum('pqrq->pr', acse_residual)
                 one_body_op = get_fermion_op(one_body_residual)
                 assert of.is_hermitian(1j * one_body_op)
                 if not np.isclose((1j * one_body_op).induced_norm(), 0):
@@ -422,8 +433,10 @@ class ADAPT:
                     f_op.build_fqe_hamiltonians()
                     fqe_ops.append(f_op)
                 else:
-                    fqe_ops.append(build_hamiltonian(1j * f_op, self.sdim,
-                                       conserve_number=True))
+                    fqe_ops.append(
+                        build_hamiltonian(1j * f_op,
+                                          self.sdim,
+                                          conserve_number=True))
 
             operator_pool_fqe.extend(fqe_ops)
             existing_parameters.extend([0] * len(fop))
@@ -448,7 +461,10 @@ class ADAPT:
                         temp_cwf = temp_cwf.time_evolve(coeff, fqe_op)
 
                 new_parameters, current_e = self.optimize_param(
-                    pool_to_op, params_to_op, current_wf, opt_method,
+                    pool_to_op,
+                    params_to_op,
+                    current_wf,
+                    opt_method,
                     opt_options=opt_options)
 
                 if len(operator_pool_fqe) < self.num_opt_var:
@@ -458,8 +474,11 @@ class ADAPT:
                         new_parameters.tolist()
             else:
                 new_parameters, current_e = self.optimize_param(
-                    operator_pool_fqe, existing_parameters, initial_wf,
-                    opt_method, opt_options=opt_options)
+                    operator_pool_fqe,
+                    existing_parameters,
+                    initial_wf,
+                    opt_method,
+                    opt_options=opt_options)
                 existing_parameters = new_parameters.tolist()
 
             if self.verbose:
@@ -472,11 +491,12 @@ class ADAPT:
                 break
             iteration += 1
 
-    def adapt_vqe(self, initial_wf: Wavefunction,
-                  opt_method: str='L-BFGS-B',
+    def adapt_vqe(self,
+                  initial_wf: Wavefunction,
+                  opt_method: str = 'L-BFGS-B',
                   opt_options=None,
-                  v_reconstruct: bool=True,
-                  num_ops_add: int=1):
+                  v_reconstruct: bool = True,
+                  num_ops_add: int = 1):
         """
         Run ADAPT-VQE using
 
@@ -505,8 +525,8 @@ class ADAPT:
             # calculate rdms for grad
             _, tpdm = wf.sector((self.nele, self.sz)).get_openfermion_rdms()
             if v_reconstruct:
-                d3 = 6 * valdemaro_reconstruction_functional(tpdm / 2,
-                                                             self.nele)
+                d3 = 6 * valdemaro_reconstruction_functional(
+                    tpdm / 2, self.nele)
             else:
                 d3 = wf.sector((self.nele, self.sz)).get_three_pdm()
 
@@ -531,18 +551,24 @@ class ADAPT:
             max_grad_terms_idx = \
                 np.argsort(np.abs(pool_grad))[::-1][:num_ops_add]
 
-            pool_terms = [self.operator_pool.op_pool[i] for i in
-                          max_grad_terms_idx]
+            pool_terms = [
+                self.operator_pool.op_pool[i] for i in max_grad_terms_idx
+            ]
             operator_pool.extend(pool_terms)
             fqe_ops: List[ABCHamiltonian] = []
             for f_op in pool_terms:
-                fqe_ops.append(build_hamiltonian(1j * f_op, self.sdim,
-                                                conserve_number=True))
+                fqe_ops.append(
+                    build_hamiltonian(1j * f_op,
+                                      self.sdim,
+                                      conserve_number=True))
             operator_pool_fqe.extend(fqe_ops)
             existing_parameters.extend([0] * len(fqe_ops))
 
             new_parameters, current_e = self.optimize_param(
-                operator_pool_fqe, existing_parameters, initial_wf, opt_method,
+                operator_pool_fqe,
+                existing_parameters,
+                initial_wf,
+                opt_method,
                 opt_options=opt_options)
 
             existing_parameters = new_parameters.tolist()
@@ -555,12 +581,13 @@ class ADAPT:
                 break
             iteration += 1
 
-    def optimize_param(self, pool: Union[
-        List[of.FermionOperator], List[ABCHamiltonian]],
-                       existing_params: Union[List, np.ndarray],
-                       initial_wf: Wavefunction,
-                       opt_method: str,
-                       opt_options=None) ->  Tuple[np.ndarray, float]:
+    def optimize_param(
+            self,
+            pool: Union[List[of.FermionOperator], List[ABCHamiltonian]],
+            existing_params: Union[List, np.ndarray],
+            initial_wf: Wavefunction,
+            opt_method: str,
+            opt_options=None) -> Tuple[np.ndarray, float]:
         """Optimize a wavefunction given a list of generators
 
         Args:
@@ -583,7 +610,8 @@ class ADAPT:
                     fqe_op = op
                 else:
                     print("Found a OF Hamiltonian")
-                    fqe_op = build_hamiltonian(1j * op, self.sdim,
+                    fqe_op = build_hamiltonian(1j * op,
+                                               self.sdim,
                                                conserve_number=True)
                 if isinstance(fqe_op, ABCHamiltonian):
                     wf = wf.time_evolve(coeff, fqe_op)
@@ -594,8 +622,8 @@ class ADAPT:
                             wf = wf.time_evolve(coeff / fqe_op.trotterization,
                                                 sos_op)
                 else:
-                    raise ValueError(
-                        "Can't evolve operator type {}".format(type(fqe_op)))
+                    raise ValueError("Can't evolve operator type {}".format(
+                        type(fqe_op)))
 
             # compute gradients
             grad_vec = np.zeros(len(params), dtype=np.complex128)
@@ -609,7 +637,8 @@ class ADAPT:
                         if isinstance(op, ABCHamiltonian):
                             fqe_op = op
                         else:
-                            fqe_op = build_hamiltonian(1j * op, self.sdim,
+                            fqe_op = build_hamiltonian(1j * op,
+                                                       self.sdim,
                                                        conserve_number=True)
                         if not np.isclose(coeff, 0):
                             grad_wf = grad_wf.time_evolve(coeff, fqe_op)
@@ -627,7 +656,9 @@ class ADAPT:
             return (wf.expectationValue(self.k2_fop).real,
                     np.array(grad_vec.real, order='F'))
 
-        res = sp.optimize.minimize(cost_func, existing_params,
-                                   method=opt_method, jac=True,
+        res = sp.optimize.minimize(cost_func,
+                                   existing_params,
+                                   method=opt_method,
+                                   jac=True,
                                    options=opt_options)
         return res.x, res.fun

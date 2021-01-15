@@ -90,32 +90,28 @@ def evolve_fqe_givens_unrestricted(wfn: Wavefunction,
         for givens in layer:
             i, j, theta, phi = givens
             if not np.isclose(phi, 0):
-                op = of.FermionOperator(
-                    ((j, 1), (j, 0)), coefficient=-phi
-                )
+                op = of.FermionOperator(((j, 1), (j, 0)), coefficient=-phi)
                 wfn = wfn.time_evolve(1.0, op)
             if not np.isclose(theta, 0):
                 op = of.FermionOperator(
-                    ((i, 1), (j, 0)), coefficient=-1j * theta
-                ) + of.FermionOperator(
-                    ((j, 1), (i, 0)), coefficient=1j * theta
-                )
+                    ((i, 1),
+                     (j, 0)), coefficient=-1j * theta) + of.FermionOperator(
+                         ((j, 1), (i, 0)), coefficient=1j * theta)
                 wfn = wfn.time_evolve(1.0, op)
 
     # evolve the last diagonal phases
     for idx, final_phase in enumerate(diagonal):
         if not np.isclose(final_phase, 1.0):
-            op = of.FermionOperator(
-                ((idx, 1), (idx, 0)), -np.angle(final_phase)
-            )
+            op = of.FermionOperator(((idx, 1), (idx, 0)),
+                                    -np.angle(final_phase))
             wfn = wfn.time_evolve(1.0, op)
 
     return wfn
 
 
-def evolve_fqe_charge_charge_unrestricted(
-    wfn: Wavefunction, vij_mat: np.ndarray, time=1
-) -> Wavefunction:
+def evolve_fqe_charge_charge_unrestricted(wfn: Wavefunction,
+                                          vij_mat: np.ndarray,
+                                          time=1) -> Wavefunction:
     r"""Utility for testing evolution of a full 2^{n} wavefunction via
 
     :math:`exp{-i time * \sum_{i,j}v_{i, j}n_{i}n_{j}}.`
@@ -136,9 +132,8 @@ def evolve_fqe_charge_charge_unrestricted(
     return wfn
 
 
-def evolve_fqe_diagaonal_coulomb(
-    wfn: Wavefunction, vij_mat: np.ndarray, time=1
-) -> Wavefunction:
+def evolve_fqe_diagaonal_coulomb(wfn: Wavefunction, vij_mat: np.ndarray,
+                                 time=1) -> Wavefunction:
     r"""Utility for testing evolution of a full 2^{n} wavefunction via
 
     :math:`exp{-i time * \sum_{i,j, sigma, tau}v_{i, j}n_{i\sigma}n_{j\tau}}.`

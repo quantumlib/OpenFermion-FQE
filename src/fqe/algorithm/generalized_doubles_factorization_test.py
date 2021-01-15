@@ -25,11 +25,11 @@ from fqe.algorithm.generalized_doubles_factorization import (
 from fqe.algorithm.adapt_vqe import ADAPT
 from fqe.algorithm.brillouin_calculator import two_rdo_commutator_symm
 from fqe.algorithm.brillouin_calculator import get_fermion_op
-from fqe.algorithm.low_rank import (evolve_fqe_givens_unrestricted,)
+from fqe.algorithm.low_rank import (
+    evolve_fqe_givens_unrestricted,)
 
 from fqe.unittest_data.generate_openfermion_molecule import \
     build_lih_moleculardata
-
 
 
 def generate_antisymm_generator(nso):
@@ -124,10 +124,18 @@ def test_generalized_doubles():
         # check that we have normal operators and that the outer product
         # of their eigenvalues is imaginary. Also check vv is unitary
         if not np.isclose(sigma[ll], 0):
-            assert np.isclose(of.normal_ordered(get_fermion_op(op1mat) - op1).induced_norm(), 0)
-            assert np.isclose(of.normal_ordered(get_fermion_op(op2mat) - op2).induced_norm(), 0)
-            assert np.isclose(of.normal_ordered(get_fermion_op(op3mat) - op3).induced_norm(), 0)
-            assert np.isclose(of.normal_ordered(get_fermion_op(op4mat) - op4).induced_norm(), 0)
+            assert np.isclose(
+                of.normal_ordered(get_fermion_op(op1mat) - op1).induced_norm(),
+                0)
+            assert np.isclose(
+                of.normal_ordered(get_fermion_op(op2mat) - op2).induced_norm(),
+                0)
+            assert np.isclose(
+                of.normal_ordered(get_fermion_op(op3mat) - op3).induced_norm(),
+                0)
+            assert np.isclose(
+                of.normal_ordered(get_fermion_op(op4mat) - op4).induced_norm(),
+                0)
 
             ww, vv = np.linalg.eig(op1mat)
             eye = np.eye(nso)
@@ -169,7 +177,7 @@ def test_random_evolution():
             assert np.isclose(generator[p, q, r, s], -generator[q, p, r, s])
 
     generator_mat = np.reshape(np.transpose(generator, [0, 3, 1, 2]),
-                               (nso ** 2, nso ** 2)).astype(np.float)
+                               (nso**2, nso**2)).astype(np.float)
     _, sigma, _ = np.linalg.svd(generator_mat)
 
     ul, vl, _, ul_ops, vl_ops, _ = \
@@ -193,14 +201,18 @@ def test_random_evolution():
         op4 = D - 1j * of.hermitian_conjugated(D)
 
         # the ops are normal
-        assert np.isclose(of.normal_ordered(
-            of.commutator(op1, of.hermitian_conjugated(op1))).induced_norm(), 0)
-        assert np.isclose(of.normal_ordered(
-            of.commutator(op2, of.hermitian_conjugated(op2))).induced_norm(), 0)
-        assert np.isclose(of.normal_ordered(
-            of.commutator(op3, of.hermitian_conjugated(op3))).induced_norm(), 0)
-        assert np.isclose(of.normal_ordered(
-            of.commutator(op4, of.hermitian_conjugated(op4))).induced_norm(), 0)
+        assert np.isclose(
+            of.normal_ordered(of.commutator(
+                op1, of.hermitian_conjugated(op1))).induced_norm(), 0)
+        assert np.isclose(
+            of.normal_ordered(of.commutator(
+                op2, of.hermitian_conjugated(op2))).induced_norm(), 0)
+        assert np.isclose(
+            of.normal_ordered(of.commutator(
+                op3, of.hermitian_conjugated(op3))).induced_norm(), 0)
+        assert np.isclose(
+            of.normal_ordered(of.commutator(
+                op4, of.hermitian_conjugated(op4))).induced_norm(), 0)
 
         # confirm that evolution under these Hermitian operators is the same
         # as the U^ D U form of the evolution
@@ -214,7 +226,7 @@ def test_random_evolution():
         op3mat = Dmat + 1j * Dmat.T
         op4mat = Dmat - 1j * Dmat.T
 
-        o1_rwf = rwf.time_evolve(1/16, 1j * op1**2)
+        o1_rwf = rwf.time_evolve(1 / 16, 1j * op1**2)
         ww, vv = np.linalg.eig(op1mat)
         assert np.allclose(vv @ np.diag(ww) @ vv.conj().T, op1mat)
         trwf = evolve_fqe_givens_unrestricted(rwf, vv.conj().T)
@@ -222,11 +234,11 @@ def test_random_evolution():
         for p, q in product(range(nso), repeat=2):
             fop = of.FermionOperator(((p, 1), (p, 0), (q, 1), (q, 0)),
                                      coefficient=-v_pq[p, q].imag)
-            trwf = trwf.time_evolve(1/16, fop)
+            trwf = trwf.time_evolve(1 / 16, fop)
         trwf = evolve_fqe_givens_unrestricted(trwf, vv)
         assert np.isclose(fqe.vdot(o1_rwf, trwf), 1)
 
-        o_rwf = rwf.time_evolve(1/16, 1j * op2**2)
+        o_rwf = rwf.time_evolve(1 / 16, 1j * op2**2)
         ww, vv = np.linalg.eig(op2mat)
         assert np.allclose(vv @ np.diag(ww) @ vv.conj().T, op2mat)
         trwf = evolve_fqe_givens_unrestricted(rwf, vv.conj().T)
@@ -234,11 +246,11 @@ def test_random_evolution():
         for p, q in product(range(nso), repeat=2):
             fop = of.FermionOperator(((p, 1), (p, 0), (q, 1), (q, 0)),
                                      coefficient=-v_pq[p, q].imag)
-            trwf = trwf.time_evolve(1/16, fop)
+            trwf = trwf.time_evolve(1 / 16, fop)
         trwf = evolve_fqe_givens_unrestricted(trwf, vv)
         assert np.isclose(fqe.vdot(o_rwf, trwf), 1)
 
-        o_rwf = rwf.time_evolve(-1/16, 1j * op3**2)
+        o_rwf = rwf.time_evolve(-1 / 16, 1j * op3**2)
         ww, vv = np.linalg.eig(op3mat)
         assert np.allclose(vv @ np.diag(ww) @ vv.conj().T, op3mat)
         trwf = evolve_fqe_givens_unrestricted(rwf, vv.conj().T)
@@ -246,11 +258,11 @@ def test_random_evolution():
         for p, q in product(range(nso), repeat=2):
             fop = of.FermionOperator(((p, 1), (p, 0), (q, 1), (q, 0)),
                                      coefficient=-v_pq[p, q].imag)
-            trwf = trwf.time_evolve(-1/16, fop)
+            trwf = trwf.time_evolve(-1 / 16, fop)
         trwf = evolve_fqe_givens_unrestricted(trwf, vv)
         assert np.isclose(fqe.vdot(o_rwf, trwf), 1)
 
-        o_rwf = rwf.time_evolve(-1/16, 1j * op4**2)
+        o_rwf = rwf.time_evolve(-1 / 16, 1j * op4**2)
         ww, vv = np.linalg.eig(op4mat)
         assert np.allclose(vv @ np.diag(ww) @ vv.conj().T, op4mat)
         trwf = evolve_fqe_givens_unrestricted(rwf, vv.conj().T)
@@ -258,10 +270,9 @@ def test_random_evolution():
         for p, q in product(range(nso), repeat=2):
             fop = of.FermionOperator(((p, 1), (p, 0), (q, 1), (q, 0)),
                                      coefficient=-v_pq[p, q].imag)
-            trwf = trwf.time_evolve(-1/16, fop)
+            trwf = trwf.time_evolve(-1 / 16, fop)
         trwf = evolve_fqe_givens_unrestricted(trwf, vv)
         assert np.isclose(fqe.vdot(o_rwf, trwf), 1)
-
 
 
 def test_normal_op_tensor_reconstruction():
@@ -273,7 +284,7 @@ def test_normal_op_tensor_reconstruction():
             assert np.isclose(generator[p, q, r, s], -generator[q, p, r, s])
 
     generator_mat = np.reshape(np.transpose(generator, [0, 3, 1, 2]),
-                               (nso ** 2, nso ** 2)).astype(np.float)
+                               (nso**2, nso**2)).astype(np.float)
     _, sigma, _ = np.linalg.svd(generator_mat)
 
     ul, vl, _, _, _, _ = \
@@ -378,19 +389,18 @@ def test_normal_op_tensor_reconstruction():
         assert np.allclose(oww3, -oww4)
         for p, q, r, s in product(range(nso), repeat=4):
             test_op1[p, q, r, s] += op1mat[p, s] * op1mat[q, r]
-            assert np.isclose(op1mat[p, s] * op1mat[q, r],
-                              np.einsum('i,i,ij,j,j', v1[p, :], v1c[s, :], oww1,
-                                        v1[q, :], v1c[r, :]))
+            assert np.isclose(
+                op1mat[p, s] * op1mat[q, r],
+                np.einsum('i,i,ij,j,j', v1[p, :], v1c[s, :], oww1, v1[q, :],
+                          v1c[r, :]))
             test_op2[p, q, r, s] += op2mat[p, s] * op2mat[q, r]
             test_op3[p, q, r, s] -= op3mat[p, s] * op3mat[q, r]
             test_op4[p, q, r, s] -= op4mat[p, s] * op4mat[q, r]
 
         assert np.allclose(
-            np.einsum('pi,si,ij,qj,rj->pqrs', v1, v1c, oww1, v1, v1c),
-            test_op1)
+            np.einsum('pi,si,ij,qj,rj->pqrs', v1, v1c, oww1, v1, v1c), test_op1)
         assert np.allclose(
-            np.einsum('pi,si,ij,qj,rj->pqrs', v2, v2c, oww2, v2, v2c),
-            test_op2)
+            np.einsum('pi,si,ij,qj,rj->pqrs', v2, v2c, oww2, v2, v2c), test_op2)
         assert np.allclose(
             np.einsum('pi,si,ij,qj,rj->pqrs', v3, v3c, -oww3, v3, v3c),
             test_op3)
@@ -422,14 +432,13 @@ def test_generalized_doubles2():
         doubles_factorization(generator)
 
     generator_mat = np.reshape(np.transpose(generator, [0, 3, 1, 2]),
-                               (nso ** 2, nso ** 2)).astype(np.float)
-    one_body_residual_test = -np.einsum('pqrq->pr',
-                                   generator)
+                               (nso**2, nso**2)).astype(np.float)
+    one_body_residual_test = -np.einsum('pqrq->pr', generator)
     assert np.allclose(generator_mat, generator_mat.T)
     assert np.allclose(one_body_residual, one_body_residual_test)
 
     tgenerator_mat = np.zeros_like(generator_mat)
-    for row_gem, col_gem in product(range(nso ** 2), repeat=2):
+    for row_gem, col_gem in product(range(nso**2), repeat=2):
         p, s = row_gem // nso, row_gem % nso
         q, r = col_gem // nso, col_gem % nso
         tgenerator_mat[row_gem, col_gem] = generator[p, q, r, s]
@@ -461,16 +470,20 @@ def test_generalized_doubles2():
         op2 = S - 1j * Sd
         op3 = D + 1j * Dd
         op4 = D - 1j * Dd
-        assert np.isclose(of.normal_ordered(
-            of.commutator(op1, of.hermitian_conjugated(op1))).induced_norm(), 0)
-        assert np.isclose(of.normal_ordered(
-            of.commutator(op2, of.hermitian_conjugated(op2))).induced_norm(), 0)
-        assert np.isclose(of.normal_ordered(
-            of.commutator(op3, of.hermitian_conjugated(op3))).induced_norm(), 0)
-        assert np.isclose(of.normal_ordered(
-            of.commutator(op4, of.hermitian_conjugated(op4))).induced_norm(), 0)
+        assert np.isclose(
+            of.normal_ordered(of.commutator(
+                op1, of.hermitian_conjugated(op1))).induced_norm(), 0)
+        assert np.isclose(
+            of.normal_ordered(of.commutator(
+                op2, of.hermitian_conjugated(op2))).induced_norm(), 0)
+        assert np.isclose(
+            of.normal_ordered(of.commutator(
+                op3, of.hermitian_conjugated(op3))).induced_norm(), 0)
+        assert np.isclose(
+            of.normal_ordered(of.commutator(
+                op4, of.hermitian_conjugated(op4))).induced_norm(), 0)
 
-        fop3 += (1/8) * ((S**2 - Sd**2) - (D**2 - Dd**2))
+        fop3 += (1 / 8) * ((S**2 - Sd**2) - (D**2 - Dd**2))
 
         op1mat = Smat + 1j * Smat.T
         op2mat = Smat - 1j * Smat.T
@@ -485,10 +498,18 @@ def test_generalized_doubles2():
         # check that we have normal operators and that the outer product
         # of their eigenvalues is imaginary. Also check vv is unitary
         if not np.isclose(sigma[ll], 0):
-            assert np.isclose(of.normal_ordered(get_fermion_op(op1mat) - op1).induced_norm(), 0)
-            assert np.isclose(of.normal_ordered(get_fermion_op(op2mat) - op2).induced_norm(), 0)
-            assert np.isclose(of.normal_ordered(get_fermion_op(op3mat) - op3).induced_norm(), 0)
-            assert np.isclose(of.normal_ordered(get_fermion_op(op4mat) - op4).induced_norm(), 0)
+            assert np.isclose(
+                of.normal_ordered(get_fermion_op(op1mat) - op1).induced_norm(),
+                0)
+            assert np.isclose(
+                of.normal_ordered(get_fermion_op(op2mat) - op2).induced_norm(),
+                0)
+            assert np.isclose(
+                of.normal_ordered(get_fermion_op(op3mat) - op3).induced_norm(),
+                0)
+            assert np.isclose(
+                of.normal_ordered(get_fermion_op(op4mat) - op4).induced_norm(),
+                0)
 
             ww, vv = np.linalg.eig(op1mat)
             eye = np.eye(nso)
@@ -511,11 +532,12 @@ def test_generalized_doubles2():
         fop2 += -0.25 * of.hermitian_conjugated(
             ul_ops[ll]) * of.hermitian_conjugated(vl_ops[ll])
 
-        assert np.allclose(of.normal_ordered(
-            ul_ops[ll] * vl_ops[ll] + vl_ops[ll] * ul_ops[ll] - 0.5 * (
-                        S ** 2 - D ** 2)).induced_norm(), 0)
-        fop5 += (1/8) * (S**2 - Sd**2 + Dd**2 - D**2)
-        fop4 += (1/16) * ((op1**2 + op2**2) - (op3**2 + op4**2))
+        assert np.allclose(
+            of.normal_ordered(ul_ops[ll] * vl_ops[ll] +
+                              vl_ops[ll] * ul_ops[ll] - 0.5 *
+                              (S**2 - D**2)).induced_norm(), 0)
+        fop5 += (1 / 8) * (S**2 - Sd**2 + Dd**2 - D**2)
+        fop4 += (1 / 16) * ((op1**2 + op2**2) - (op3**2 + op4**2))
 
         fop += vl_ops[ll] * ul_ops[ll]
 
@@ -536,7 +558,7 @@ def test_normal_op_tensor_reconstruction2():
             assert np.isclose(generator[p, q, r, s], -generator[q, p, r, s])
 
     generator_mat = np.reshape(np.transpose(generator, [0, 3, 1, 2]),
-                               (nso ** 2, nso ** 2)).astype(np.float)
+                               (nso**2, nso**2)).astype(np.float)
     _, sigma, _ = np.linalg.svd(generator_mat)
 
     ul, vl, _, _, _, _ = \
@@ -642,25 +664,24 @@ def test_normal_op_tensor_reconstruction2():
 
         for p, q, r, s in product(range(nso), repeat=4):
             test_op1[p, q, r, s] += op1mat[p, s] * op1mat[q, r]
-            assert np.isclose(op1mat[p, s] * op1mat[q, r],
-                              np.einsum('i,i,ij,j,j', v1[p, :], v1c[s, :], oww1,
-                                        v1[q, :], v1c[r, :]))
+            assert np.isclose(
+                op1mat[p, s] * op1mat[q, r],
+                np.einsum('i,i,ij,j,j', v1[p, :], v1c[s, :], oww1, v1[q, :],
+                          v1c[r, :]))
             test_op2[p, q, r, s] += op2mat[p, s] * op2mat[q, r]
             test_op3[p, q, r, s] -= op3mat[p, s] * op3mat[q, r]
             test_op4[p, q, r, s] -= op4mat[p, s] * op4mat[q, r]
 
-        assert np.allclose(np.einsum('pi,si,ij,qj,rj->pqrs', v1, v1c, oww1, v1, v1c),
-                           test_op1)
         assert np.allclose(
-            np.einsum('pi,si,ij,qj,rj->pqrs', v2, v2c, oww2, v2, v2c),
-            test_op2)
+            np.einsum('pi,si,ij,qj,rj->pqrs', v1, v1c, oww1, v1, v1c), test_op1)
+        assert np.allclose(
+            np.einsum('pi,si,ij,qj,rj->pqrs', v2, v2c, oww2, v2, v2c), test_op2)
         assert np.allclose(
             np.einsum('pi,si,ij,qj,rj->pqrs', v3, v3c, -oww3, v3, v3c),
             test_op3)
         assert np.allclose(
             np.einsum('pi,si,ij,qj,rj->pqrs', v4, v4c, -oww4, v4, v4c),
             test_op4)
-
 
         test_op1 *= (1 / 16)
         test_op2 *= (1 / 16)
@@ -684,17 +705,15 @@ def test_generalized_doubles_takagi():
     sz = 0
     norbs = oei.shape[0]
     nso = 2 * norbs
-    fqe_wf = fqe.Wavefunction(
-        [[nele, sz, norbs]])
+    fqe_wf = fqe.Wavefunction([[nele, sz, norbs]])
     fqe_wf.set_wfn(strategy='random')
     fqe_wf.normalize()
     _, tpdm = fqe_wf.sector((nele, sz)).get_openfermion_rdms()
     d3 = fqe_wf.sector((nele, sz)).get_three_pdm()
 
     adapt = ADAPT(oei, tei, None, nalpha, nbeta, iter_max=50)
-    acse_residual = two_rdo_commutator_symm(
-                adapt.reduced_ham.two_body_tensor, tpdm,
-                d3)
+    acse_residual = two_rdo_commutator_symm(adapt.reduced_ham.two_body_tensor,
+                                            tpdm, d3)
     for p, q, r, s in product(range(nso), repeat=4):
         if p == q or r == s:
             continue
@@ -706,8 +725,8 @@ def test_generalized_doubles_takagi():
     test_generator = np.zeros_like(acse_residual)
     test_generator2 = np.zeros_like(acse_residual)
     for ll in range(len(Zlp)):
-        test_fop += 0.25 * get_fermion_op(Zlp[ll]) ** 2
-        test_fop += 0.25 * get_fermion_op(Zlm[ll]) ** 2
+        test_fop += 0.25 * get_fermion_op(Zlp[ll])**2
+        test_fop += 0.25 * get_fermion_op(Zlm[ll])**2
         for p, q, r, s in product(range(nso), repeat=4):
             test_generator[p, q, r, s] += Zl[ll][p, s] * Zl[ll][q, r]
 
@@ -732,9 +751,11 @@ def test_generalized_doubles_takagi():
                                 np.einsum('pi,si,ij,qj,rj->pqrs', v2, v2c,
                                     (1 / 4) * oww2, v2, v2c)))
 
-    assert np.isclose(of.normal_ordered(
-        test_fop - get_fermion_op(acse_residual)).induced_norm(), 0,
-                      atol=1.0E-6)
+    assert np.isclose(
+        of.normal_ordered(test_fop -
+                          get_fermion_op(acse_residual)).induced_norm(),
+        0,
+        atol=1.0E-6)
 
     assert np.allclose(test_generator, acse_residual)
     assert np.allclose(test_generator2, acse_residual)

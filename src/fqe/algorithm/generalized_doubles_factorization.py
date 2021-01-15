@@ -220,11 +220,10 @@ def doubles_factorization2(generator_tensor: np.ndarray, eig_cutoff=None):
 
     nso = generator_tensor.shape[0]
     generator_mat = np.reshape(np.transpose(generator_tensor, [0, 3, 1, 2]),
-                               (nso ** 2, nso ** 2))
+                               (nso**2, nso**2))
     assert np.allclose(generator_mat, generator_mat.T)
 
-    one_body_residual = -np.einsum('pqrq->pr',
-                                   generator_tensor)
+    one_body_residual = -np.einsum('pqrq->pr', generator_tensor)
 
     # complex symmetric matrices give Q S Q^T with S diagonal and real
     # and Q is unitary.

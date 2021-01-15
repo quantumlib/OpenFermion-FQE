@@ -271,9 +271,8 @@ def davidsonliu_fqe(
                         )))
 
     for idx in range(len(guess_vecs)):
-        f_k.sector(gv_sector).coeff -= (
-            overlaps[idx] * guess_vecs[idx].sector(gv_sector).coeff
-        )
+        f_k.sector(gv_sector).coeff -= (overlaps[idx] *
+                                        guess_vecs[idx].sector(gv_sector).coeff)
 
     f_k.normalize()
     guess_vecs.append(f_k)
@@ -281,18 +280,14 @@ def davidsonliu_fqe(
     eigenvectors = []
     for i in range(nroots):
         eigenvectors.append(
-            sum(
-                [
-                    v[j, i] * guess_vecs[j].sector(gv_sector).coeff
-                    for j in range(current_num_gv)
-                ]
-            )
-        )
+            sum([
+                v[j, i] * guess_vecs[j].sector(gv_sector).coeff
+                for j in range(current_num_gv)
+            ]))
     eigfuncs = []
     for eg in eigenvectors:
         new_wfn = copy.deepcopy(guess_vecs[0])
-        new_wfn.set_wfn(strategy='from_data',
-                        raw_data={gv_sector: eg})
+        new_wfn.set_wfn(strategy='from_data', raw_data={gv_sector: eg})
         eigfuncs.append(new_wfn)
 
     return w[:nroots], eigfuncs
