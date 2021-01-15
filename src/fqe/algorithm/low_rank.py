@@ -12,18 +12,18 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 """Functions for time-evolving a wavefunction."""
+from itertools import product
 
 import numpy as np
 
 import openfermion as of
 from openfermion import givens_decomposition_square
 
-import fqe
 from fqe.wavefunction import Wavefunction
 from fqe.hamiltonians.diagonal_coulomb import DiagonalCoulomb
 
 
-def evolve_fqe_givens(wfn: Wavefunction, u: np.ndarray) -> np.ndarray:
+def evolve_fqe_givens(wfn: Wavefunction, u: np.ndarray) -> Wavefunction:
     """Evolve a wavefunction by u generated from a 1-body Hamiltonian.
 
     Args:
@@ -72,8 +72,73 @@ def evolve_fqe_givens(wfn: Wavefunction, u: np.ndarray) -> np.ndarray:
     return wfn
 
 
-def evolve_fqe_diagaonal_coulomb(wfn: Wavefunction, vij_mat: np.ndarray,
-                                 time=1) -> Wavefunction:
+def evolve_fqe_givens_unrestricted(wfn: Wavefunction,
+                                   u: np.ndarray) -> Wavefunction:
+    """Evolve a wavefunction by u generated from a 1-body Hamiltonian.
+
+    Args:
+        wfn: 2^{n} x 1 vector.
+        u: (n x n) unitary matrix.
+
+    Returns:
+        New evolved wfn object.
+    """
+    rotations, diagonal = givens_decomposition_square(u.copy())
+    # Iterate through each layer and time evolve by the appropriate
+    # fermion operators
+    for layer in rotations:
+        for givens in layer:
+            i, j, theta, phi = givens
+            if not np.isclose(phi, 0):
+                op = of.FermionOperator(
+                    ((j, 1), (j, 0)), coefficient=-phi
+                )
+                wfn = wfn.time_evolve(1.0, op)
+            if not np.isclose(theta, 0):
+                op = of.FermionOperator(
+                    ((i, 1), (j, 0)), coefficient=-1j * theta
+                ) + of.FermionOperator(
+                    ((j, 1), (i, 0)), coefficient=1j * theta
+                )
+                wfn = wfn.time_evolve(1.0, op)
+
+    # evolve the last diagonal phases
+    for idx, final_phase in enumerate(diagonal):
+        if not np.isclose(final_phase, 1.0):
+            op = of.FermionOperator(
+                ((idx, 1), (idx, 0)), -np.angle(final_phase)
+            )
+            wfn = wfn.time_evolve(1.0, op)
+
+    return wfn
+
+
+def evolve_fqe_charge_charge_unrestricted(
+    wfn: Wavefunction, vij_mat: np.ndarray, time=1
+) -> Wavefunction:
+    r"""Utility for testing evolution of a full 2^{n} wavefunction via
+
+    :math:`exp{-i time * \sum_{i,j}v_{i, j}n_{i}n_{j}}.`
+
+    Args:
+        wfn: fqe_wf with sdim = n
+        vij_mat: List[(n x n] matrices
+        time: evolution time.
+
+    Returns:
+        New evolved 2^{n} x 1 vector
+    """
+    nso = vij_mat.shape[0]
+    for p, q in product(range(nso), repeat=2):
+        fop = of.FermionOperator(((p, 1), (p, 0), (q, 1), (q, 0)),
+                                 coefficient=vij_mat[p, q])
+        wfn = wfn.time_evolve(time, fop)
+    return wfn
+
+
+def evolve_fqe_diagaonal_coulomb(
+    wfn: Wavefunction, vij_mat: np.ndarray, time=1
+) -> Wavefunction:
     r"""Utility for testing evolution of a full 2^{n} wavefunction via
 
     :math:`exp{-i time * \sum_{i,j, sigma, tau}v_{i, j}n_{i\sigma}n_{j\tau}}.`

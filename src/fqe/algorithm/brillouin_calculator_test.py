@@ -199,7 +199,7 @@ def test_get_acse_residual_rdm():
     np.random.seed(10)
 
     # get molecule and reduced Ham
-    molecule = build_lih_moleculardata()
+    molecule = build_h4square_moleculardata()
     sdim = molecule.n_orbitals
     molehammat = of.get_sparse_operator(molecule.get_molecular_hamiltonian())
     oei, tei = molecule.get_integrals()
