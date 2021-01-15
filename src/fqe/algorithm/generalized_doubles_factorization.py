@@ -103,7 +103,8 @@ def takagi(N, tol=1e-13, rounding=13):
 
     Note that singular values of N are considered equal if they are equal after np.round(values, tol).
 
-    Taken from Strawberry Fields [https://github.com/XanaduAI/strawberryfields/blob/master/strawberryfields/decompositions.py#L28]
+    Taken from Strawberry Fields
+    [https://github.com/XanaduAI/strawberryfields/blob/master/strawberryfields/decompositions.py#L28]
 
     Args:
         N (array[complex]): square, symmetric matrix N

@@ -11,13 +11,13 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
-
-import copy
 from itertools import product
+import copy
 
 import numpy as np
 import scipy as sp
-import copy
+
+import openfermion as of
 
 import fqe
 from fqe.algorithm.generalized_doubles_factorization import (
@@ -25,17 +25,11 @@ from fqe.algorithm.generalized_doubles_factorization import (
 from fqe.algorithm.adapt_vqe import ADAPT
 from fqe.algorithm.brillouin_calculator import two_rdo_commutator_symm
 from fqe.algorithm.brillouin_calculator import get_fermion_op
-from fqe.algorithm.low_rank import (evolve_fqe_givens_unrestricted,
-                                    evolve_fqe_charge_charge_unrestricted, )
-from fqe.unittest_data.build_lih_data import build_lih_data
-from fqe.fqe_decorators import build_hamiltonian
+from fqe.algorithm.low_rank import (evolve_fqe_givens_unrestricted,)
 
 from fqe.unittest_data.generate_openfermion_molecule import \
     build_lih_moleculardata
-import openfermion as of
 
-
-import time
 
 
 def generate_antisymm_generator(nso):
@@ -173,9 +167,9 @@ def test_random_evolution():
 
     generator_mat = np.reshape(np.transpose(generator, [0, 3, 1, 2]),
                                (nso ** 2, nso ** 2)).astype(np.float)
-    u, sigma, vh = np.linalg.svd(generator_mat)
+    _, sigma, _ = np.linalg.svd(generator_mat)
 
-    ul, vl, one_body_residual, ul_ops, vl_ops, one_body_op = \
+    ul, vl, _, ul_ops, vl_ops, _ = \
         doubles_factorization(generator)
 
     rwf = fqe.get_number_conserving_wavefunction(nele, sdim)
@@ -267,152 +261,6 @@ def test_random_evolution():
 
 
 
-
-def test_trotter_error():
-    sdim = 4
-    nele = sdim
-    generator = generate_antisymm_generator(2 * sdim)
-    fop_generator = of.normal_ordered(get_fermion_op(generator))
-    assert of.is_hermitian(1j * fop_generator)
-
-    rwf = fqe.get_number_conserving_wavefunction(nele, sdim)
-    # rwf = fqe.Wavefunction([[nele, 0, sdim]])
-    rwf.set_wfn(strategy='random')
-    rwf.normalize()
-    # rwf.print_wfn()
-
-    evolve_time = 0.1
-    fqe_fop = build_hamiltonian(1j * fop_generator, norb=sdim,
-                                conserve_number=True)
-    start_time = time.time()
-    final_rwf = rwf.apply_generated_unitary(evolve_time, 'taylor', fqe_fop,
-                                            expansion=160)
-    end_time = time.time()
-    print("Exact evolution time ", end_time - start_time)
-
-    nso = generator.shape[0]
-    # for p, q, r, s in product(range(nso), repeat=4):
-    #     if p < q and s < r:
-    #         assert np.isclose(generator[p, q, r, s], -generator[q, p, r, s])
-
-    generator_mat = np.reshape(np.transpose(generator, [0, 3, 1, 2]),
-                               (nso ** 2, nso ** 2)).astype(np.float)
-    start_time = time.time()
-    u, sigma, vh = np.linalg.svd(generator_mat)
-    end_time = time.time()
-    print("svd generator_mat time ", end_time - start_time)
-
-    start_time = time.time()
-    ul, vl, one_body_residual, ul_ops, vl_ops, one_body_op = \
-        doubles_factorization(generator)
-    end_time = time.time()
-    print("factorization time ", end_time - start_time)
-
-    trotter_wf = copy.deepcopy(rwf)
-    num_trotter_steps = 4
-    uu = sp.linalg.expm(evolve_time * one_body_residual / num_trotter_steps)
-    for _ in range(num_trotter_steps):
-        # one-body evolution
-        # ob_fop = build_hamiltonian(1j * one_body_op)
-        # test_wf = rwf.time_evolve(evolve_time/num_trotter_steps, ob_fop)
-        start_time = time.time()
-        trotter_wf = evolve_fqe_givens_unrestricted(trotter_wf, uu)
-        # assert np.isclose(fqe.vdot(trotter_wf, test_wf), 1)
-
-        sigma_idx = np.where(sigma > 1.0E-13)[0]
-        for ll in sigma_idx[:2]:
-            Smat = ul[ll] + vl[ll]
-            Dmat = ul[ll] - vl[ll]
-            op1mat = Smat + 1j * Smat.T
-            op2mat = Smat - 1j * Smat.T
-            op3mat = Dmat + 1j * Dmat.T
-            op4mat = Dmat - 1j * Dmat.T
-
-            # now evolve by each operator
-            ww, vv = np.linalg.eig(op1mat)
-            assert np.allclose(vv @ np.diag(ww) @ vv.conj().T, op1mat)
-            ss = time.time()
-            trotter_wf = evolve_fqe_givens_unrestricted(trotter_wf, vv.conj().T)
-            ee = time.time()
-            print("givens ", ee - ss)
-            v_pq = np.outer(ww, ww)
-            print(v_pq)
-            ss = time.time()
-            trotter_wf = evolve_fqe_charge_charge_unrestricted(trotter_wf, -v_pq.imag,
-                                                         evolve_time/(16 * num_trotter_steps))
-            ee = time.time()
-            print("charge charge ", ee - ss)
-            ss = time.time()
-            trotter_wf = evolve_fqe_givens_unrestricted(trotter_wf, vv)
-            ee = time.time()
-            print("givens ", ee - ss)
-            print()
-
-            # ww, vv = np.linalg.eig(op2mat)
-            # assert np.allclose(vv @ np.diag(ww) @ vv.conj().T, op2mat)
-            # trotter_wf = evolve_fqe_givens_unrestricted(trotter_wf, vv.conj().T)
-            # v_pq = np.outer(ww, ww)
-            # trotter_wf = evolve_fqe_charge_charge_unrestricted(trotter_wf, -v_pq.imag,
-            #                                              evolve_time/(16 * num_trotter_steps))
-            # trotter_wf = evolve_fqe_givens_unrestricted(trotter_wf, vv)
-
-            ww, vv = np.linalg.eig(op3mat)
-            assert np.allclose(vv @ np.diag(ww) @ vv.conj().T, op3mat)
-            trotter_wf = evolve_fqe_givens_unrestricted(trotter_wf, vv.conj().T)
-            v_pq = np.outer(ww, ww)
-            trotter_wf = evolve_fqe_charge_charge_unrestricted(trotter_wf, -v_pq.imag, -evolve_time/(16 * num_trotter_steps))
-            trotter_wf = evolve_fqe_givens_unrestricted(trotter_wf, vv)
-
-            # ww, vv = np.linalg.eig(op4mat)
-            # assert np.allclose(vv @ np.diag(ww) @ vv.conj().T, op4mat)
-            # trotter_wf = evolve_fqe_givens_unrestricted(trotter_wf, vv.conj().T)
-            # v_pq = np.outer(ww, ww)
-            # trotter_wf = evolve_fqe_charge_charge_unrestricted(trotter_wf, -v_pq.imag, -evolve_time/(16 * num_trotter_steps))
-            # trotter_wf = evolve_fqe_givens_unrestricted(trotter_wf, vv)
-
-        end_time = time.time()
-        print("Single Trotter step ", end_time - start_time)
-
-    print(abs(fqe.vdot(trotter_wf, final_rwf)))
-
-
-def test_reconstruction_error():
-    sdim = 4
-    nele = sdim
-    generator = generate_antisymm_generator(2 * sdim)
-    fop_generator = of.normal_ordered(get_fermion_op(generator))
-    assert of.is_hermitian(1j * fop_generator)
-    nso = generator.shape[0]
-    generator_mat = np.reshape(np.transpose(generator, [0, 3, 1, 2]),
-                               (nso ** 2, nso ** 2)).astype(np.float)
-    start_time = time.time()
-    u, sigma, vh = np.linalg.svd(generator_mat)
-    end_time = time.time()
-    print("svd generator_mat time ", end_time - start_time)
-
-    start_time = time.time()
-    ul, vl, one_body_residual, ul_ops, vl_ops, one_body_op = \
-        doubles_factorization(generator)
-    end_time = time.time()
-    print("factorization time ", end_time - start_time)
-
-
-    sigma_idx = np.where(sigma > 1.0E-13)[0]
-    for ll in sigma_idx:
-        Smat = ul[ll] + vl[ll]
-        Dmat = ul[ll] - vl[ll]
-        op1mat = Smat + 1j * Smat.T
-        op2mat = Smat - 1j * Smat.T
-        op3mat = Dmat + 1j * Dmat.T
-        op4mat = Dmat - 1j * Dmat.T
-
-        # now evolve by each operator
-        ww, vv = np.linalg.eig(op1mat)
-        assert np.allclose(vv @ np.diag(ww) @ vv.conj().T, op1mat)
-        print(vv)
-        exit()
-
-
 def test_normal_op_tensor_reconstruction():
     sdim = 2
     generator = generate_antisymm_generator(2 * sdim)
@@ -423,9 +271,9 @@ def test_normal_op_tensor_reconstruction():
 
     generator_mat = np.reshape(np.transpose(generator, [0, 3, 1, 2]),
                                (nso ** 2, nso ** 2)).astype(np.float)
-    u, sigma, vh = np.linalg.svd(generator_mat)
+    _, sigma, _ = np.linalg.svd(generator_mat)
 
-    ul, vl, one_body_residual, ul_ops, vl_ops, one_body_op = \
+    ul, vl, _, _, _, _ = \
         doubles_factorization(generator)
 
     sigma_idx = np.where(sigma > 1.0E-13)[0]
@@ -481,7 +329,6 @@ def test_normal_op_tensor_reconstruction():
         test_generator += test_op1 + test_op2 + test_op3 + test_op4
 
     assert np.allclose(test_generator, generator)
-    print("PASSED")
 
     test_generator = np.zeros_like(generator).astype(np.complex128)
     for ll in sigma_idx:
@@ -521,27 +368,11 @@ def test_normal_op_tensor_reconstruction():
         oww2 = np.outer(w2, w2)
         oww3 = np.outer(w3, w3)
         oww4 = np.outer(w4, w4)
-        # print((-1j * oww1).real)
-        # print((-1j * oww3).real)
-        # print(v1)
-        # print(v2)
-        # print(v3)
-        # print(v4)
-        print(sp.linalg.logm(v1))
-        print(sp.linalg.logm(v2))
-        print(sp.linalg.logm(v3))
-        print(sp.linalg.logm(v4))
         assert np.allclose(v1, v2.conj())
         assert np.allclose(v1, v3.conj())
         assert np.allclose(v1, v4)
         assert np.allclose(oww1, -oww2)
         assert np.allclose(oww3, -oww4)
-        print()
-        print(oww2)
-        print(oww4)
-        print()
-        print()
-
         for p, q, r, s in product(range(nso), repeat=4):
             test_op1[p, q, r, s] += op1mat[p, s] * op1mat[q, r]
             assert np.isclose(op1mat[p, s] * op1mat[q, r],
@@ -551,8 +382,9 @@ def test_normal_op_tensor_reconstruction():
             test_op3[p, q, r, s] -= op3mat[p, s] * op3mat[q, r]
             test_op4[p, q, r, s] -= op4mat[p, s] * op4mat[q, r]
 
-        assert np.allclose(np.einsum('pi,si,ij,qj,rj->pqrs', v1, v1c, oww1, v1, v1c),
-                           test_op1)
+        assert np.allclose(
+            np.einsum('pi,si,ij,qj,rj->pqrs', v1, v1c, oww1, v1, v1c),
+            test_op1)
         assert np.allclose(
             np.einsum('pi,si,ij,qj,rj->pqrs', v2, v2c, oww2, v2, v2c),
             test_op2)
@@ -562,7 +394,6 @@ def test_normal_op_tensor_reconstruction():
         assert np.allclose(
             np.einsum('pi,si,ij,qj,rj->pqrs', v4, v4c, -oww4, v4, v4c),
             test_op4)
-
 
         test_op1 *= (1 / 16)
         test_op2 *= (1 / 16)
@@ -575,7 +406,6 @@ def test_normal_op_tensor_reconstruction():
         test_generator += test_op1 + test_op2 + test_op3 + test_op4
 
     assert np.allclose(test_generator, generator)
-    print("PASSED")
 
 
 def test_generalized_doubles2():
@@ -638,10 +468,6 @@ def test_generalized_doubles2():
             of.commutator(op4, of.hermitian_conjugated(op4))).induced_norm(), 0)
 
         fop3 += (1/8) * ((S**2 - Sd**2) - (D**2 - Dd**2))
-        # fop3 += (1/8) * (S**2 - Sd**2 + D**2 - Dd**2)
-        # fop4 += (1/16) * (op1**2 + op2**2 + op3**2 + op4**2)
-        # fop4 += (1/16) * ((op2**2 - op1**2) + (op4**2 - op3**2))
-
 
         op1mat = Smat + 1j * Smat.T
         op2mat = Smat - 1j * Smat.T
@@ -675,12 +501,6 @@ def test_generalized_doubles2():
             assert np.allclose(np.outer(ww, ww).real, 0)
             assert np.allclose(vv.conj().T @ vv, eye)
 
-        # fop2 += 0.25 * ul_ops[ll] * vl_ops[ll]
-        # fop2 += 0.25 * vl_ops[ll] * ul_ops[ll]
-        # fop2 += -0.25 * of.hermitian_conjugated(
-        #     vl_ops[ll]) * of.hermitian_conjugated(ul_ops[ll])
-        # fop2 += -0.25 * of.hermitian_conjugated(
-        #     ul_ops[ll]) * of.hermitian_conjugated(vl_ops[ll])
         fop2 += 0.25 * ul_ops[ll] * vl_ops[ll]
         fop2 += 0.25 * vl_ops[ll] * ul_ops[ll]
         fop2 += -0.25 * of.hermitian_conjugated(
@@ -688,11 +508,9 @@ def test_generalized_doubles2():
         fop2 += -0.25 * of.hermitian_conjugated(
             ul_ops[ll]) * of.hermitian_conjugated(vl_ops[ll])
 
-        assert np.allclose(of.normal_ordered(ul_ops[ll] * vl_ops[ll] + vl_ops[ll] * ul_ops[ll] - 0.5 * (S**2 - D**2)).induced_norm(), 0)
-        # fop5 += (1/8) * (S**2 - D**2)
-        # fop5 += (-1/8) * (Sd**2 - Dd**2)
-        # fop5 += (1/8) * (S**2 - Sd**2)
-        # fop5 += (1/8) * (Dd**2 - D**2)
+        assert np.allclose(of.normal_ordered(
+            ul_ops[ll] * vl_ops[ll] + vl_ops[ll] * ul_ops[ll] - 0.5 * (
+                        S ** 2 - D ** 2)).induced_norm(), 0)
         fop5 += (1/8) * (S**2 - Sd**2 + Dd**2 - D**2)
         fop4 += (1/16) * ((op1**2 + op2**2) - (op3**2 + op4**2))
 
@@ -716,9 +534,9 @@ def test_normal_op_tensor_reconstruction2():
 
     generator_mat = np.reshape(np.transpose(generator, [0, 3, 1, 2]),
                                (nso ** 2, nso ** 2)).astype(np.float)
-    u, sigma, vh = np.linalg.svd(generator_mat)
+    _, sigma, _ = np.linalg.svd(generator_mat)
 
-    ul, vl, one_body_residual, ul_ops, vl_ops, one_body_op = \
+    ul, vl, _, _, _, _ = \
         doubles_factorization(generator)
 
     sigma_idx = np.where(sigma > 1.0E-13)[0]
@@ -852,38 +670,9 @@ def test_normal_op_tensor_reconstruction2():
         test_generator += test_op1 + test_op2 + test_op3 + test_op4
 
     assert np.allclose(test_generator, generator)
-    print("PASSED")
 
-
-def get_lih_molecule(bd):
-    from openfermionpyscf import run_pyscf
-    import os
-    geometry = [['Li', [0, 0, 0]],
-                ['H', [0, 0, bd]]]
-    molecule = of.MolecularData(geometry=geometry, charge=0,
-                                multiplicity=1,
-                                basis='sto-3g')
-    molecule.filename = os.path.join(os.getcwd(), molecule.name)
-    molecule = run_pyscf(molecule, run_scf=True, run_fci=True)
-    return molecule
-
-def get_h4_molecule(bd):
-    from openfermionpyscf import run_pyscf
-    import os
-    geometry = [['H', [0, 0, 0]],
-                ['H', [0, 0, bd]],
-                ['H', [0, 0, 2 * bd]],
-                ['H', [0, 0, 3 * bd]],
-                ]
-    molecule = of.MolecularData(geometry=geometry, charge=0,
-                                multiplicity=1,
-                                basis='sto-3g')
-    molecule.filename = os.path.join(os.getcwd(), molecule.name)
-    molecule = run_pyscf(molecule, run_scf=True, run_fci=True)
-    return molecule
 
 def test_generalized_doubles_takagi():
-    molecule = get_lih_molecule(1.7)
     molecule = build_lih_moleculardata()
     oei, tei = molecule.get_integrals()
     nele = 4
@@ -896,7 +685,7 @@ def test_generalized_doubles_takagi():
         [[nele, sz, norbs]])
     fqe_wf.set_wfn(strategy='random')
     fqe_wf.normalize()
-    opdm, tpdm = fqe_wf.sector((nele, sz)).get_openfermion_rdms()
+    _, tpdm = fqe_wf.sector((nele, sz)).get_openfermion_rdms()
     d3 = fqe_wf.sector((nele, sz)).get_three_pdm()
 
     adapt = ADAPT(oei, tei, None, nalpha, nbeta, iter_max=50)
@@ -934,9 +723,10 @@ def test_generalized_doubles_takagi():
                                     (1 / 4) * oww1, v1, v1c) + \
                           np.einsum('pi,si,ij,qj,rj->pqrs', v2, v2c,
                                     (1 / 4) * oww2, v2, v2c)
-        assert of.is_hermitian(1j * get_fermion_op(np.einsum('pi,si,ij,qj,rj->pqrs', v1, v1c,
-                                    (1 / 4) * oww1, v1, v1c) + \
-                          np.einsum('pi,si,ij,qj,rj->pqrs', v2, v2c,
+        assert of.is_hermitian(
+            1j * get_fermion_op(np.einsum('pi,si,ij,qj,rj->pqrs', v1, v1c,
+                                          (1 / 4) * oww1, v1, v1c) + \
+                                np.einsum('pi,si,ij,qj,rj->pqrs', v2, v2c,
                                     (1 / 4) * oww2, v2, v2c)))
 
     assert np.isclose(of.normal_ordered(
@@ -945,6 +735,7 @@ def test_generalized_doubles_takagi():
 
     assert np.allclose(test_generator, acse_residual)
     assert np.allclose(test_generator2, acse_residual)
+
 
 def test_takagi():
     A = np.random.randn(36).reshape((6, 6))
@@ -955,16 +746,3 @@ def test_takagi():
     assert np.allclose(C, C.T)
     T, Z = takagi(C)
     assert np.allclose(Z @ np.diag(T) @ Z.T, C)
-
-
-if __name__ == "__main__":
-    np.random.seed(10)
-    np.set_printoptions(linewidth=500)
-    # np.random.seed(10)
-    # test_generalized_doubles2()
-    # test_random_evolution()
-    # test_normal_op_tensor_reconstruction2()
-    # test_trotter_error()
-    # test_reconstruction_error()
-    test_generalized_doubles_takagi()
-    # test_takagi()

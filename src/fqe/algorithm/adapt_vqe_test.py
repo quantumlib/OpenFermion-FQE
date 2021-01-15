@@ -86,13 +86,15 @@ def test_adapt():
         adapt.reduced_ham.two_body_tensor - reduced_ham.two_body_tensor), 0)
 
     adapt.adapt_vqe(fqe_wf)
-    assert np.isclose(adapt.energies[0], -8.970532463968661)
+    assert np.isclose(adapt.energies[0], -8.957417182801091)
+    assert np.isclose(adapt.energies[-1], -8.970532463968661)
 
     sop = OperatorPool(norbs, occ, virt)
     sop.one_body_sz_adapted()
     adapt = ADAPT(oei, tei, sop, nalpha, nbeta, iter_max=10,
                   stopping_epsilon=10, verbose=True)
     adapt.adapt_vqe(fqe_wf)
+    assert np.isclose(adapt.energies[-1], -8.957417182801091)
     assert np.isclose(adapt.energies[0], -8.95741717733075)
 
 
@@ -114,7 +116,8 @@ def test_vbc():
     sop.two_body_sz_adapted()  # initialize pool
     adapt = ADAPT(oei, tei, sop, nalpha, nbeta, iter_max=1, verbose=False)
     adapt.vbc(fqe_wf)
-    assert np.isclose(adapt.energies[0], -8.97304439380826)
+    assert np.isclose(adapt.energies[0], -8.957417182801091)
+    assert np.isclose(adapt.energies[-1], -8.97304439380826)
 
     with pytest.raises(ValueError):
         adapt.vbc(fqe_wf, 3)

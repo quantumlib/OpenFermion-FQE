@@ -13,7 +13,7 @@
 #   limitations under the License.
 
 """Infrastructure for ADAPT VQE algorithm"""
-from typing import List, Tuple, Union
+from typing import List, Tuple, Union, Dict
 import copy
 
 from itertools import product
@@ -25,6 +25,7 @@ from openfermion import (make_reduced_hamiltonian,
                          InteractionOperator, )
 from openfermion.chem.molecular_data import spinorb_from_spatial
 
+import fqe
 from fqe.hamiltonians.restricted_hamiltonian import RestrictedHamiltonian
 from fqe.hamiltonians.hamiltonian import Hamiltonian as ABCHamiltonian
 from fqe.fqe_decorators import build_hamiltonian
@@ -34,7 +35,7 @@ from fqe.algorithm.brillouin_calculator import (
     one_rdo_commutator_symm,
 )
 from fqe.algorithm.generalized_doubles_factorization import \
-    doubles_factorization
+    doubles_factorization, doubles_factorization2
 
 from fqe.wavefunction import Wavefunction
 
@@ -215,7 +216,7 @@ class ADAPT:
 
     def vbc(self, initial_wf: Wavefunction, update_rank=None,
             opt_method: str='L-BFGS-B',
-            opt_options: Dict={},
+            opt_options=None,
             num_opt_var=None,
             v_reconstruct=False,
             trotterize_lr=False,
@@ -248,6 +249,8 @@ class ADAPT:
                         should be fit.  Each tensor factor is an O(N) depth
                         circuit.
         """
+        if opt_options is None:
+            opt_options = {}
         self.num_opt_var = num_opt_var
         nso = 2 * self.sdim
         operator_pool = []
@@ -265,7 +268,7 @@ class ADAPT:
                 #                            conserve_number=True)
                 if isinstance(fqe_op, SumOfSquaresTrotter):
                     # this is for SumOfSquaresTrotter
-                    for dm in range(fqe_op.trotterization):
+                    for _ in range(fqe_op.trotterization):
                         for sos_op in fqe_op.fqe_fops:
                             wf = wf.time_evolve(coeff / fqe_op.trotterization,
                                                 sos_op)
@@ -293,7 +296,8 @@ class ADAPT:
                     new_residual[p, q, r, s] = (acse_residual[p, q, r, s] -
                                                 acse_residual[s, r, q, p]) / 2
 
-                ul, vl, _ = doubles_factorization(new_residual, eig_cutoff=update_rank)
+                ul, vl, _ = doubles_factorization(new_residual,
+                                                  eig_cutoff=update_rank)
 
                 if trotterize_lr:
                     fop = []
@@ -338,7 +342,8 @@ class ADAPT:
 
                     if group_trotter_steps:
                         fop = [SumOfSquaresTrotter(fop, self.sdim,
-                                                   trotterization=trotterization)]
+                                                   trotterization=
+                                                   trotterization)]
 
                 else:
                     lr_new_residual = np.zeros_like(new_residual)
@@ -352,9 +357,6 @@ class ADAPT:
 
                     fop = [get_fermion_op(new_residual)]
                     if not of.is_hermitian(1j * fop[0]):
-                        print(fop)
-                        print()
-                        print(of.normal_ordered(fop - of.hermitian_conjugated(fop)))
                         raise AssertionError("generator is not antihermitian")
             elif update_utc:
                 fop = []
@@ -371,6 +373,7 @@ class ADAPT:
                     one_body_residual[1::2, 1::2] = one_body_residual[::2, ::2]
                     fop.extend([get_fermion_op(one_body_residual)])
 
+                # TODO: [WIP]
                 # givens = GivensNetwork(dim=nso)
                 # uthc = UTHC(t2_amplitudes=acse_residual, dim=nso,
                 #             rank=update_utc, givens_network=givens)
@@ -382,8 +385,7 @@ class ADAPT:
                 #     assert of.is_hermitian(1j * fop_t)
                 #     fop.extend([get_fermion_op(gt)])
 
-                from fqe.algorithm.generalized_doubles_factorization import doubles_factorization2
-                Zlp, Zlm, Zl, one_body_residual = doubles_factorization2(
+                Zlp, Zlm, _, one_body_residual = doubles_factorization2(
                     acse_residual)
                 for ll in range(update_utc):
                     op1mat = Zlp[ll]
@@ -436,42 +438,44 @@ class ADAPT:
                     pool_to_op = operator_pool_fqe[-self.num_opt_var:]
                     params_to_op = existing_parameters[-self.num_opt_var:]
                     current_wf = copy.deepcopy(initial_wf)
-                    for fqe_op, coeff in zip(operator_pool_fqe[:-self.num_opt_var],
-                                             existing_parameters[:-self.num_opt_var]):
+                    for fqe_op, coeff in zip(
+                            operator_pool_fqe[:-self.num_opt_var],
+                            existing_parameters[:-self.num_opt_var]):
                         current_wf = current_wf.time_evolve(coeff, fqe_op)
-                    # print("partial Eval iterate energy ", current_wf.expectationValue(self.elec_hamil))
                     temp_cwf = copy.deepcopy(current_wf)
                     for fqe_op, coeff in zip(pool_to_op, params_to_op):
                         if np.isclose(coeff, 0):
                             continue
                         temp_cwf = temp_cwf.time_evolve(coeff, fqe_op)
 
-                new_parameters, current_e = self.optimize_param(pool_to_op,
-                                                     params_to_op,
-                                                     current_wf, opt_method, opt_options=opt_options)
+                new_parameters, current_e = self.optimize_param(
+                    pool_to_op, params_to_op, current_wf, opt_method,
+                    opt_options=opt_options)
 
                 if len(operator_pool_fqe) < self.num_opt_var:
                     existing_parameters = new_parameters.tolist()
                 else:
-                    existing_parameters[-self.num_opt_var:] = new_parameters.tolist()
+                    existing_parameters[-self.num_opt_var:] = \
+                        new_parameters.tolist()
             else:
-                new_parameters, current_e = self.optimize_param(operator_pool_fqe,
-                                                     existing_parameters,
-                                                     initial_wf, opt_method,
-                                                                opt_options=opt_options)
+                new_parameters, current_e = self.optimize_param(
+                    operator_pool_fqe, existing_parameters, initial_wf,
+                    opt_method, opt_options=opt_options)
                 existing_parameters = new_parameters.tolist()
 
             if self.verbose:
-                print(iteration, current_e, np.max(np.abs(acse_residual)), len(existing_parameters))
+                print(iteration, current_e, np.max(np.abs(acse_residual)),
+                      len(existing_parameters))
             self.energies.append(current_e)
             self.residuals.append(acse_residual)
-            if np.max(np.abs(acse_residual)) < self.stopping_eps or np.abs(self.energies[-2] - self.energies[-1]) < self.delta_e_eps:
+            if np.max(np.abs(acse_residual)) < self.stopping_eps or np.abs(
+                    self.energies[-2] - self.energies[-1]) < self.delta_e_eps:
                 break
             iteration += 1
 
     def adapt_vqe(self, initial_wf: fqe.Wavefunction,
                   opt_method: str='L-BFGS-B',
-                  opt_options: Dict={},
+                  opt_options=None,
                   v_reconstruct: bool=True,
                   num_ops_add: int=1):
         """
@@ -485,6 +489,8 @@ class ADAPT:
             num_ops_add: add this many operators from the pool to the
                          wavefunction
         """
+        if opt_options is None:
+            opt_options = {}
         operator_pool = []
         operator_pool_fqe: List[ABCHamiltonian] = []
         existing_parameters: List[float] = []
@@ -500,7 +506,8 @@ class ADAPT:
             # calculate rdms for grad
             _, tpdm = wf.sector((self.nele, self.sz)).get_openfermion_rdms()
             if v_reconstruct:
-                d3 = 6 * valdemaro_reconstruction_functional(tpdm / 2, self.nele)
+                d3 = 6 * valdemaro_reconstruction_functional(tpdm / 2,
+                                                             self.nele)
             else:
                 d3 = wf.sector((self.nele, self.sz)).get_three_pdm()
 
@@ -523,35 +530,29 @@ class ADAPT:
                         grad_val += one_body_residual[tuple(idx)] * coeff
                 pool_grad.append(grad_val)
 
-            # max_grad_term_idx = np.argmax(np.abs(pool_grad))
-            max_grad_terms_idx = np.argsort(np.abs(pool_grad))[::-1][:num_ops_add]
+            max_grad_terms_idx = \
+                np.argsort(np.abs(pool_grad))[::-1][:num_ops_add]
 
-            # operator_pool.append(self.operator_pool.op_pool[max_grad_term_idx])
-            pool_terms = [self.operator_pool.op_pool[i] for i in max_grad_terms_idx]
+            pool_terms = [self.operator_pool.op_pool[i] for i in
+                          max_grad_terms_idx]
             operator_pool.extend(pool_terms)
             fqe_op = []
             for f_op in pool_terms:
                 fqe_op.append(build_hamiltonian(1j * f_op, self.sdim,
                                                 conserve_number=True))
-            # fqe_op = build_hamiltonian(
-            #     1j * self.operator_pool.op_pool[max_grad_term_idx], self.sdim,
-            #     conserve_number=True)
-            #  operator_pool_fqe.append(fqe_op)
             operator_pool_fqe.extend(fqe_op)
-            # existing_parameters.append(0)
             existing_parameters.extend([0] * len(fqe_op))
 
-            new_parameters, current_e = self.optimize_param(operator_pool_fqe,
-                                                            existing_parameters,
-                                                            initial_wf,
-                                                            opt_method,
-                                                            opt_options=opt_options)
+            new_parameters, current_e = self.optimize_param(
+                operator_pool_fqe, existing_parameters, initial_wf, opt_method,
+                opt_options=opt_options)
             existing_parameters = new_parameters.tolist()
             if self.verbose:
                 print(iteration, current_e, max(np.abs(pool_grad)))
             self.energies.append(current_e)
             self.gradients.append(pool_grad)
-            if max(np.abs(pool_grad)) < self.stopping_eps or np.abs(self.energies[-2] - self.energies[-1]) < self.delta_e_eps:
+            if max(np.abs(pool_grad)) < self.stopping_eps or np.abs(
+                    self.energies[-2] - self.energies[-1]) < self.delta_e_eps:
                 break
             iteration += 1
 
@@ -560,7 +561,7 @@ class ADAPT:
                        existing_params: Union[List, np.ndarray],
                        initial_wf: fqe.Wavefunction,
                        opt_method: str,
-                       opt_options: Dict={}) ->  Tuple[np.ndarray, float]:
+                       opt_options=None) ->  Tuple[np.ndarray, float]:
         """Optimize a wavefunction given a list of generators
 
         Args:
@@ -569,11 +570,13 @@ class ADAPT:
             initial_wf: initial wavefunction
             opt_method: Scpy.optimize method
         """
+        if opt_options is None:
+            opt_options = {}
+
         def cost_func(params):
             assert len(params) == len(pool)
             # compute wf for function call
             wf = copy.deepcopy(initial_wf)
-            start_time = time.time()
             for op, coeff in zip(pool, params):
                 if np.isclose(coeff, 0):
                     continue
@@ -587,23 +590,21 @@ class ADAPT:
                     wf = wf.time_evolve(coeff, fqe_op)
                 elif isinstance(fqe_op, SumOfSquaresTrotter):
                     # this is for SumOfSquaresTrotter
-                    for dm in range(fqe_op.trotterization):
+                    for _ in range(fqe_op.trotterization):
                         for sos_op in fqe_op.fqe_fops:
                             wf = wf.time_evolve(coeff / fqe_op.trotterization,
                                                 sos_op)
                 else:
-                    raise ValueError("Can't evolve operator type {}".format(type(fqe_op)))
+                    raise ValueError(
+                        "Can't evolve operator type {}".format(type(fqe_op)))
 
-            end_time = time.time()
-            print("cost_function eval time {: 5.5f}".format(end_time - start_time), end='\n')
-
-            start_time = time.time()
             # compute gradients
             grad_vec = np.zeros(len(params), dtype=np.complex128)
             # avoid extra gradient computation if we can
             if opt_method not in ['Nelder-Mead', 'COBYLA']:
-                for pidx, p in enumerate(params):
-                    # evolve e^{iG_{n-1}g_{n-1}}e^{iG_{n-2}g_{n-2}}G_{n-3}e^{-G_{n-3}g_{n-3}...|0>
+                for pidx, _ in enumerate(params):
+                    # evolve e^{iG_{n-1}g_{n-1}}e^{iG_{n-2}g_{n-2}}x
+                    # G_{n-3}e^{-G_{n-3}g_{n-3}...|0>
                     grad_wf = copy.deepcopy(initial_wf)
                     for gidx, (op, coeff) in enumerate(zip(pool, params)):
                         if isinstance(op, ABCHamiltonian):
@@ -613,29 +614,21 @@ class ADAPT:
                                                        conserve_number=True)
                         if not np.isclose(coeff, 0):
                             grad_wf = grad_wf.time_evolve(coeff, fqe_op)
-                            # if looking at the pth parameter then apply the operator
-                            # to the state
+                            # if looking at the pth parameter then apply the
+                            # operator to the state
                         if gidx == pidx:
                             grad_wf = grad_wf.apply(fqe_op)
 
-                    # grad_val = grad_wf.expectationValue(self.elec_hamil, brawfn=wf)
+                    # grad_val = grad_wf.expectationValue(self.elec_hamil,
+                    # brawfn=wf)
                     grad_val = grad_wf.expectationValue(self.k2_fop, brawfn=wf)
 
                     grad_vec[pidx] = -1j * grad_val + 1j * grad_val.conj()
                     assert np.isclose(grad_vec[pidx].imag, 0)
-            end_time = time.time()
-            # print("grad eval time {: 5.5f}".format(end_time - start_time) +
-            #       "\tgtol {: 5.5f}".format(np.linalg.norm(grad_vec)))
-            # return wf.expectationValue(self.elec_hamil).real, np.array(
-            #     grad_vec.real, order='F')
             return (wf.expectationValue(self.k2_fop).real,
                     np.array(grad_vec.real, order='F'))
 
-        total_start = time.time()
         res = sp.optimize.minimize(cost_func, existing_params,
                                    method=opt_method, jac=True,
                                    options=opt_options)
-        total_end = time.time()
-        print(res)
-        print("Total opt time {: 5.5f}".format(total_end - total_start))
         return res.x, res.fun
