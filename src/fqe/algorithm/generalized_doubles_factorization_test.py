@@ -16,7 +16,6 @@ import copy
 import numpy as np
 import scipy as sp
 
-
 import openfermion as of
 from openfermion.chem.molecular_data import spinorb_from_spatial
 from openfermion.chem import make_reduced_hamiltonian
@@ -369,6 +368,7 @@ def test_normal_op_tensor_reconstruction():
         test_generator += test_op1 + test_op2 + test_op3 + test_op4
 
     assert np.allclose(test_generator, generator)
+
 
 def test_generalized_doubles_takagi():
     molecule = build_lih_moleculardata()
