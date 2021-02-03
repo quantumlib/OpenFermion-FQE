@@ -264,7 +264,8 @@ class VBC:
         self.num_opt_var = num_opt_var
         nso = 2 * self.sdim
         operator_pool: List[Union[ABCHamiltonian, SumOfSquaresOperator]] = []
-        operator_pool_fqe: List[Union[ABCHamiltonian, SumOfSquaresOperator]] = []
+        operator_pool_fqe: List[
+            Union[ABCHamiltonian, SumOfSquaresOperator]] = []
         existing_parameters: List[float] = []
         self.energies = []
         self.energies = [initial_wf.expectationValue(self.k2_fop)]

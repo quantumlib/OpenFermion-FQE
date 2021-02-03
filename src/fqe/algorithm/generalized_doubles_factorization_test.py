@@ -398,8 +398,7 @@ def test_generalized_doubles_takagi():
         assert np.isclose(acse_residual[p, q, r, s],
                           -acse_residual[s, r, q, p].conj())
 
-    Zlp, Zlm, _, one_body_residual = doubles_factorization_takagi(
-        acse_residual)
+    Zlp, Zlm, _, one_body_residual = doubles_factorization_takagi(acse_residual)
     test_fop = get_fermion_op(one_body_residual)
     # test the first four factors
     for ll in range(4):
