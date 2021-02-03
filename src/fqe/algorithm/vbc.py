@@ -263,8 +263,8 @@ class VBC:
             opt_options = {}
         self.num_opt_var = num_opt_var
         nso = 2 * self.sdim
-        operator_pool: List[Union[ABCHamiltonian, SumOfSquaresTrotter]] = []
-        operator_pool_fqe: List[Union[ABCHamiltonian, SumOfSquaresTrotter]] = []
+        operator_pool: List[Union[ABCHamiltonian, SumOfSquaresOperator]] = []
+        operator_pool_fqe: List[Union[ABCHamiltonian, SumOfSquaresOperator]] = []
         existing_parameters: List[float] = []
         self.energies = []
         self.energies = [initial_wf.expectationValue(self.k2_fop)]
@@ -288,7 +288,7 @@ class VBC:
                                                         op.one_body_rotation)
                 else:
                     raise ValueError("Can't evolve operator type {}".format(
-                        type(fqe_op)))
+                        type(op)))
 
             # calculate rdms for grad
             _, tpdm = wf.sector((self.nele, self.sz)).get_openfermion_rdms()
