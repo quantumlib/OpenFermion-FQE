@@ -100,28 +100,3 @@ def test_adapt():
     adapt.adapt_vqe(fqe_wf)
     assert np.isclose(adapt.energies[-1], -8.957417182801091)
     assert np.isclose(adapt.energies[0], -8.95741717733075)
-
-
-def test_vbc():
-    molecule = build_lih_moleculardata()
-    n_electrons = molecule.n_electrons
-    oei, tei = molecule.get_integrals()
-    norbs = molecule.n_orbitals
-    nalpha = molecule.n_electrons // 2
-    nbeta = nalpha
-    sz = nalpha - nbeta
-    occ = list(range(nalpha))
-    virt = list(range(nalpha, norbs))
-
-    fqe_wf = fqe.Wavefunction([[n_electrons, sz, molecule.n_orbitals]])
-    fqe_wf.set_wfn(strategy='hartree-fock')
-
-    sop = OperatorPool(norbs, occ, virt)
-    sop.two_body_sz_adapted()  # initialize pool
-    adapt = ADAPT(oei, tei, sop, nalpha, nbeta, iter_max=1, verbose=False)
-    adapt.vbc(fqe_wf)
-    assert np.isclose(adapt.energies[0], -8.957417182801091)
-    assert np.isclose(adapt.energies[-1], -8.97304439380826)
-
-    with pytest.raises(ValueError):
-        adapt.vbc(fqe_wf, 3)
