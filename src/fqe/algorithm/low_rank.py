@@ -23,6 +23,59 @@ from fqe.wavefunction import Wavefunction
 from fqe.hamiltonians.diagonal_coulomb import DiagonalCoulomb
 
 
+def evolve_fqe_givens_sector(wfn: Wavefunction, u: np.ndarray,
+                             sector='alpha') -> Wavefunction:
+    """Evolve a wavefunction by u generated from a 1-body Hamiltonian.
+
+    Args:
+        wfn: FQE Wavefunction on n-orbitals
+        u: (n x n) unitary matrix.
+        sector: Optional either 'alpha' or 'beta' indicating which sector
+                to rotate
+    Returns:
+        New evolved wfn object.
+    """
+    if sector == 'alpha':
+        sigma = 0
+    elif sector == 'beta':
+        sigma = 1
+    else:
+        raise ValueError("Bad section variable.  Either (alpha) or (beta)")
+
+    if not np.isclose(u.shape[0], wfn.norb()):
+        raise ValueError("unitary is not specified for the correct number of orbitals")
+
+    rotations, diagonal = givens_decomposition_square(u.copy())
+    # Iterate through each layer and time evolve by the appropriate
+    # fermion operators
+    for layer in rotations:
+        for givens in layer:
+            i, j, theta, phi = givens
+            if not np.isclose(phi, 0):
+                op = of.FermionOperator(((2 * j + sigma, 1),
+                                         (2 * j + sigma, 0)),
+                                        coefficient=-phi)
+                wfn = wfn.time_evolve(1.0, op)
+            if not np.isclose(theta, 0):
+                op = of.FermionOperator(((2 * i + sigma, 1),
+                                         (2 * j + sigma, 0)),
+                                        coefficient=-1j * theta) + \
+                     of.FermionOperator(((2 * j + sigma, 1),
+                                         (2 * i + sigma, 0)),
+                                        coefficient=1j * theta)
+                wfn = wfn.time_evolve(1.0, op)
+
+    # evolve the last diagonal phases
+    for idx, final_phase in enumerate(diagonal):
+        if not np.isclose(final_phase, 1.0):
+            op = of.FermionOperator(((2 * idx + sigma, 1),
+                                     (2 * idx + sigma, 0)),
+                                    -np.angle(final_phase))
+            wfn = wfn.time_evolve(1.0, op)
+
+    return wfn
+
+
 def evolve_fqe_givens(wfn: Wavefunction, u: np.ndarray) -> Wavefunction:
     """Evolve a wavefunction by u generated from a 1-body Hamiltonian.
 
@@ -126,10 +179,72 @@ def evolve_fqe_charge_charge_unrestricted(wfn: Wavefunction,
     """
     nso = vij_mat.shape[0]
     for p, q in product(range(nso), repeat=2):
+        if np.isclose(vij_mat[p, q], 0):
+            continue
         fop = of.FermionOperator(((p, 1), (p, 0), (q, 1), (q, 0)),
                                  coefficient=vij_mat[p, q])
         wfn = wfn.time_evolve(time, fop)
     return wfn
+
+
+def evolve_fqe_charge_charge_alpha_beta(wfn: Wavefunction,
+                                          vij_mat: np.ndarray,
+                                          time=1) -> Wavefunction:
+    r"""Utility for testing evolution of a full 2^{n} wavefunction via
+
+    :math:`exp{-i time * \sum_{i,j}v_{i, j}n_{i, alpha}n_{j, beta}}.`
+
+    Args:
+        wfn: fqe_wf with sdim = n
+        vij_mat: List[(n x n] matrices n is the spatial orbital rank
+        time: evolution time.
+
+    Returns:
+        New evolved 2^{2 * n} x 1 vector
+    """
+    norbs = vij_mat.shape[0]
+    for p, q in product(range(norbs), repeat=2):
+        if np.isclose(vij_mat[p, q], 0):
+            continue
+        fop = of.FermionOperator(((2 * p, 1), (2 * p, 0), (2 * q + 1, 1), (2 * q + 1, 0)),
+                                 coefficient=vij_mat[p, q])
+        wfn = wfn.time_evolve(time, fop)
+    return wfn
+
+
+def evolve_fqe_charge_charge_sector(wfn: Wavefunction,
+                                    vij_mat: np.ndarray,
+                                    sector='alpha',
+                                    time=1) -> Wavefunction:
+    r"""Utility for testing evolution of a full 2^{n} wavefunction via
+
+    :math:`exp{-i time * \sum_{i,j}v_{i, j}n_{i, alpha}n_{j, beta}}.`
+
+    Args:
+        wfn: fqe_wf with sdim = n
+        vij_mat: List[(n x n] matrices n is the spatial orbital rank
+        time: evolution time.
+
+    Returns:
+        New evolved 2^{2 * n} x 1 vector
+    """
+    if sector == 'alpha':
+        sigma = 0
+    elif sector == 'beta':
+        sigma = 1
+    else:
+        raise ValueError("Sector must be alpha or beta.")
+
+    norbs = vij_mat.shape[0]
+    for p, q in product(range(norbs), repeat=2):
+        if np.isclose(vij_mat[p, q], 0):
+            continue
+        fop = of.FermionOperator(((2 * p + sigma, 1), (2 * p + sigma, 0),
+                                  (2 * q + sigma, 1), (2 * q + sigma, 0)),
+                                 coefficient=vij_mat[p, q])
+        wfn = wfn.time_evolve(time, fop)
+    return wfn
+
 
 
 def evolve_fqe_diagaonal_coulomb(wfn: Wavefunction, vij_mat: np.ndarray,

@@ -25,6 +25,8 @@ from openfermion import (
     InteractionOperator,
 )
 from openfermion.chem.molecular_data import spinorb_from_spatial
+from openfermion.linalg import wedge
+
 
 import fqe
 from fqe.wavefunction import Wavefunction
@@ -37,25 +39,31 @@ from fqe.algorithm.brillouin_calculator import (
     one_rdo_commutator_symm,
 )
 from fqe.algorithm.generalized_doubles_factorization import \
-    doubles_factorization, doubles_factorization2
+    doubles_factorization_svd, doubles_factorization_takagi
+
+from fqe.algorithm.low_rank import evolve_fqe_charge_charge_unrestricted, \
+    evolve_fqe_givens_unrestricted
 
 
-def valdemaro_reconstruction_functional(tpdm, n_electrons, true_opdm=None):
+def valdemaro_reconstruction(tpdm, n_electrons):
     """
+    Build a 3-RDM by cumulant expansion and setting 3rd cumulant to zero
+
     d3 approx = D ^ D ^ D + 3 (2C) ^ D
 
     tpdm has normalization (n choose 2) where n is the number of electrons
 
-    :param tpdm: four-tensor representing the two-RDM
-    :return: six-tensor reprsenting the three-RDM
+    Args:
+        tpdm (np.ndarray): four-tensor representing the two-RDM
+        n_electrons (int): number of electrons in the system
+    Returns:
+        six-tensor reprsenting the three-RDM
     """
     opdm = (2 / (n_electrons - 1)) * np.einsum('ijjk', tpdm)
-    if true_opdm is not None:
-        assert np.allclose(opdm, true_opdm)
+    unconnected_tpdm = wedge(opdm, opdm, (1, 1), (1, 1))
+    unconnected_d3 = wedge(opdm, unconnected_tpdm, (1, 1), (2, 2))
+    return 3 * wedge(tpdm, opdm, (2, 2), (1, 1)) - 2 * unconnected_d3
 
-    unconnected_tpdm = of.wedge(opdm, opdm, (1, 1), (1, 1))
-    unconnected_d3 = of.wedge(opdm, unconnected_tpdm, (1, 1), (2, 2))
-    return 3 * of.wedge(tpdm, opdm, (2, 2), (1, 1)) - 2 * unconnected_d3
 
 
 class OperatorPool:
@@ -101,6 +109,18 @@ class OperatorPool:
                             term += fop
                         self.op_pool.append(term)
 
+    def generalized_two_body(self):
+        """
+        Doubles generators each with distinct Sz expectation value.
+
+        """
+        for i, j, k, l in product(range(2 * self.norbs), repeat=4):
+            if i != j and k != l:
+                op = ((i, 1), (j, 1), (k, 0), (l, 0))
+                fop_aa = of.FermionOperator(op)
+                fop_aa = fop_aa - of.hermitian_conjugated(fop_aa)
+                self.op_pool.append(fop_aa)
+
     def two_body_sz_adapted(self):
         """
         Doubles generators each with distinct Sz expectation value.
@@ -143,29 +163,6 @@ class OperatorPool:
                 fop_bb = of.normal_ordered(fop_bb)
                 self.op_pool.append(fop_aa)
                 self.op_pool.append(fop_bb)
-
-
-class SumOfSquaresTrotter:
-
-    def __init__(self, fop_list: List[of.FermionOperator], sdim: int,
-                 trotterization: int):
-        """
-        A Collection of Two-body operators that can be implemented exactly
-        because they are all squares of normal operators.  The list is a
-        sum of antihermitian operators that are to be implemented with the
-        same evolution coefficient
-        """
-        self.fops = fop_list
-        self.sdim = sdim
-        self.trotterization = trotterization
-
-    def build_fqe_hamiltonians(self):
-        fqe_fops = []
-        for fop in self.fops:
-            fqe_fops.append(
-                build_hamiltonian(1j * fop, self.sdim, conserve_number=True))
-        self.fqe_fops = fqe_fops
-
 
 class ADAPT:
 
@@ -219,278 +216,6 @@ class ADAPT:
         self.stopping_eps = stopping_epsilon
         self.delta_e_eps = delta_e_eps
 
-    def vbc(self,
-            initial_wf: Wavefunction,
-            update_rank=None,
-            opt_method: str = 'L-BFGS-B',
-            opt_options=None,
-            num_opt_var=None,
-            v_reconstruct=False,
-            trotterize_lr=False,
-            group_trotter_steps=True,
-            trotterization=1,
-            update_utc=None):
-        """The variational Brillouin condition method
-
-        Solve for the 2-body residual and then variationally determine
-        the step size.  This exact simulation cannot be implemented without
-        Trotterization.  A proxy for the approximate evolution is the update_
-        rank pameter which limites the rank of the residual.
-
-        Args:
-            initial_wf: initial wavefunction
-            update_rank: rank of residual to truncate via first factorization
-                         of the residual matrix <[Gamma_{lk}^{ij}, H]>
-            opt_method: scipy optimizer name
-            num_opt_var: Number of optimization variables to consider
-            v_reconstruct: use valdemoro reconstruction of 3-RDM to calculate
-                           the residual
-            group_trotter_steps: All low-rank steps get a single variational
-                                 parameter.  This should be True unless you
-                                 want 4x * singular vectors worth of parameters.
-                                 You probably don't want that.
-            trotterization: How many trotter steps to implement the Trotterized
-                            two-body gradient term with
-            update_utc: None or integer on how many tensor factor terms
-                        should be fit.  Each tensor factor is an O(N) depth
-                        circuit.
-        """
-        if opt_options is None:
-            opt_options = {}
-        self.num_opt_var = num_opt_var
-        nso = 2 * self.sdim
-        operator_pool: List[Union[ABCHamiltonian, SumOfSquaresTrotter]] = []
-        operator_pool_fqe: List[Union[ABCHamiltonian, SumOfSquaresTrotter]] = []
-        existing_parameters: List[float] = []
-        self.energies = []
-        self.energies = [initial_wf.expectationValue(self.k2_fop)]
-        self.residuals = []
-        iteration = 0
-        while iteration < self.iter_max:
-            # get current wavefunction
-            wf = copy.deepcopy(initial_wf)
-            for fqe_op, coeff in zip(operator_pool_fqe, existing_parameters):
-                # fqe_op = build_hamiltonian(1j * op, self.sdim,
-                #                            conserve_number=True)
-                if isinstance(fqe_op, SumOfSquaresTrotter):
-                    # this is for SumOfSquaresTrotter
-                    for _ in range(fqe_op.trotterization):
-                        for sos_op in fqe_op.fqe_fops:
-                            wf = wf.time_evolve(coeff / fqe_op.trotterization,
-                                                sos_op)
-                else:
-                    wf = wf.time_evolve(coeff, fqe_op)
-
-            # calculate rdms for grad
-            _, tpdm = wf.sector((self.nele, self.sz)).get_openfermion_rdms()
-            if v_reconstruct:
-                d3 = 6 * valdemaro_reconstruction_functional(
-                    tpdm / 2, self.nele)
-            else:
-                d3 = wf.sector((self.nele, self.sz)).get_three_pdm()
-
-            # get ACSE Residual and 2-RDM gradient
-            acse_residual = two_rdo_commutator_symm(
-                self.reduced_ham.two_body_tensor, tpdm, d3)
-
-            if update_rank:
-                if update_rank % 2 != 0:
-                    raise ValueError("Update rank must be an even number")
-
-                new_residual = np.zeros_like(acse_residual)
-                for p, q, r, s in product(range(nso), repeat=4):
-                    new_residual[p, q, r, s] = (acse_residual[p, q, r, s] -
-                                                acse_residual[s, r, q, p]) / 2
-
-                ul, vl, one_body_residual, _, _, one_body_op = \
-                    doubles_factorization(new_residual, eig_cutoff=update_rank)
-
-                if trotterize_lr:
-                    fop = []
-                    # add back in tbe 1-body term after all sum-of-squares terms
-                    assert of.is_hermitian(1j * one_body_op)
-                    if not np.isclose((1j * one_body_op).induced_norm(), 0):
-                        # enforce symmetry in one-body sector
-                        one_body_residual[::2, ::2] = 0.5 * \
-                    (one_body_residual[::2, ::2] + one_body_residual[1::2, 1::2])
-                        one_body_residual[1::2, 1::
-                                          2] = one_body_residual[::2, ::2]
-                        fop.extend([get_fermion_op(one_body_residual)])
-
-                    for ll in range(len(ul)):
-                        Smat = ul[ll] + vl[ll]
-                        Dmat = ul[ll] - vl[ll]
-                        op1mat = Smat + 1j * Smat.T
-                        op2mat = Smat - 1j * Smat.T
-                        op3mat = Dmat + 1j * Dmat.T
-                        op4mat = Dmat - 1j * Dmat.T
-                        new_fop1 = np.zeros((nso, nso, nso, nso),
-                                            dtype=np.complex128)
-                        new_fop2 = np.zeros((nso, nso, nso, nso),
-                                            dtype=np.complex128)
-                        new_fop3 = np.zeros((nso, nso, nso, nso),
-                                            dtype=np.complex128)
-                        new_fop4 = np.zeros((nso, nso, nso, nso),
-                                            dtype=np.complex128)
-                        for p, q, r, s in product(range(nso), repeat=4):
-                            new_fop1[p, q, r, s] += op1mat[p, s] * op1mat[q, r]
-                            new_fop2[p, q, r, s] += op2mat[p, s] * op2mat[q, r]
-                            new_fop3[p, q, r, s] -= op3mat[p, s] * op3mat[q, r]
-                            new_fop4[p, q, r, s] -= op4mat[p, s] * op4mat[q, r]
-                        new_fop1 *= (1 / 16)
-                        new_fop2 *= (1 / 16)
-                        new_fop3 *= (1 / 16)
-                        new_fop4 *= (1 / 16)
-
-                        fop.extend([
-                            get_fermion_op(new_fop1),
-                            get_fermion_op(new_fop2),
-                            get_fermion_op(new_fop3),
-                            get_fermion_op(new_fop4)
-                        ])
-
-                    if group_trotter_steps:
-                        fop = [
-                            SumOfSquaresTrotter(fop,
-                                                self.sdim,
-                                                trotterization=trotterization)
-                        ]
-
-                else:
-                    lr_new_residual = np.zeros_like(new_residual)
-                    for p, q, r, s in product(range(nso), repeat=4):
-                        for ll in range(len(ul)):
-                            lr_new_residual[p, q, r, s] += ul[ll][p, s] * \
-                                                           vl[ll][q, r]
-
-                    if np.isclose(update_rank, nso**2):
-                        assert np.allclose(lr_new_residual, new_residual)
-
-                    fop = [get_fermion_op(new_residual)]
-                    if not of.is_hermitian(1j * fop[0]):
-                        raise AssertionError("generator is not antihermitian")
-            elif update_utc:
-                fop = []
-                one_body_residual = -np.einsum('pqrq->pr', acse_residual)
-                one_body_op = get_fermion_op(one_body_residual)
-                assert of.is_hermitian(1j * one_body_op)
-                if not np.isclose((1j * one_body_op).induced_norm(), 0):
-                    # enforce symmetry in one-body sector
-                    one_body_residual[::2, ::2] = 0.5 * \
-                                                  (one_body_residual[::2,
-                                                   ::2] + one_body_residual[
-                                                          1::2, 1::2])
-                    one_body_residual[1::2, 1::2] = one_body_residual[::2, ::2]
-                    fop.extend([get_fermion_op(one_body_residual)])
-
-                # TODO: [WIP]
-                # givens = GivensNetwork(dim=nso)
-                # uthc = UTHC(t2_amplitudes=acse_residual, dim=nso,
-                #             rank=update_utc, givens_network=givens)
-                # uthc.optimize()
-                # param_mats = uthc.params_to_mats(uthc.optimized_params)
-                # for u, jj in param_mats:
-                #     gt = np.array(uthc.guess_tensor([[u, jj]]))
-                #     fop_t = get_fermion_op(gt)
-                #     assert of.is_hermitian(1j * fop_t)
-                #     fop.extend([get_fermion_op(gt)])
-
-                Zlp, Zlm, _, one_body_residual = doubles_factorization2(
-                    acse_residual)
-                for ll in range(update_utc):
-                    op1mat = Zlp[ll]
-                    op2mat = Zlm[ll]
-                    w1, v1 = sp.linalg.schur(op1mat)
-                    w1 = np.diagonal(w1)
-                    v1c = v1.conj()
-                    w2, v2 = sp.linalg.schur(op2mat)
-                    w2 = np.diagonal(w2)
-                    v2c = v2.conj()
-                    oww1 = np.outer(w1, w1)
-                    oww2 = np.outer(w2, w2)
-
-                    new_generator = np.einsum('pi,si,ij,qj,rj->pqrs', v1,
-                                                 v1c,
-                                                 (1 / 4) * oww1, v1, v1c) + \
-                                       np.einsum('pi,si,ij,qj,rj->pqrs', v2,
-                                                 v2c,
-                                                 (1 / 4) * oww2, v2, v2c)
-                    fop.extend([get_fermion_op(new_generator)])
-
-                # construct the fop to add to the pool
-                # Since we are doing tensor fitting  we don't want to do
-                # trotterization. Thus =1.
-                fop = [SumOfSquaresTrotter(fop, self.sdim, trotterization=1)]
-            else:
-                fop = [get_fermion_op(acse_residual)]
-
-            operator_pool.extend(fop)
-            fqe_ops: List[Union[ABCHamiltonian, SumOfSquaresTrotter]] = []
-            for f_op in fop:
-                if isinstance(f_op, ABCHamiltonian):
-                    fqe_ops.append(f_op)
-                elif isinstance(f_op, SumOfSquaresTrotter):
-                    f_op.build_fqe_hamiltonians()
-                    fqe_ops.append(f_op)
-                else:
-                    fqe_ops.append(
-                        build_hamiltonian(1j * f_op,
-                                          self.sdim,
-                                          conserve_number=True))
-
-            operator_pool_fqe.extend(fqe_ops)
-            existing_parameters.extend([0] * len(fop))
-
-            if self.num_opt_var is not None and group_trotter_steps is False:
-                if len(operator_pool_fqe) < self.num_opt_var:
-                    pool_to_op = operator_pool_fqe
-                    params_to_op = existing_parameters
-                    current_wf = copy.deepcopy(initial_wf)
-                else:
-                    pool_to_op = operator_pool_fqe[-self.num_opt_var:]
-                    params_to_op = existing_parameters[-self.num_opt_var:]
-                    current_wf = copy.deepcopy(initial_wf)
-                    for fqe_op, coeff in zip(
-                            operator_pool_fqe[:-self.num_opt_var],
-                            existing_parameters[:-self.num_opt_var]):
-                        current_wf = current_wf.time_evolve(coeff, fqe_op)
-                    temp_cwf = copy.deepcopy(current_wf)
-                    for fqe_op, coeff in zip(pool_to_op, params_to_op):
-                        if np.isclose(coeff, 0):
-                            continue
-                        temp_cwf = temp_cwf.time_evolve(coeff, fqe_op)
-
-                new_parameters, current_e = self.optimize_param(
-                    pool_to_op,
-                    params_to_op,
-                    current_wf,
-                    opt_method,
-                    opt_options=opt_options)
-
-                if len(operator_pool_fqe) < self.num_opt_var:
-                    existing_parameters = new_parameters.tolist()
-                else:
-                    existing_parameters[-self.num_opt_var:] = \
-                        new_parameters.tolist()
-            else:
-                new_parameters, current_e = self.optimize_param(
-                    operator_pool_fqe,
-                    existing_parameters,
-                    initial_wf,
-                    opt_method,
-                    opt_options=opt_options)
-                existing_parameters = new_parameters.tolist()
-
-            if self.verbose:
-                print(iteration, current_e, np.max(np.abs(acse_residual)),
-                      len(existing_parameters))
-            self.energies.append(current_e)
-            self.residuals.append(acse_residual)
-            if np.max(np.abs(acse_residual)) < self.stopping_eps or np.abs(
-                    self.energies[-2] - self.energies[-1]) < self.delta_e_eps:
-                break
-            iteration += 1
-
     def adapt_vqe(self,
                   initial_wf: Wavefunction,
                   opt_method: str = 'L-BFGS-B',
@@ -525,7 +250,7 @@ class ADAPT:
             # calculate rdms for grad
             _, tpdm = wf.sector((self.nele, self.sz)).get_openfermion_rdms()
             if v_reconstruct:
-                d3 = 6 * valdemaro_reconstruction_functional(
+                d3 = 6 * valdemaro_reconstruction(
                     tpdm / 2, self.nele)
             else:
                 d3 = wf.sector((self.nele, self.sz)).get_three_pdm()
@@ -606,7 +331,7 @@ class ADAPT:
             for op, coeff in zip(pool, params):
                 if np.isclose(coeff, 0):
                     continue
-                if isinstance(op, (ABCHamiltonian, SumOfSquaresTrotter)):
+                if isinstance(op, ABCHamiltonian):
                     fqe_op = op
                 else:
                     print("Found a OF Hamiltonian")
@@ -615,12 +340,6 @@ class ADAPT:
                                                conserve_number=True)
                 if isinstance(fqe_op, ABCHamiltonian):
                     wf = wf.time_evolve(coeff, fqe_op)
-                elif isinstance(fqe_op, SumOfSquaresTrotter):
-                    # this is for SumOfSquaresTrotter
-                    for _ in range(fqe_op.trotterization):
-                        for sos_op in fqe_op.fqe_fops:
-                            wf = wf.time_evolve(coeff / fqe_op.trotterization,
-                                                sos_op)
                 else:
                     raise ValueError("Can't evolve operator type {}".format(
                         type(fqe_op)))

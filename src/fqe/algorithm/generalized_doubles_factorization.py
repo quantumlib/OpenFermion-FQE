@@ -26,7 +26,7 @@ import openfermion as of
 from fqe.algorithm.brillouin_calculator import get_fermion_op
 
 
-def doubles_factorization(generator_tensor: np.ndarray, eig_cutoff=None):
+def doubles_factorization_svd(generator_tensor: np.ndarray, eig_cutoff=None):
     """
     Given an antisymmetric antihermitian tensor perform a double factorized
     low-rank decomposition.
@@ -193,7 +193,7 @@ def takagi(N, tol=1e-13, rounding=13):
     return rl, U
 
 
-def doubles_factorization2(generator_tensor: np.ndarray, eig_cutoff=None):
+def doubles_factorization_takagi(generator_tensor: np.ndarray, eig_cutoff=None):
     """
     Given an antisymmetric antihermitian tensor perform a double factorized
     low-rank decomposition.  This uses the Takagi decomposition of a complex
