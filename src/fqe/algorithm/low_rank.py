@@ -43,7 +43,8 @@ def evolve_fqe_givens_sector(wfn: Wavefunction, u: np.ndarray,
         raise ValueError("Bad section variable.  Either (alpha) or (beta)")
 
     if not np.isclose(u.shape[0], wfn.norb()):
-        raise ValueError("unitary is not specified for the correct number of orbitals")
+        raise ValueError(
+            "unitary is not specified for the correct number of orbitals")
 
     rotations, diagonal = givens_decomposition_square(u.copy())
     # Iterate through each layer and time evolve by the appropriate
@@ -52,9 +53,8 @@ def evolve_fqe_givens_sector(wfn: Wavefunction, u: np.ndarray,
         for givens in layer:
             i, j, theta, phi = givens
             if not np.isclose(phi, 0):
-                op = of.FermionOperator(((2 * j + sigma, 1),
-                                         (2 * j + sigma, 0)),
-                                        coefficient=-phi)
+                op = of.FermionOperator(
+                    ((2 * j + sigma, 1), (2 * j + sigma, 0)), coefficient=-phi)
                 wfn = wfn.time_evolve(1.0, op)
             if not np.isclose(theta, 0):
                 op = of.FermionOperator(((2 * i + sigma, 1),
@@ -68,9 +68,9 @@ def evolve_fqe_givens_sector(wfn: Wavefunction, u: np.ndarray,
     # evolve the last diagonal phases
     for idx, final_phase in enumerate(diagonal):
         if not np.isclose(final_phase, 1.0):
-            op = of.FermionOperator(((2 * idx + sigma, 1),
-                                     (2 * idx + sigma, 0)),
-                                    -np.angle(final_phase))
+            op = of.FermionOperator(
+                ((2 * idx + sigma, 1), (2 * idx + sigma, 0)),
+                -np.angle(final_phase))
             wfn = wfn.time_evolve(1.0, op)
 
     return wfn
@@ -188,8 +188,8 @@ def evolve_fqe_charge_charge_unrestricted(wfn: Wavefunction,
 
 
 def evolve_fqe_charge_charge_alpha_beta(wfn: Wavefunction,
-                                          vij_mat: np.ndarray,
-                                          time=1) -> Wavefunction:
+                                        vij_mat: np.ndarray,
+                                        time=1) -> Wavefunction:
     r"""Utility for testing evolution of a full 2^{n} wavefunction via
 
     :math:`exp{-i time * \sum_{i,j}v_{i, j}n_{i, alpha}n_{j, beta}}.`
@@ -206,8 +206,9 @@ def evolve_fqe_charge_charge_alpha_beta(wfn: Wavefunction,
     for p, q in product(range(norbs), repeat=2):
         if np.isclose(vij_mat[p, q], 0):
             continue
-        fop = of.FermionOperator(((2 * p, 1), (2 * p, 0), (2 * q + 1, 1), (2 * q + 1, 0)),
-                                 coefficient=vij_mat[p, q])
+        fop = of.FermionOperator(
+            ((2 * p, 1), (2 * p, 0), (2 * q + 1, 1), (2 * q + 1, 0)),
+            coefficient=vij_mat[p, q])
         wfn = wfn.time_evolve(time, fop)
     return wfn
 
@@ -244,7 +245,6 @@ def evolve_fqe_charge_charge_sector(wfn: Wavefunction,
                                  coefficient=vij_mat[p, q])
         wfn = wfn.time_evolve(time, fop)
     return wfn
-
 
 
 def evolve_fqe_diagaonal_coulomb(wfn: Wavefunction, vij_mat: np.ndarray,

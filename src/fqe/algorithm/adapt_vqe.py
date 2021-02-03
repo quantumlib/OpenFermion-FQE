@@ -27,7 +27,6 @@ from openfermion import (
 from openfermion.chem.molecular_data import spinorb_from_spatial
 from openfermion.linalg import wedge
 
-
 import fqe
 from fqe.wavefunction import Wavefunction
 from fqe.hamiltonians.restricted_hamiltonian import RestrictedHamiltonian
@@ -63,7 +62,6 @@ def valdemaro_reconstruction(tpdm, n_electrons):
     unconnected_tpdm = wedge(opdm, opdm, (1, 1), (1, 1))
     unconnected_d3 = wedge(opdm, unconnected_tpdm, (1, 1), (2, 2))
     return 3 * wedge(tpdm, opdm, (2, 2), (1, 1)) - 2 * unconnected_d3
-
 
 
 class OperatorPool:
@@ -250,8 +248,7 @@ class ADAPT:
             # calculate rdms for grad
             _, tpdm = wf.sector((self.nele, self.sz)).get_openfermion_rdms()
             if v_reconstruct:
-                d3 = 6 * valdemaro_reconstruction(
-                    tpdm / 2, self.nele)
+                d3 = 6 * valdemaro_reconstruction(tpdm / 2, self.nele)
             else:
                 d3 = wf.sector((self.nele, self.sz)).get_three_pdm()
 

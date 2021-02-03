@@ -390,18 +390,17 @@ def test_generalized_doubles_takagi():
     molecular_hamiltonian = of.InteractionOperator(0, soei, 0.25 * astei)
     reduced_ham = make_reduced_hamiltonian(molecular_hamiltonian,
                                            nalpha + nbeta)
-    acse_residual = two_rdo_commutator_symm(reduced_ham.two_body_tensor,
-                                            tpdm, d3)
+    acse_residual = two_rdo_commutator_symm(reduced_ham.two_body_tensor, tpdm,
+                                            d3)
     for p, q, r, s in product(range(nso), repeat=4):
         if p == q or r == s:
             continue
         assert np.isclose(acse_residual[p, q, r, s],
                           -acse_residual[s, r, q, p].conj())
 
-    Zlp, Zlm, Zl, one_body_residual = doubles_factorization_takagi(acse_residual)
+    Zlp, Zlm, _, one_body_residual = doubles_factorization_takagi(
+        acse_residual)
     test_fop = get_fermion_op(one_body_residual)
-    test_generator = np.zeros_like(acse_residual)
-    test_generator2 = np.zeros_like(acse_residual)
     # test the first four factors
     for ll in range(4):
         test_fop += 0.25 * get_fermion_op(Zlp[ll])**2
@@ -417,9 +416,7 @@ def test_generalized_doubles_takagi():
         w2, v2 = sp.linalg.schur(op2mat)
         w2 = np.diagonal(w2)
         assert np.allclose(v2 @ np.diag(w2) @ v2.conj().T, op2mat)
-        v2c = v2.conj()
         oww1 = np.outer(w1, w1)
-        oww2 = np.outer(w2, w2)
 
         fqe_wf = fqe.Wavefunction([[nele, sz, norbs]])
         fqe_wf.set_wfn(strategy='hartree-fock')
@@ -427,19 +424,20 @@ def test_generalized_doubles_takagi():
         nfqe_wf = fqe.get_number_conserving_wavefunction(nele, norbs)
         nfqe_wf.sector((nele, sz)).coeff = fqe_wf.sector((nele, sz)).coeff
 
-        this_generatory = np.einsum('pi,si,ij,qj,rj->pqrs', v1, v1c,
-                                    oww1, v1, v1c)
+        this_generatory = np.einsum('pi,si,ij,qj,rj->pqrs', v1, v1c, oww1, v1,
+                                    v1c)
         fop = of.FermionOperator()
-        for p, q, r, s in product(range(nso) ,repeat=4):
+        for p, q, r, s in product(range(nso), repeat=4):
             op = ((p, 1), (s, 0), (q, 1), (r, 0))
-            fop += of.FermionOperator(op, coefficient=this_generatory[p, q, r, s])
+            fop += of.FermionOperator(op,
+                                      coefficient=this_generatory[p, q, r, s])
 
-        fqe_fop = build_hamiltonian(1j * fop,
-                                    norb=norbs, conserve_number=True)
+        fqe_fop = build_hamiltonian(1j * fop, norb=norbs, conserve_number=True)
         exact_wf = fqe.apply_generated_unitary(nfqe_wf, 1, 'taylor', fqe_fop)
 
         test_wf = fqe.algorithm.low_rank.evolve_fqe_givens_unrestricted(
-            nfqe_wf, v1.conj().T)
+            nfqe_wf,
+            v1.conj().T)
         test_wf = fqe.algorithm.low_rank.evolve_fqe_charge_charge_unrestricted(
             test_wf, -oww1.imag)
         test_wf = fqe.algorithm.low_rank.evolve_fqe_givens_unrestricted(

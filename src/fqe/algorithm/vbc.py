@@ -62,11 +62,12 @@ def valdemaro_reconstruction_functional(tpdm, n_electrons, true_opdm=None):
     return 3 * of.wedge(tpdm, opdm, (2, 2), (1, 1)) - 2 * unconnected_d3
 
 
-
 class SumOfSquaresOperator:
 
-    def __init__(self, basis_rotation: List[np.ndarray],
-                 charge_charge_matrix: List[np.ndarray], sdim: int,
+    def __init__(self,
+                 basis_rotation: List[np.ndarray],
+                 charge_charge_matrix: List[np.ndarray],
+                 sdim: int,
                  one_body_rotation: np.ndarray,
                  one_body_generator=None):
         """
@@ -92,6 +93,7 @@ class SumOfSquaresOperator:
 
 class VBC:
     """Variational Brillouin Condition"""
+
     def __init__(self,
                  oei: np.ndarray,
                  tei: np.ndarray,
@@ -136,7 +138,8 @@ class VBC:
         self.stopping_eps = stopping_epsilon
         self.delta_e_eps = delta_e_eps
 
-    def get_svd_tensor_decomp(self, residual, update_rank) -> SumOfSquaresOperator:
+    def get_svd_tensor_decomp(self, residual,
+                              update_rank) -> SumOfSquaresOperator:
         """
         Residual must be real
         """
@@ -150,8 +153,7 @@ class VBC:
             one_body_residual[::2, ::2] = 0.5 * \
                                           (one_body_residual[::2,
                                            ::2] + one_body_residual[1::2, 1::2])
-            one_body_residual[1::2, 1::
-                                    2] = one_body_residual[::2, ::2]
+            one_body_residual[1::2, 1::2] = one_body_residual[::2, ::2]
 
         basis_list = []
         cc_list = []
@@ -167,25 +169,25 @@ class VBC:
             w1 = np.diagonal(w1)
             oww1 = np.outer(w1, w1)
             basis_list.append(v1)
-            cc_list.append((-1/16) * oww1.imag)
+            cc_list.append((-1 / 16) * oww1.imag)
 
             w2, v2 = sp.linalg.schur(op2mat)
             w2 = np.diagonal(w2)
             oww2 = np.outer(w2, w2)
             basis_list.append(v2)
-            cc_list.append((-1/16) * oww2.imag)
+            cc_list.append((-1 / 16) * oww2.imag)
 
             w3, v3 = sp.linalg.schur(op3mat)
             w3 = np.diagonal(w3)
             oww3 = np.outer(w3, w3)
             basis_list.append(v3)
-            cc_list.append((1/16) * oww3.imag)
+            cc_list.append((1 / 16) * oww3.imag)
 
             w4, v4 = sp.linalg.schur(op4mat)
             w4 = np.diagonal(w4)
             oww4 = np.outer(w4, w4)
             basis_list.append(v4)
-            cc_list.append((1/16) * oww4.imag)
+            cc_list.append((1 / 16) * oww4.imag)
 
         sos_op = SumOfSquaresOperator(basis_rotation=basis_list,
                                       charge_charge_matrix=cc_list,
@@ -203,28 +205,23 @@ class VBC:
                                                   1::2, 1::2])
             one_body_residual[1::2, 1::2] = one_body_residual[::2, ::2]
 
-        Zlp, Zlm, _, one_body_residual = doubles_factorization_takagi(
-            residual)
+        Zlp, Zlm, _, one_body_residual = doubles_factorization_takagi(residual)
 
         basis_list = []
         cc_list = []
         if update_utc is None:
             update_utc = len(Zlp)
 
-        test_tensor = np.zeros_like(residual)
         for ll in range(update_utc):
             op1mat = Zlp[ll]
             op2mat = Zlm[ll]
             w1, v1 = sp.linalg.schur(op1mat)
             w1 = np.diagonal(w1)
-            v1c = v1.conj()
 
             w2, v2 = sp.linalg.schur(op2mat)
             w2 = np.diagonal(w2)
-            v2c = v2.conj()
             oww1 = np.outer(w1, w1)
             oww2 = np.outer(w2, w2)
-
 
             basis_list.append(v1)
             cc_list.append((-1 / 4) * oww1.imag)
@@ -235,8 +232,7 @@ class VBC:
         sos_op = SumOfSquaresOperator(basis_rotation=basis_list,
                                       charge_charge_matrix=cc_list,
                                       sdim=self.sdim,
-                                      one_body_rotation=expm(one_body_residual)
-                                      )
+                                      one_body_rotation=expm(one_body_residual))
         return sos_op
 
     def vbc(self,
@@ -285,13 +281,14 @@ class VBC:
                 elif isinstance(op, SumOfSquaresOperator):
                     for v, cc in zip(op.basis_rotation, op.charge_charge):
                         wf = evolve_fqe_givens_unrestricted(wf, v.conj().T)
-                        wf = evolve_fqe_charge_charge_unrestricted(wf, coeff * cc)
+                        wf = evolve_fqe_charge_charge_unrestricted(
+                            wf, coeff * cc)
                         wf = evolve_fqe_givens_unrestricted(wf, v)
-                    wf = evolve_fqe_givens_unrestricted(wf, op.one_body_rotation)
+                    wf = evolve_fqe_givens_unrestricted(wf,
+                                                        op.one_body_rotation)
                 else:
                     raise ValueError("Can't evolve operator type {}".format(
                         type(fqe_op)))
-
 
             # calculate rdms for grad
             _, tpdm = wf.sector((self.nele, self.sz)).get_openfermion_rdms()
@@ -315,9 +312,11 @@ class VBC:
 
                 fop = self.get_svd_tensor_decomp(new_residual, generator_rank)
             elif generator_decomp is 'takagi':
-                fop = self.get_takagi_tensor_decomp(acse_residual, generator_rank)
+                fop = self.get_takagi_tensor_decomp(acse_residual,
+                                                    generator_rank)
             else:
-                raise ValueError("Generator decomp must be None, svd, or takagi")
+                raise ValueError(
+                    "Generator decomp must be None, svd, or takagi")
 
             operator_pool.extend([fop])
             fqe_ops: List[Union[ABCHamiltonian, SumOfSquaresOperator]] = []
@@ -327,8 +326,7 @@ class VBC:
                 fqe_ops.append(fop)
             else:
                 fqe_ops.append(
-                    build_hamiltonian(1j * fop,
-                                      self.sdim,
+                    build_hamiltonian(1j * fop, self.sdim,
                                       conserve_number=True))
 
             operator_pool_fqe.extend(fqe_ops)
@@ -384,7 +382,6 @@ class VBC:
                 break
             iteration += 1
 
-
     def optimize_param(
             self,
             pool: Union[List[of.FermionOperator], List[ABCHamiltonian]],
@@ -415,9 +412,11 @@ class VBC:
                 elif isinstance(op, SumOfSquaresOperator):
                     for v, cc in zip(op.basis_rotation, op.charge_charge):
                         wf = evolve_fqe_givens_unrestricted(wf, v.conj().T)
-                        wf = evolve_fqe_charge_charge_unrestricted(wf, coeff * cc)
+                        wf = evolve_fqe_charge_charge_unrestricted(
+                            wf, coeff * cc)
                         wf = evolve_fqe_givens_unrestricted(wf, v)
-                    wf = evolve_fqe_givens_unrestricted(wf, op.one_body_rotation)
+                    wf = evolve_fqe_givens_unrestricted(wf,
+                                                        op.one_body_rotation)
                 else:
                     raise ValueError("Can't evolve operator type {}".format(
                         type(fqe_op)))

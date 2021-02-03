@@ -1,7 +1,7 @@
+import copy
+from itertools import product
 import numpy as np
 import scipy as sp
-from itertools import product
-import copy
 import pytest
 import openfermion as of
 
@@ -15,19 +15,16 @@ from fqe.algorithm.low_rank import (evolve_fqe_givens_unrestricted,
                                     evolve_fqe_givens_sector,
                                     evolve_fqe_charge_charge_alpha_beta,
                                     evolve_fqe_charge_charge_sector,
-                                    evolve_fqe_charge_charge_unrestricted
-                                    )
+                                    evolve_fqe_charge_charge_unrestricted)
+
 
 def test_vbc():
     molecule = build_lih_moleculardata()
     n_electrons = molecule.n_electrons
     oei, tei = molecule.get_integrals()
-    norbs = molecule.n_orbitals
     nalpha = molecule.n_electrons // 2
     nbeta = nalpha
     sz = nalpha - nbeta
-    occ = list(range(nalpha))
-    virt = list(range(nalpha, norbs))
 
     fqe_wf = fqe.Wavefunction([[n_electrons, sz, molecule.n_orbitals]])
     fqe_wf.set_wfn(strategy='hartree-fock')
@@ -36,6 +33,7 @@ def test_vbc():
     adapt.vbc(fqe_wf)
     assert np.isclose(adapt.energies[0], -8.957417182801091)
     assert np.isclose(adapt.energies[-1], -8.97304439380826)
+
 
 def test_vbc_takagi_decomps():
     molecule = build_h4square_moleculardata()
@@ -67,8 +65,7 @@ def test_vbc_takagi_decomps():
     test_tensor = np.zeros_like(acse_residual)
     for v, cc in zip(sos_op.basis_rotation, sos_op.charge_charge):
         vc = v.conj()
-        test_tensor += np.einsum('pi,si,ij,qj,rj->pqrs', v, vc, -1j * cc, v,
-                                 vc)
+        test_tensor += np.einsum('pi,si,ij,qj,rj->pqrs', v, vc, -1j * cc, v, vc)
     assert np.allclose(test_tensor, acse_residual)
 
 
@@ -101,16 +98,16 @@ def test_vbc_svd_decomps():
     test_tensor = np.zeros_like(new_residual)
     for v, cc in zip(sos_op.basis_rotation, sos_op.charge_charge):
         vc = v.conj()
-        test_tensor += np.einsum('pi,si,ij,qj,rj->pqrs', v, vc, -1j * cc, v,
-                                 vc)
+        test_tensor += np.einsum('pi,si,ij,qj,rj->pqrs', v, vc, -1j * cc, v, vc)
     assert np.allclose(test_tensor, new_residual)
+
 
 def test_vbc_time_evolve():
     molecule = build_h4square_moleculardata()
     oei, tei = molecule.get_integrals()
     nele = molecule.n_electrons
     nalpha = nele // 2
-    nbeta = nele //  2
+    nbeta = nele // 2
     sz = 0
     norbs = oei.shape[0]
     nso = 2 * norbs
@@ -145,6 +142,7 @@ def test_vbc_time_evolve():
     true_wf = evolve_fqe_givens_unrestricted(true_wf, sos_op.one_body_rotation)
 
     assert np.isclose(abs(fqe.vdot(true_wf, test_wf))**2, 1)
+
 
 if __name__ == "__main__":
     # test_vbc()
