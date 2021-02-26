@@ -30,7 +30,7 @@ class Diagonal(hamiltonian.Hamiltonian):
     those that are diagonal in the Slater determinant space, namely,
 
     .. math::
-        \\langle I|\\hat{H}|J\\rangle = p \\delta_{IJ}
+        \\langle I|\\hat{H}|J\\rangle = p_I \\delta_{IJ}
 
     where I and J are Slater determinants, and p is some phase. Generally
     such Hamiltonians can be written as

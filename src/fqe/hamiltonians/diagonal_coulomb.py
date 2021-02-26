@@ -32,7 +32,7 @@ class DiagonalCoulomb(hamiltonian.Hamiltonian):
     in the Slater determinant space,
 
     .. math::
-        \\langle I|\\hat{H}|J\\rangle = p \\delta_{IJ}
+        \\langle I|\\hat{H}|J\\rangle = p_I \\delta_{IJ}
 
     where p is an appropriate factor.
     """
