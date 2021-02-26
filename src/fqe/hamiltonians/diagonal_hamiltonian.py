@@ -14,23 +14,36 @@
 """Defines the DiagonalHamiltonian class."""
 
 import copy
-from typing import Tuple
+from typing import TYPE_CHECKING
 
 import numpy as np
 
 from fqe.hamiltonians import hamiltonian
 
+if TYPE_CHECKING:
+    from numpy import ndarray as Nparray
+
 
 class Diagonal(hamiltonian.Hamiltonian):
-    """Diagonal Hamiltonian class."""
+    """
+    One-body diagonal Hamiltonian class. Diagonal Hamiltonians are defined as
+    those that are diagonal in the Slater determinant space, namely,
 
-    def __init__(self, hdiag: np.array, e_0: complex = 0.0 + 0.0j) -> None:
+    .. math::
+        \\langle I|\\hat{H}|J\\rangle = p_I \\delta_{IJ}
+
+    where I and J are Slater determinants, and p is some phase. Generally
+    such Hamiltonians can be written as
+
+    .. math::
+        \\hat{H} =  = E_0 + \\sum_r h_{rr} a_r^\\dagger a_r
+    """
+
+    def __init__(self, hdiag: 'Nparray', e_0: complex = 0.0 + 0.0j) -> None:
         """
         Args:
-            hdiag: A variable length tuple containing between one and four
-                numpy.arrays of increasing rank. The tensors contain the n-body
-                Hamiltonian elements. Tensors up to the highest order must be
-                included even if the lower terms are full of zeros.
+            hdiag: A rank-1 numpy.array that contains the diagonal part of the
+                1-body Hamiltonian elements.
             e_0: Scalar potential associated with the Hamiltonian.
         """
 
