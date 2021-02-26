@@ -22,14 +22,30 @@ from fqe.hamiltonians import hamiltonian
 class DiagonalCoulomb(hamiltonian.Hamiltonian):
     """The diagonal coulomb Hamiltonian is characterized as being a two-body
     operator with a specific structure such that it is the product of two
-    number operators.
+    number operators. It is generally written as
+
+    .. math::
+        \\hat{H} = E_0 + \\sum_r f_r \\hat{n}_r
+            + \\sum_{rs} v_{rs} \\hat{n}_r \\hat{n}_s
+
+    where n is a number operator. Note that this Hamiltonian is diagonal
+    in the Slater determinant space,
+
+    .. math::
+        \\langle I|\\hat{H}|J\\rangle = p \\delta_{IJ}
+
+    where p is an appropriate factor.
     """
 
     def __init__(self, h2e: np.ndarray, e_0: complex = 0.0 + 0.0j) -> None:
         """Initialize a DiagonalCoulomb Hamiltonian.
 
         Args:
-            h2e: Dense two-body tensor that contains DiagonalCoulomb elements.
+            h2e: either (1) a dense rank-2 array that contains the diagonal
+                 elements :math:`|v_{rs}|` above, or (2) a dense rank-4 array
+                 in the format used for two-body operator in the dense
+                 Hamiltonian code.
+
             e_0: Scalar potential associated with the Hamiltonian.
         """
 
