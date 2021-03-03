@@ -43,7 +43,7 @@ class Diagonal(hamiltonian.Hamiltonian):
         """
         Args:
             hdiag: A rank-1 numpy.array that contains the diagonal part of the
-                1-body Hamiltonian elements.
+                   1-body Hamiltonian elements.
             e_0: Scalar potential associated with the Hamiltonian.
         """
 

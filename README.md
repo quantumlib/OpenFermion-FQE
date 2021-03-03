@@ -10,6 +10,8 @@ Installing FQE requires pip. Make sure that you are using an up-to-date version 
 For information about getting started beyond what is provided below please see our 
 tutorial in the examples folder as well as our detailed code documentation.
 
+To build the docs navigate the the `docs` folder in the command line and type `make html`.
+
 ## How to contribute
 We'd love to accept your contributions and patches to OpenFermion-FQE. 
 There are a few small guidelines you need to follow. 

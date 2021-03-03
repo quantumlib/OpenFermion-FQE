@@ -72,7 +72,7 @@ def apply_generated_unitary(
 
         accuracy (double) - a desired accuracy to evolve the system to
 
-    Retuns:
+    Returns:
         wfn (fqe.wavefunction) - the evolved wavefunction
     """
     return wfn.apply_generated_unitary(time,
