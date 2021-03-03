@@ -41,3 +41,12 @@ Utilitiy modules for pre- and post-processing the data:
    tensor.rst
    transform.rst
    wick.rst
+
+
+Fermion simulation algorithms using the FQE
+
+.. toctree::
+   :maxdepth: 2
+
+   algorithm.rst
+

@@ -40,6 +40,7 @@ def get_fermion_op(coeff_tensor) -> of.FermionOperator:
 
     Args:
         coeff_tensor: Coefficients for 4-mode operator
+
     Returns:
         A FermionOperator object
     """
@@ -180,8 +181,8 @@ def get_tpdm_grad_fqe(fqe_wf, acse_res_tensor, norbs):
 
     Args:
         fqe_wf:  fqe.Wavefunction object to calculate expectation value with
-        fqe_ham: fqe.RestrictedHamiltonian operator corresponding to a chemical
-                 Hamiltonian
+        acse_res_tensor: fqe.RestrictedHamiltonian operator corresponding to a chemical
+                         Hamiltonian
         norbs: Number of orbitals. Number of spatial orbitals
 
     Returns:

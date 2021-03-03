@@ -43,7 +43,7 @@ class SparseHamiltonian(hamiltonian.Hamiltonian):
 
         Args:
             operators: Operator with a coefficient in the FermionOperator
-                format.
+                       format.
             conserve_spin: Whether or not to conserve the Sz symmetry.
             e_0: Scalar part of the Hamiltonian.
         """

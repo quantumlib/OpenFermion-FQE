@@ -32,9 +32,10 @@ class General(hamiltonian.Hamiltonian):
 
         Args:
             tensors: A variable length tuple containing between one and four
-                numpy.arrays of increasing rank. The tensors contain the n-body
-                hamiltonian elements. Tensors up to the highest order must be
-                included even if the lower terms are full of zeros.
+                     numpy.arrays of increasing rank. The tensors contain the
+                     n-body hamiltonian elements. Tensors up to the highest
+                     order must be included even if the lower terms are full of
+                     zeros.
             e_0: Scalar potential associated with the Hamiltonian.
         """
 
