@@ -254,22 +254,27 @@ class WavefunctionTest(unittest.TestCase):
         numpy.random.seed(seed=409)
         wfn = get_number_conserving_wavefunction(3, 3)
         sector_alpha_dim, sector_beta_dim = wfn.sector((3, -3)).coeff.shape
-        coeffs = numpy.arange(1, sector_alpha_dim * sector_beta_dim + 1).reshape((sector_alpha_dim, sector_beta_dim))
+        coeffs = numpy.arange(1,
+                              sector_alpha_dim * sector_beta_dim + 1).reshape(
+                                  (sector_alpha_dim, sector_beta_dim))
         wfn.sector((3, -3)).coeff = coeffs
 
         sector_alpha_dim, sector_beta_dim = wfn.sector((3, -1)).coeff.shape
-        coeffs = numpy.arange(1, sector_alpha_dim * sector_beta_dim + 1).reshape(
-            (sector_alpha_dim, sector_beta_dim))
+        coeffs = numpy.arange(1,
+                              sector_alpha_dim * sector_beta_dim + 1).reshape(
+                                  (sector_alpha_dim, sector_beta_dim))
         wfn.sector((3, -1)).coeff = coeffs
 
         sector_alpha_dim, sector_beta_dim = wfn.sector((3, 1)).coeff.shape
-        coeffs = numpy.arange(1, sector_alpha_dim * sector_beta_dim + 1).reshape(
-            (sector_alpha_dim, sector_beta_dim))
+        coeffs = numpy.arange(1,
+                              sector_alpha_dim * sector_beta_dim + 1).reshape(
+                                  (sector_alpha_dim, sector_beta_dim))
         wfn.sector((3, 1)).coeff = coeffs
 
         sector_alpha_dim, sector_beta_dim = wfn.sector((3, 3)).coeff.shape
-        coeffs = numpy.arange(1, sector_alpha_dim * sector_beta_dim + 1).reshape(
-            (sector_alpha_dim, sector_beta_dim))
+        coeffs = numpy.arange(1,
+                              sector_alpha_dim * sector_beta_dim + 1).reshape(
+                                  (sector_alpha_dim, sector_beta_dim))
         wfn.sector((3, 3)).coeff = coeffs
 
         ref_string = 'Sector N = 3 : S_z = -3\n' + \
