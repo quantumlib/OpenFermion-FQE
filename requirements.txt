@@ -1,4 +1,4 @@
-cirq
+cirq~=0.9
 jupyter
 numpy>=1.14
 openfermion
