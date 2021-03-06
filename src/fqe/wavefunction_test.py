@@ -253,31 +253,54 @@ class WavefunctionTest(unittest.TestCase):
         """
         numpy.random.seed(seed=409)
         wfn = get_number_conserving_wavefunction(3, 3)
-        wfn.set_wfn(strategy='random')
+        sector_alpha_dim, sector_beta_dim = wfn.sector((3, -3)).coeff.shape
+        coeffs = numpy.arange(1,
+                              sector_alpha_dim * sector_beta_dim + 1).reshape(
+                                  (sector_alpha_dim, sector_beta_dim))
+        wfn.sector((3, -3)).coeff = coeffs
+
+        sector_alpha_dim, sector_beta_dim = wfn.sector((3, -1)).coeff.shape
+        coeffs = numpy.arange(1,
+                              sector_alpha_dim * sector_beta_dim + 1).reshape(
+                                  (sector_alpha_dim, sector_beta_dim))
+        wfn.sector((3, -1)).coeff = coeffs
+
+        sector_alpha_dim, sector_beta_dim = wfn.sector((3, 1)).coeff.shape
+        coeffs = numpy.arange(1,
+                              sector_alpha_dim * sector_beta_dim + 1).reshape(
+                                  (sector_alpha_dim, sector_beta_dim))
+        wfn.sector((3, 1)).coeff = coeffs
+
+        sector_alpha_dim, sector_beta_dim = wfn.sector((3, 3)).coeff.shape
+        coeffs = numpy.arange(1,
+                              sector_alpha_dim * sector_beta_dim + 1).reshape(
+                                  (sector_alpha_dim, sector_beta_dim))
+        wfn.sector((3, 3)).coeff = coeffs
+
         ref_string = 'Sector N = 3 : S_z = -3\n' + \
-        'a\'000\'b\'111\' (-0.965716165103582-0.2596002474144259j)\n' + \
-        'Sector N = 3 : S_z = -1\n' + \
-        'a\'001\'b\'011\' (-0.36353371799047474-0.20659882336491125j)\n' + \
-        'a\'001\'b\'101\' (-0.2595794430985754-0.21559318752883358j)\n' + \
-        'a\'001\'b\'110\' (0.2245720691863791+0.04852785090765824j)\n' + \
-        'a\'010\'b\'011\' (-0.3343371194649537-0.18162164502182865j)\n' + \
-        'a\'010\'b\'101\' (-0.12276329653757072+0.2598595053848905j)\n' + \
-        'a\'010\'b\'110\' (-0.07129059307188947-0.09903086482985644j)\n' + \
-        'a\'100\'b\'011\' (-0.21689451722319453-0.37961322467516906j)\n' + \
-        'a\'100\'b\'101\' (-0.08335325115398513-0.3320831963824638j)\n' + \
-        'a\'100\'b\'110\' (0.3223504737186291-0.06300341495552426j)\n' + \
-        'Sector N = 3 : S_z = 1\n' + \
-        'a\'011\'b\'001\' (-0.21405181650984867+0.291191428014912j)\n' + \
-        'a\'011\'b\'010\' (-0.27528122914339537+0.17928779581227006j)\n' + \
-        'a\'011\'b\'100\' (-0.03830344247705324-0.1018560909069887j)\n' + \
-        'a\'101\'b\'001\' (-0.45862002455262096+0.15967403671706776j)\n' + \
-        'a\'101\'b\'010\' (-0.38283591522104243+0.11908329862006684j)\n' + \
-        'a\'101\'b\'100\' (0.4116282600794628+0.010105890130903789j)\n' + \
-        'a\'110\'b\'001\' (0.1076905656249564-0.00752210752071855j)\n' + \
-        'a\'110\'b\'010\' (0.11663872769596699-0.22956164504983004j)\n' + \
-        'a\'110\'b\'100\' (-0.16087960736695867+0.2822626579924094j)\n' + \
-        'Sector N = 3 : S_z = 3\n' + \
-        'a\'111\'b\'000\' (0.803446320104347-0.5953772003619078j)\n'
+                     "a'000'b'111' 1\n" + \
+                     "Sector N = 3 : S_z = -1\n" + \
+                     "a'001'b'011' 1\n" + \
+                     "a'001'b'101' 2\n" + \
+                     "a'001'b'110' 3\n" + \
+                     "a'010'b'011' 4\n" + \
+                     "a'010'b'101' 5\n" + \
+                     "a'010'b'110' 6\n" + \
+                     "a'100'b'011' 7\n" + \
+                     "a'100'b'101' 8\n" + \
+                     "a'100'b'110' 9\n" + \
+                     "Sector N = 3 : S_z = 1\n" + \
+                     "a'011'b'001' 1\n" + \
+                     "a'011'b'010' 2\n" + \
+                     "a'011'b'100' 3\n" + \
+                     "a'101'b'001' 4\n" + \
+                     "a'101'b'010' 5\n" + \
+                     "a'101'b'100' 6\n" + \
+                     "a'110'b'001' 7\n" + \
+                     "a'110'b'010' 8\n" + \
+                     "a'110'b'100' 9\n" + \
+                     "Sector N = 3 : S_z = 3\n" + \
+                     "a'111'b'000' 1\n"
         save_stdout = sys.stdout
         sys.stdout = chkprint = StringIO()
         wfn.print_wfn()
@@ -285,31 +308,31 @@ class WavefunctionTest(unittest.TestCase):
         outstring = chkprint.getvalue()
         self.assertEqual(outstring, ref_string)
 
-        wfn.set_wfn(strategy='random')
-        ref_string = 'Sector N = 3 : S_z = -3\n' + \
-        'bbb (-0.8113698523271319-0.5845331151736812j)\n' + \
-        'Sector N = 3 : S_z = -1\n' + \
-        '.b2 (0.27928557602787163-0.1474291874811043j)\n' + \
-        'b.2 (-0.1665913776204976-0.3617026012726579j)\n' + \
-        'bba (-0.34237638530199677-0.3478680323908946j)\n' + \
-        '.2b (-0.06261445720131753+0.06768497529405092j)\n' + \
-        'bab (-0.38139927374414034+0.1861924936737463j)\n' + \
-        'b2. (0.12088212990158276+0.017989309605196964j)\n' + \
-        'abb (0.21003022341703897+0.1796342715165676j)\n' + \
-        '2.b (0.025719719969361773-0.26643597861625606j)\n' + \
-        '2b. (-0.3300411848918476+0.2071714738026307j)\n' + \
-        'Sector N = 3 : S_z = 1\n' + \
-        '.a2 (0.04353310004001345-0.28962822210805944j)\n' + \
-        '.2a (-0.24253795700144656+0.4082951994423171j)\n' + \
-        'baa (0.0416027021668677+0.14568595964440914j)\n' + \
-        'a.2 (-0.4200764867734443-0.3368997907424329j)\n' + \
-        'aba (0.011316109760530853+0.14538028430182576j)\n' + \
-        '2.a (0.10466970722751164-0.3036806837765713j)\n' + \
-        'aab (-0.4332181974443824-0.06627315601193698j)\n' + \
-        'a2. (-0.10718975397926216+0.2170023330304916j)\n' + \
-        '2a. (0.0013687148060600703+0.026018656390685173j)\n' + \
-        'Sector N = 3 : S_z = 3\n' + \
-        'aaa (-0.6533937058927956-0.757018272632622j)\n'
+        wfn.print_wfn(fmt='occ')
+        ref_string = "Sector N = 3 : S_z = -3\n" + \
+                     "bbb 1\n" + \
+                     "Sector N = 3 : S_z = -1\n" + \
+                     ".b2 1\n" + \
+                     "b.2 2\n" + \
+                     "bba 3\n" + \
+                     ".2b 4\n" + \
+                     "bab 5\n" + \
+                     "b2. 6\n" + \
+                     "abb 7\n" + \
+                     "2.b 8\n" + \
+                     "2b. 9\n" + \
+                     "Sector N = 3 : S_z = 1\n" + \
+                     ".a2 1\n" + \
+                     ".2a 2\n" + \
+                     "baa 3\n" + \
+                     "a.2 4\n" + \
+                     "aba 5\n" + \
+                     "2.a 6\n" + \
+                     "aab 7\n" + \
+                     "a2. 8\n" + \
+                     "2a. 9\n" + \
+                     "Sector N = 3 : S_z = 3\n" + \
+                     "aaa 1\n"
         save_stdout = sys.stdout
         sys.stdout = chkprint = StringIO()
         wfn.print_wfn(fmt='occ')
