@@ -1,7 +1,7 @@
 cirq~=0.10
 jupyter
 numpy>=1.14
-openfermion>=1.0
+openfermion>=1.0.1
 scipy
 pyasn1-modules==0.2.7
 Sphinx>=2.3.1
