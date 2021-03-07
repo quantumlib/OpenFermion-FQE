@@ -45,8 +45,7 @@ def main() -> None:
     if __version__ is None:
         raise ValueError('Version information not found in ' + version_path)
 
-    long_description = ('===============\n' +
-                        'OpenFermion-FQE\n' +
+    long_description = ('OpenFermion-FQE\n' +
                         '===============\n')
     stream = io.open('README.md', encoding='utf-8')
     stream.readline()
@@ -63,6 +62,7 @@ def main() -> None:
         url='http://www.openfermion.org',
         description='OpenFermion Fermionic Quantum Emulator',
         long_description=long_description,
+        long_description_content_type="text/markdown",
         install_requires=requirements,
         license='Apache 2',
         packages=find_packages(where='src'),
