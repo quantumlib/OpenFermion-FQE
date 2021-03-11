@@ -145,16 +145,7 @@ class FciGraphSet:
         downb: Spinmap = {}
 
         if dna != 0:
-            # what is happening here?
             (iasec, jasec) = (isec, jsec) if dna < 0 else (jsec, isec)
-            # print("iasec")
-            # for ii in iasec.string_alpha_all():
-            #     print(ii, np.binary_repr(ii, width=iasec.norb()))
-            # print()
-            # print("jasec")
-            # for ii in jasec.string_alpha_all():
-            #     print(ii, np.binary_repr(ii, width=jasec.norb()))
-
             downa, upa = make_mapping_each(iasec.string_alpha_all(),
                                            iasec.index_alpha_all(),
                                            jasec.index_alpha_all(), abs(dna))
