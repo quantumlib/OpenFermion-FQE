@@ -3,9 +3,8 @@ toc:
   path: /openfermion/fqe
 
 - heading: "Guide"
-- title: "Data collection idioms"
+- title: "Introduction"
   path: /openfermion/fqe/guide/introduction
-
 
 - heading: "Tutorials"
 - title: "Hamiltonian time evolution and expectation estimation"
