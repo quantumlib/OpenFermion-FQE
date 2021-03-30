@@ -16,5 +16,5 @@
 
 cd ..
 sudo python3 setup.py install
-cd docs
+cd rtd_docs
 make html

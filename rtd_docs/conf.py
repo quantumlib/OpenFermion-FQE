@@ -30,7 +30,6 @@
 # import sys
 # sys.path.insert(0, os.path.abspath('.'))
 
-
 # -- Project information -----------------------------------------------------
 
 project = u'OpenFermion-FQE'
@@ -41,7 +40,6 @@ author = u'OpenFermion-FQE Developers'
 version = u'0.0'
 # The full version, including alpha/beta/rc tags
 release = u'0.0.0_dev'
-
 
 # -- General configuration ---------------------------------------------------
 
@@ -86,7 +84,6 @@ exclude_patterns = [u'_build', 'Thumbs.db', '.DS_Store']
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = None
 
-
 # -- Options for HTML output -------------------------------------------------
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
@@ -115,12 +112,10 @@ html_static_path = ['_static']
 #
 # html_sidebars = {}
 
-
 # -- Options for HTMLHelp output ---------------------------------------------
 
 # Output file base name for HTML help builder.
 htmlhelp_basename = 'fqedoc'
-
 
 # -- Options for LaTeX output ------------------------------------------------
 
@@ -146,20 +141,15 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'fqe.tex', u'FQE Documentation',
-     u'OpenFermion-FQE Developers', 'manual'),
+    (master_doc, 'fqe.tex', u'FQE Documentation', u'OpenFermion-FQE Developers',
+     'manual'),
 ]
-
 
 # -- Options for manual page output ------------------------------------------
 
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
-man_pages = [
-    (master_doc, 'fqe', u'FQE Documentation',
-     [author], 1)
-]
-
+man_pages = [(master_doc, 'fqe', u'FQE Documentation', [author], 1)]
 
 # -- Options for Texinfo output ----------------------------------------------
 
@@ -167,11 +157,9 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'fqe', u'Fqe Documentation',
-     author, 'fqe', 'Fermionic Quantum Emulator.',
-     'Miscellaneous'),
+    (master_doc, 'fqe', u'Fqe Documentation', author, 'fqe',
+     'Fermionic Quantum Emulator.', 'Miscellaneous'),
 ]
-
 
 # -- Options for Epub output -------------------------------------------------
 
@@ -190,15 +178,15 @@ epub_title = project
 # A list of files that should not be packed into the epub file.
 epub_exclude_files = ['search.html']
 
-
 # -- Extension configuration -------------------------------------------------
 
 
 def skip(app, what, name, obj, would_skip, options):
-#   if name == "__init__" or name == "__add__" or name == "__iadd__" or name == "__sub__" or name == "__isub__":
+    #   if name == "__init__" or name == "__add__" or name == "__iadd__" or name == "__sub__" or name == "__isub__":
     if name == "__init__":
         return False
     return would_skip
+
 
 def setup(app):
     app.connect("autodoc-skip-member", skip)
