@@ -358,3 +358,8 @@ class WavefunctionTest(unittest.TestCase):
         wfn = Wavefunction([[nalpha + nbeta, nalpha - nbeta, norb],
                             [nalpha + nbeta, 2, norb]])
         self.assertRaises(ValueError, wfn.set_wfn, strategy='hartree-fock')
+
+    def test_set_wfn_random_with_multiple_sectors_is_normalized(self):
+        wfn = Wavefunction([[2, 0, 4], [2, -2, 4]], broken=None)
+        wfn.set_wfn(strategy="random")
+        self.assertAlmostEqual(wfn.norm(), 1.0)
