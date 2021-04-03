@@ -426,8 +426,6 @@ def rand_wfn(adim: int, bdim: int) -> numpy.ndarray:
     wfn = numpy.random.randn(adim, bdim).astype(numpy.complex128) + \
           numpy.random.randn(adim, bdim).astype(numpy.complex128)*1.j
 
-    norm = numpy.sqrt(numpy.vdot(wfn.flatten(), wfn.flatten()))
-    wfn /= norm
     return wfn
 
 
