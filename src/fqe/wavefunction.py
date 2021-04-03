@@ -772,6 +772,9 @@ class Wavefunction:
             for sector in self._civec.values():
                 sector.set_wfn(strategy=strategy)
 
+        if strategy == 'random':
+            self.normalize()
+
     def transform(
             self,
             rotation: numpy.ndarray,
