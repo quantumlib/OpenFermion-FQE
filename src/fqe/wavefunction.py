@@ -746,14 +746,15 @@ class Wavefunction:
                 strategy: str = 'ones',
                 raw_data: Optional[Dict[Tuple[int, int], numpy.ndarray]] = None
                ) -> None:
-        """Set the values of the ciwfn based on an argument or data to
-        initalize from.
+        """Set the values of the wavefunction inplace based on a strategy.
 
         Args:
-            strategy (string) - an option controlling how the values are set
+            strategy (string) - The procedure to follow to set the wavefunction
+                coefficients. One of 'random', 'hartree-fock', 'ones', 'zeros',
+                or 'from_data'. If 'from_data', raw_data must be provided.
 
-            raw_data (numpy.array(dtype=numpy.complex128)) - data to inject into \
-              the configuration
+            raw_data (numpy.array(dtype=numpy.complex128)) - The values to use
+                if setting from data.
         """
         if strategy == 'from_data' and not raw_data:
             raise ValueError('No data provided for set_wfn')
