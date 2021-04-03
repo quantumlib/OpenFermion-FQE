@@ -416,12 +416,11 @@ def rand_wfn(adim: int, bdim: int) -> numpy.ndarray:
     """Utility for generating random normalized wavefunctions.
 
     Args:
-        dim (int) - length of the wavefunction
-        sparse (string) - a string indicating an approximate measure of how
-            often zeros should show up in the wavefunction
+        adim (int) - length of the alpha string
+        bdim (int) - length of the beta string
 
     Returns:
-        numpy.array(dim=dim, dtype=numpy.complex64)
+        numpy.ndarray(shape=(adim, bdim), dtype=numpy.complex64)
     """
     wfn = numpy.random.randn(adim, bdim).astype(numpy.complex128) + \
           numpy.random.randn(adim, bdim).astype(numpy.complex128)*1.j
