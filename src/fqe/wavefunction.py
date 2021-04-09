@@ -492,7 +492,7 @@ class Wavefunction:
                                 time: float,
                                 algo: str,
                                 hamil: 'hamiltonian.Hamiltonian',
-                                accuracy: float = 0.0,
+                                accuracy: float = 1.0E-14,
                                 expansion: int = 30,
                                 spec_lim: Optional[List[float]] = None
                                ) -> 'Wavefunction':
@@ -529,7 +529,7 @@ class Wavefunction:
         else:
             base = copy.deepcopy(self)
 
-        max_expansion = min(30, expansion)
+        max_expansion = max(30, expansion)
 
         if algo == 'taylor':
             ham_arrays = hamil.iht(time)
