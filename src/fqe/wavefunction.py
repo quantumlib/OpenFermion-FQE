@@ -529,15 +529,13 @@ class Wavefunction:
         else:
             base = copy.deepcopy(self)
 
-        max_expansion = max(30, expansion)
-
         if algo == 'taylor':
             ham_arrays = hamil.iht(time)
 
             time_evol = copy.deepcopy(base)
             work = copy.deepcopy(base)
 
-            for order in range(1, max_expansion):
+            for order in range(1, expansion):
                 work = work.apply(ham_arrays)
                 coeff = 1.0 / factorial(order)
                 time_evol.ax_plus_y(coeff, work)
@@ -562,7 +560,7 @@ class Wavefunction:
             current.scale(1.0 / ascale)
             time_evol.ax_plus_y(2.0 * jv(1, ascale * time) * (-1.j), current)
 
-            for order in range(2, max_expansion):
+            for order in range(2, expansion):
                 minus.scale(-1.0)
                 minus.ax_plus_y(2.0 / ascale, current.apply(hamil))
                 minus.ax_plus_y(2.0 * eshift / ascale, current)
