@@ -262,7 +262,6 @@ def fermionops_tomatrix(ops: 'FermionOperator', norb: int) -> numpy.ndarray:
 
         tensor[tuple(index_mask)] += (-1)**parity * ops.terms[term]
 
-
     tensor2 = numpy.zeros_like(tensor)
     length = 0
     seed = []
