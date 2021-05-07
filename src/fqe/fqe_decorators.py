@@ -19,6 +19,7 @@ intrinsics
 
 from typing import Any, Dict, Tuple, Union, Optional, List
 from functools import wraps
+from itertools import permutations
 
 import copy
 
@@ -261,7 +262,18 @@ def fermionops_tomatrix(ops: 'FermionOperator', norb: int) -> numpy.ndarray:
 
         tensor[tuple(index_mask)] += (-1)**parity * ops.terms[term]
 
-    return tensor
+    tensor2 = numpy.zeros_like(tensor)
+    length = 0
+    seed = range(rank // 2)
+    for ip in permutations(seed):
+        iperm = list(ip)
+        jperm = copy.deepcopy(iperm)
+        for j in range(rank // 2):
+            jperm[j] += rank // 2
+        tensor2 += tensor.transpose(iperm + jperm)
+        length += 1
+    tensor2 /= length
+    return tensor2
 
 
 def process_rank2_matrix(mat: numpy.ndarray, norb: int,
