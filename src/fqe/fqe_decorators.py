@@ -264,9 +264,7 @@ def fermionops_tomatrix(ops: 'FermionOperator', norb: int) -> numpy.ndarray:
 
     tensor2 = numpy.zeros_like(tensor)
     length = 0
-    seed = []
-    for i in range(rank // 2):
-        seed.append(i)
+    seed = range(rank // 2)
     for ip in permutations(seed):
         iperm = list(ip)
         jperm = copy.deepcopy(iperm)
