@@ -24,7 +24,7 @@ import scipy
 
 from openfermion.transforms import normal_ordered
 from openfermion import (FermionOperator, hermitian_conjugated,
-                         get_sparse_operator)
+                         get_sparse_operator, fermi_hubbard)
 from fqe.hamiltonians import general_hamiltonian
 from fqe.hamiltonians import restricted_hamiltonian
 from fqe.hamiltonians import sparse_hamiltonian
@@ -40,7 +40,7 @@ from fqe.fqe_decorators import fermionops_tomatrix
 from fqe.fqe_decorators import process_rank2_matrix
 from fqe.fqe_decorators import check_diagonal_coulomb
 
-from fqe.wavefunction import Wavefunction
+from fqe import Wavefunction, vdot
 
 from fqe import to_cirq, from_cirq
 
@@ -94,6 +94,28 @@ class TestFqedecorators(unittest.TestCase):
         self.assertRaises(ValueError, fermionops_tomatrix, ops, norb)
         ops = FermionOperator('3^ 1^')
         self.assertRaises(ValueError, fermionops_tomatrix, ops, norb)
+
+    def test_fermionops_tomatrix_hubbard_model(self):
+        hubbard = fermi_hubbard(1,
+                                4,
+                                tunneling=1.0,
+                                coulomb=2.0,
+                                periodic=False)
+
+        init_wfn = Wavefunction([[2, 0, 4]])
+        init_wfn.set_wfn(strategy="random")
+
+        # This calls fermionops_tomatrix.
+        evolved_wfn = init_wfn.time_evolve(1.0, hubbard)
+
+        # Check.
+        wfn_cirq = to_cirq(init_wfn)
+        unitary = scipy.linalg.expm(-1j * get_sparse_operator(hubbard))
+        evolved_wfn_cirq = unitary @ wfn_cirq
+
+        fidelity = abs(
+            vdot(evolved_wfn, from_cirq(evolved_wfn_cirq, thresh=1e-12)))**2
+        assert numpy.isclose(fidelity, 1.0)
 
     def test_process_rank2_matrix(self):
         numpy.random.seed(seed=409)
