@@ -35,13 +35,13 @@ Please post questions to the Quantum Computing Stack Exchange with an 'openfermi
 When using OpenFermion-FQE for research projects, please cite:
 
 ```
-@misc{fqe_2020,
-    author       = {Nicholas C. Rubin, Toru Shiozaki, Kyle Throssell, Garnet Chan, Ryan Babbush},
-    title        = {The Fermionic Quantum Emulator},
-    month        = {Aug},
-    year         = {2020},
-    url          = {https://github.com/quantumlib/OpenFermion-FQE} 
-    }
+@article{fqe2021,
+  title={The Fermionic Quantum Emulator},
+  author={Rubin, Nicholas C and Shiozaki, Toru and Throssell, Kyle and Chan, Garnet Kin-Lic and Babbush, Ryan},
+  journal={arXiv preprint arXiv:2104.13944},
+  year={2021},
+  url= {https://github.com/quantumlib/OpenFermion-FQE} 
+}
 ```
 
 ## Disclaimer
