@@ -6,11 +6,9 @@ evolutions under fermionic generators.
 ![Python package](https://github.com/quantumlib/OpenFermion-FQE/workflows/Python%20package/badge.svg?branch=master)
 
 ## Getting Started
-Installing FQE requires pip. Make sure that you are using an up-to-date version of it. 
-For information about getting started beyond what is provided below please see our 
-tutorial in the examples folder as well as our detailed code documentation.
+Installing FQE can be done via `pip install fqe`.
 
-To build the docs navigate the the `docs` folder in the command line and type `make html`.
+For information about getting started, please see the [OpenFermion-FQE Guide & Tutorials](https://quantumai.google/openfermion/fqe).
 
 ## How to contribute
 We'd love to accept your contributions and patches to OpenFermion-FQE. 
