@@ -1,7 +1,6 @@
-cirq~=0.10
+openfermion @ git+git://github.com/quantumlib/openfermion@086073666d275de736861b41ed535a9fe75e63ac
 jupyter
 numpy>=1.14
-openfermion>=1.0.1
 scipy
 pyasn1-modules==0.2.7
 Sphinx>=2.3.1
