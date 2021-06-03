@@ -1905,21 +1905,21 @@ class FqeData:
                 dvecb[t, u, :, :])
 
             ckckck_aaa[:, :, :, :, t, u] = numpy.einsum('liab,rsab->ilrs',
-                                      dveca_conj,
-                                      tdveca_a,
-                                      optimize=True)
+                                                        dveca_conj,
+                                                        tdveca_a,
+                                                        optimize=True)
             ckckck_aab[:, :, :, :, t, u] = numpy.einsum('liab,rsab->ilrs',
-                                      dveca_conj,
-                                      tdveca_b,
-                                      optimize=True)
+                                                        dveca_conj,
+                                                        tdveca_b,
+                                                        optimize=True)
             ckckck_abb[:, :, :, :, t, u] = numpy.einsum('liab,rsab->ilrs',
-                                      dveca_conj,
-                                      tdvecb_b,
-                                      optimize=True)
-            ckckck_bbb[:, :, :, :, t, u] =numpy.einsum('liab,rsab->ilrs',
-                                      dvecb_conj,
-                                      tdvecb_b,
-                                      optimize=True)
+                                                        dveca_conj,
+                                                        tdvecb_b,
+                                                        optimize=True)
+            ckckck_bbb[:, :, :, :, t, u] = numpy.einsum('liab,rsab->ilrs',
+                                                        dvecb_conj,
+                                                        tdvecb_b,
+                                                        optimize=True)
 
         # p^ r^ t^ u s q = p^ q r^ s t^ u + d(q, r) p^ t^ s u - d(q, t)p^ r^ s u
         #                 + d(s, t)p^ r^ q u - d(q,r)d(s,t)p^ u
