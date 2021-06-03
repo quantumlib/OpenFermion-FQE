@@ -36,7 +36,7 @@ def test_op_pool():
 
     op = OperatorPool(2, [0], [1])
     op.two_body_sz_adapted()
-    assert len(op.op_pool) == 20
+    assert len(op.op_pool) == 14
 
     true_generator0 = of.FermionOperator('1^ 0^ 2 1') - \
                       of.FermionOperator('2^ 1^ 1 0')
