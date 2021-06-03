@@ -672,35 +672,26 @@ def two_rdo_commutator_symm(two_body_tensor: np.ndarray, tpdm: np.ndarray,
         d3: spin-orbital three-RDM p^ q^ r^ s t u corresponding to (1'2'3'32 1)
     """
     dim = tpdm.shape[0]
-    tensor_of_expectation = np.zeros(tuple([dim] * 4), dtype=tpdm.dtype)
     k2 = two_body_tensor.transpose(0, 1, 3, 2)
-    for p, q, r, s in product(range(dim), repeat=4):
-        commutator_expectation = 0.
-        #   (  -2.00000) k2(p,q,a,b) cre(a) cre(b) des(r) des(s)
-        commutator_expectation += -2. * np.einsum('ab,ab', k2[p, q, :, :],
-                                                  tpdm[:, :, r, s])
+    tensor_of_expectation = np.zeros(tuple([dim] * 4), dtype=tpdm.dtype)
+    #   (  -2.00000) k2(p,q,a,b) cre(a) cre(b) des(r) des(s)
+    tensor_of_expectation += -2. * np.einsum('pqab,abrs->pqrs', k2, tpdm)
 
-        #   (   2.00000) k2(r,s,a,b) cre(p) cre(q) des(a) des(b)
-        commutator_expectation += 2. * np.einsum('ab,ab', k2[r, s, :, :],
-                                                 tpdm[p, q, :, :])
+    #   (   2.00000) k2(r,s,a,b) cre(p) cre(q) des(a) des(b)
+    tensor_of_expectation += 2. * np.einsum('rsab,pqab->pqrs', k2, tpdm)
 
-        #   (   2.00000) k2(p,a,b,c) cre(q) cre(b) cre(c) des(r) des(s) des(a)
-        commutator_expectation += 2. * np.einsum('abc,bca', k2[p, :, :, :],
-                                                 d3[q, :, :, r, s, :])
+    #   (   2.00000) k2(p,a,b,c) cre(q) cre(b) cre(c) des(r) des(s) des(a)
+    tensor_of_expectation += 2. * np.einsum('pabc,qbcrsa->pqrs', k2, d3)
 
-        #   (  -2.00000) k2(q,a,b,c) cre(p) cre(b) cre(c) des(r) des(s) des(a)
-        commutator_expectation += -2. * np.einsum('abc,bca', k2[q, :, :, :],
-                                                  d3[p, :, :, r, s, :])
+    #   (  -2.00000) k2(q,a,b,c) cre(p) cre(b) cre(c) des(r) des(s) des(a)
+    tensor_of_expectation += -2. * np.einsum('qabc,pbcrsa->pqrs', k2, d3)
 
-        #   (  -2.00000) k2(r,a,b,c) cre(p) cre(q) cre(a) des(s) des(b) des(c)
-        commutator_expectation += -2. * np.einsum('abc,abc', k2[r, :, :, :],
-                                                  d3[p, q, :, s, :, :])
+    #   (  -2.00000) k2(r,a,b,c) cre(p) cre(q) cre(a) des(s) des(b) des(c)
+    tensor_of_expectation += -2. * np.einsum('rabc,pqasbc->pqrs', k2, d3)
 
-        #   (   2.00000) k2(s,a,b,c) cre(p) cre(q) cre(a) des(r) des(b) des(c)
-        commutator_expectation += 2. * np.einsum('abc,abc', k2[s, :, :, :],
-                                                 d3[p, q, :, r, :, :])
+    #   (   2.00000) k2(s,a,b,c) cre(p) cre(q) cre(a) des(r) des(b) des(c)
+    tensor_of_expectation += 2. * np.einsum('sabc,pqarbc->pqrs', k2, d3)
 
-        tensor_of_expectation[p, q, r, s] = commutator_expectation
     return tensor_of_expectation
 
 
@@ -763,16 +754,11 @@ def one_rdo_commutator_symm(two_body_tensor: np.ndarray,
         tpdm: spin-orbital two-RDM p^ q^ r s corresponding to (1'2'2 1)
     """
     dim = tpdm.shape[0]
-    tensor_of_expectation = np.zeros(tuple([dim] * 2), dtype=tpdm.dtype)
     k2 = two_body_tensor.transpose(0, 1, 3, 2)
-    for p, q in product(range(dim), repeat=2):
-        commutator_expectation = 0.
-        #   (   2.00000) k2(p,a,b,c) cre(b) cre(c) des(q) des(a)
-        commutator_expectation += 2.0 * np.einsum('abc,bca', k2[p, :, :, :],
-                                                  tpdm[:, :, q, :])
+    tensor_of_expectation = np.zeros(tuple([dim] * 2), dtype=tpdm.dtype)
+    #   (   2.00000) k2(p,a,b,c) cre(b) cre(c) des(q) des(a)
+    tensor_of_expectation += 2.0 * np.einsum('pabc,bcqa->pq', k2, tpdm)
 
-        #   (  -2.00000) k2(q,a,b,c) cre(p) cre(a) des(b) des(c)
-        commutator_expectation += -2.0 * np.einsum('abc,abc', k2[q, :, :, :],
-                                                   tpdm[p, :, :, :])
-        tensor_of_expectation[p, q] = commutator_expectation
+    #   (  -2.00000) k2(q,a,b,c) cre(p) cre(a) des(b) des(c)
+    tensor_of_expectation += -2.0 * np.einsum('qabc,pabc->pq', k2, tpdm)
     return tensor_of_expectation

@@ -119,6 +119,18 @@ class OperatorPool:
                 fop_aa = fop_aa - of.hermitian_conjugated(fop_aa)
                 self.op_pool.append(fop_aa)
 
+    def generalized_two_body_minimal(self):
+        """
+        Doubles generators each with distinct Sz expectation value.
+
+        """
+        for i, j, k, l in product(range(2 * self.norbs), repeat=4):
+            if i < j and k < l:
+                op = ((i, 1), (j, 1), (k, 0), (l, 0))
+                fop_aa = of.FermionOperator(op)
+                fop_aa = fop_aa - of.hermitian_conjugated(fop_aa)
+                self.op_pool.append(fop_aa)
+
     def two_body_sz_adapted(self):
         """
         Doubles generators each with distinct Sz expectation value.
@@ -126,7 +138,7 @@ class OperatorPool:
         G^{isigma, jtau, ktau, lsigma) for sigma, tau in 0, 1
         """
         for i, j, k, l in product(range(self.norbs), repeat=4):
-            if i != j and k != l:
+            if i < j and k < l:
                 op_aa = ((2 * i, 1), (2 * j, 1), (2 * k, 0), (2 * l, 0))
                 op_bb = ((2 * i + 1, 1), (2 * j + 1, 1), (2 * k + 1, 0),
                          (2 * l + 1, 0))

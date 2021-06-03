@@ -25,7 +25,7 @@
 #pylint: disable=too-many-arguments
 import copy
 import itertools
-from typing import List, Optional, Tuple, TYPE_CHECKING
+from typing import Dict, List, Optional, Tuple, TYPE_CHECKING
 
 import numpy
 from scipy.special import binom
@@ -1902,32 +1902,23 @@ class FqeData:
                 dveca[t, u, :, :])
             tdveca_b, tdvecb_b = self._calculate_dvec_spin_with_coeff(
                 dvecb[t, u, :, :])
-            for r, s in itertools.product(range(self.norb()), repeat=2):
-                # p(:)^ q(:) r^ s t^ u
-                # a-a-a
-                pq_rdm = numpy.einsum('liab,ab->il',
-                                      dveca_conj,
-                                      tdveca_a[r, s, :, :],
-                                      optimize=True)
-                ckckck_aaa[:, :, r, s, t, u] = pq_rdm
-                # a-a-b
-                pq_rdm = numpy.einsum('liab,ab->il',
-                                      dveca_conj,
-                                      tdveca_b[r, s, :, :],
-                                      optimize=True)
-                ckckck_aab[:, :, r, s, t, u] = pq_rdm
-                # a-b-b
-                pq_rdm = numpy.einsum('liab,ab->il',
-                                      dveca_conj,
-                                      tdvecb_b[r, s, :, :],
-                                      optimize=True)
-                ckckck_abb[:, :, r, s, t, u] = pq_rdm
-                # b-b-b
-                pq_rdm = numpy.einsum('liab,ab->il',
-                                      dvecb_conj,
-                                      tdvecb_b[r, s, :, :],
-                                      optimize=True)
-                ckckck_bbb[:, :, r, s, t, u] = pq_rdm
+
+            ckckck_aaa[:, :, :, :, t, u] = numpy.einsum('liab,rsab->ilrs',
+                                                        dveca_conj,
+                                                        tdveca_a,
+                                                        optimize=True)
+            ckckck_aab[:, :, :, :, t, u] = numpy.einsum('liab,rsab->ilrs',
+                                                        dveca_conj,
+                                                        tdveca_b,
+                                                        optimize=True)
+            ckckck_abb[:, :, :, :, t, u] = numpy.einsum('liab,rsab->ilrs',
+                                                        dveca_conj,
+                                                        tdvecb_b,
+                                                        optimize=True)
+            ckckck_bbb[:, :, :, :, t, u] = numpy.einsum('liab,rsab->ilrs',
+                                                        dvecb_conj,
+                                                        tdvecb_b,
+                                                        optimize=True)
 
         # p^ r^ t^ u s q = p^ q r^ s t^ u + d(q, r) p^ t^ s u - d(q, t)p^ r^ s u
         #                 + d(s, t)p^ r^ q u - d(q,r)d(s,t)p^ u
