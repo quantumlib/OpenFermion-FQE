@@ -1896,7 +1896,6 @@ class FqeData:
         dveca_conj, dvecb_conj = dveca.conj().copy(), dvecb.conj().copy()
         opdm, tpdm = self.get_openfermion_rdms()
         krond = numpy.eye(opdm.shape[0] // 2)
-        import time
         # alpha-alpha-alpha
         for t, u in itertools.product(range(self.norb()), repeat=2):
             tdveca_a, _ = self._calculate_dvec_spin_with_coeff(
