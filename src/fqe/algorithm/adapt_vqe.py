@@ -231,6 +231,7 @@ class ADAPT:
                   initial_wf: Wavefunction,
                   opt_method: str = 'L-BFGS-B',
                   opt_options=None,
+                  num_opt_var=None,
                   v_reconstruct: bool = True,
                   num_ops_add: int = 1):
         """
@@ -246,6 +247,7 @@ class ADAPT:
         """
         if opt_options is None:
             opt_options = {}
+        self.num_opt_var = num_opt_var
         operator_pool = []
         operator_pool_fqe: List[ABCHamiltonian] = []
         existing_parameters: List[float] = []
@@ -299,14 +301,41 @@ class ADAPT:
             operator_pool_fqe.extend(fqe_ops)
             existing_parameters.extend([0] * len(fqe_ops))
 
-            new_parameters, current_e = self.optimize_param(
-                operator_pool_fqe,
-                existing_parameters,
-                initial_wf,
-                opt_method,
-                opt_options=opt_options)
+            if self.num_opt_var is not None:
+                if len(operator_pool_fqe) < self.num_opt_var:
+                    pool_to_op = operator_pool_fqe
+                    params_to_op = existing_parameters
+                    current_wf = copy.deepcopy(initial_wf)
+                else:
+                    pool_to_op = operator_pool_fqe[-self.num_opt_var:]
+                    params_to_op = existing_parameters[-self.num_opt_var:]
+                    current_wf = copy.deepcopy(initial_wf)
+                    for fqe_op, coeff in zip(
+                            operator_pool_fqe[:-self.num_opt_var],
+                            existing_parameters[:-self.num_opt_var]):
+                        current_wf = current_wf.time_evolve(coeff, fqe_op)
 
-            existing_parameters = new_parameters.tolist()
+                new_parameters, current_e = self.optimize_param(
+                    pool_to_op,
+                    params_to_op,
+                    current_wf,
+                    opt_method,
+                    opt_options=opt_options)
+
+                if len(operator_pool_fqe) < self.num_opt_var:
+                    existing_parameters = new_parameters.tolist()
+                else:
+                    existing_parameters[-self.num_opt_var:] = \
+                        new_parameters.tolist()
+            else:
+                new_parameters, current_e = self.optimize_param(
+                    operator_pool_fqe,
+                    existing_parameters,
+                    initial_wf,
+                    opt_method,
+                    opt_options=opt_options)
+                existing_parameters = new_parameters.tolist()
+
             if self.verbose:
                 print("{: 5d}\t{: 5.15f}\t{: 5.15f}".format(
                     iteration, current_e, max(np.abs(pool_grad))))
