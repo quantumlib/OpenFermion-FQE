@@ -374,8 +374,9 @@ class VBC:
                 existing_parameters = new_parameters.tolist()
 
             if self.verbose:
-                print("{: 5d}\t{: 5.15f}\t{: 5.15f}\t{: 5d}".format(iteration, current_e, np.max(np.abs(acse_residual)),
-                      len(existing_parameters)))
+                print("{: 5d}\t{: 5.15f}\t{: 5.15f}\t{: 5d}".format(
+                    iteration, current_e, np.max(np.abs(acse_residual)),
+                    len(existing_parameters)))
             self.energies.append(current_e)
             self.residuals.append(acse_residual)
             if np.max(np.abs(acse_residual)) < self.stopping_eps or np.abs(

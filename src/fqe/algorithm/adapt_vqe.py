@@ -308,7 +308,8 @@ class ADAPT:
 
             existing_parameters = new_parameters.tolist()
             if self.verbose:
-                print("{: 5d}\t{: 5.15f}\t{: 5.15f}".format(iteration, current_e, max(np.abs(pool_grad))))
+                print("{: 5d}\t{: 5.15f}\t{: 5.15f}".format(
+                    iteration, current_e, max(np.abs(pool_grad))))
             self.energies.append(current_e)
             self.gradients.append(pool_grad)
             if max(np.abs(pool_grad)) < self.stopping_eps or np.abs(
