@@ -67,8 +67,10 @@ def build_hamiltonian(ops: Union[FermionOperator, hamiltonian.Hamiltonian],
 
     if isinstance(ops, tuple):
         validate_tuple(ops)
-
-        return general_hamiltonian.General(ops, e_0=e_0)
+        if norb != 0 and ops[0].shape[0] == norb:
+            return restricted_hamiltonian.RestrictedHamiltonian(ops, e_0=e_0)
+        else:
+            return general_hamiltonian.General(ops, e_0=e_0)
 
     if not isinstance(ops, FermionOperator):
         raise TypeError('Expected FermionOperator' \
@@ -373,7 +375,9 @@ def wrap_apply(apply):
         Args:
             ops (FermionOperator or Hamiltonian) - input operator
         """
-        hamil = build_hamiltonian(ops, conserve_number=self.conserve_number())
+        hamil = build_hamiltonian(ops,
+                                  norb=self.norb(),
+                                  conserve_number=self.conserve_number())
         return apply(self, hamil)
 
     return convert
@@ -395,7 +399,9 @@ def wrap_time_evolve(time_evolve):
 
             ops (FermionOperator or Hamiltonian) - input operator
         """
-        hamil = build_hamiltonian(ops, conserve_number=self.conserve_number())
+        hamil = build_hamiltonian(ops,
+                                  norb=self.norb(),
+                                  conserve_number=self.conserve_number())
         return time_evolve(self, time, hamil, inplace)
 
     return convert
@@ -433,7 +439,9 @@ def wrap_apply_generated_unitary(apply_generated_unitary):
         Returns:
             newwfn (Wavefunction) - a new intialized wavefunction object
         """
-        hamil = build_hamiltonian(ops, conserve_number=self.conserve_number())
+        hamil = build_hamiltonian(ops,
+                                  norb=self.norb(),
+                                  conserve_number=self.conserve_number())
         return apply_generated_unitary(self,
                                        time,
                                        algo,

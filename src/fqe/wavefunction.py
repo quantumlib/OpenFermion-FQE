@@ -38,7 +38,7 @@ from fqe.util import map_broken_symmetry
 from fqe.util import sort_configuration_keys
 from fqe.util import vdot
 from fqe.hamiltonians import hamiltonian, sparse_hamiltonian
-from fqe.hamiltonians import diagonal_hamiltonian
+from fqe.hamiltonians import diagonal_hamiltonian, restricted_hamiltonian
 from fqe.bitstring import count_bits
 from fqe.fqe_ops import fqe_operator, fqe_ops_utils
 from fqe.wick import wick
@@ -369,6 +369,16 @@ class Wavefunction:
             if isinstance(hamil, diagonal_hamiltonian.Diagonal):
                 transformed = out._apply_diagonal(hamil)
             else:
+                if isinstance(hamil,
+                              restricted_hamiltonian.RestrictedHamiltonian):
+                    expected = self._norb
+                else:
+                    expected = self._norb * 2
+                if hamil.dim() != expected:
+                    raise ValueError('Hamiltonian has incorrect size:' \
+                                     + ' expected {}'.format(expected) \
+                                     + ' provided {}'.format(hamil.dim()))
+
                 transformed = out._apply_array(hamil.tensors(), hamil.e_0())
 
             if self._conserve_spin and not self._conserve_number:
@@ -387,6 +397,8 @@ class Wavefunction:
 
         Arg:
             array (numpy.array) - numpy array
+
+            e_0 (complex) - constant part of the Hamiltonian
 
         Returns:
             newwfn (Wavvefunction) - a new intialized wavefunction object
@@ -942,9 +954,11 @@ class Wavefunction:
         either as raw operations or wrapped up in a Hamiltonian.
 
         Args:
-            ops (FermionOperators) - FermionOperators which are to be time evolved.
-
             time (float) - the duration by which to evolve the operators
+
+            hamil - Hamiltoninans or FermionOperators which are to be time evolved.
+
+            inplace (bool) - whether the result will be stored in place
 
         Returns:
             Wavefunction - a wavefunction object that has been time evolved.
@@ -1291,7 +1305,6 @@ class Wavefunction:
 # TODO: Delete or make unit test?
 if __name__ == "__main__":
     from openfermion import FermionOperator
-    import numpy
     import fqe
     from fqe.unittest_data import build_lih_data, build_hamiltonian
 
