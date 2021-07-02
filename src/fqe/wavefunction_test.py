@@ -203,7 +203,7 @@ class WavefunctionTest(unittest.TestCase):
         expval += numpy.tensordot(h3e, rdm3, axes=(axes, axes))
         axes = [0, 1, 2, 3, 4, 5, 6, 7]
         expval += numpy.tensordot(h4e, rdm4, axes=(axes, axes))
-        self.assertAlmostEqual(expval, energy)
+        self.assertAlmostEqual(expval, energy, places=13)
 
     def test_expectation_value_type_error(self):
         wfn = Wavefunction([[4, 0, 4]])
@@ -350,7 +350,11 @@ class WavefunctionTest(unittest.TestCase):
         wfn.print_wfn()
         wfn.set_wfn(strategy='hartree-fock')
         wfn.print_wfn()
-        self.assertEqual(wfn.expectationValue(elec_hamil), -8.857341498221992)
+        self.assertAlmostEqual(
+            wfn.expectationValue(elec_hamil),
+            -8.857341498221992,
+            places=13
+        )
         hf_wf = numpy.zeros((int(binom(norb, 2)), int(binom(norb, 2))))
         hf_wf[0, 0] = 1.
         self.assertTrue(numpy.allclose(wfn.get_coeff((4, 0)), hf_wf))

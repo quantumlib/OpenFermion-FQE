@@ -233,9 +233,8 @@ class TestFqedecorators(unittest.TestCase):
         new_state_cirq = scipy.linalg.expm(-1j * dt * opmat) @ cirq_wf
         new_state_wfn = from_cirq(new_state_cirq.flatten(), thresh=1.0E-12)
         test_state = wfn.time_evolve(dt, op_to_apply)
-        self.assertTrue(
-            numpy.allclose(test_state.get_coeff((2, 0)),
-                           new_state_wfn.get_coeff((2, 0))))
+        numpy.testing.assert_almost_equal(test_state.get_coeff((2, 0)),
+                                          new_state_wfn.get_coeff((2, 0)))
 
     def test_apply_spinful_fermionop(self):
         """

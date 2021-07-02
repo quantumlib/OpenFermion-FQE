@@ -312,14 +312,14 @@ class EvolutionTest(unittest.TestCase):
 
         err = numpy.std(reference / reference.flat[0] -
                         coeff.flatten() / coeff.flat[0])
-        self.assertTrue(err < 1.e-8)
+        self.assertLess(err, 1.e-8)
 
         test_wfn.time_evolve(time, hamil, True)
         coeff = test_wfn._civec[(nele, m_s)].coeff
 
         err = numpy.std(reference / reference.flat[0] -
                         coeff.flatten() / coeff.flat[0])
-        self.assertTrue(err < 1.e-8)
+        self.assertLess(err, 1.e-8)
 
     def test_diagonal_spin(self):
         """Evolution of diagonal hamiltonian with different spin components
@@ -380,8 +380,7 @@ class EvolutionTest(unittest.TestCase):
         computed = numpy.reshape(evolwfn._civec[(nele, nalpha - nbeta)].coeff,
                                  (cidim))
 
-        err = numpy.abs(linalg.norm(reference - computed))
-        self.assertTrue(err < 1.e-8)
+        numpy.testing.assert_almost_equal(reference, computed)
 
     def test_nbody(self):
         """Evolution of individual nbody operators
