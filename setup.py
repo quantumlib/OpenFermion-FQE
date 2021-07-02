@@ -18,8 +18,12 @@ Fermionic Quantum Emulator setup script.
 
 import io
 import re
+import os
+import numpy as np
 
-from setuptools import setup, find_packages
+from setuptools import setup, find_packages, Extension
+from distutils.sysconfig import get_config_vars
+from Cython.Build import cythonize
 
 
 def version_number(path: str) -> str:
@@ -54,6 +58,40 @@ def main() -> None:
     requirements_buffer = open('requirements.txt').readlines()
     requirements = [r.strip() for r in requirements_buffer]
 
+    # C code extension
+    config_vars = get_config_vars()
+    config_vars["EXT_SUFFIX"] = '.' + config_vars["EXT_SUFFIX"].split('.')[-1]
+    libdir = os.path.join("src", "fqe", "lib")
+    cfiles = [
+        "macros.c",
+        "mylapack.c",
+        "fci_graph.c",
+        "fqe_data.c",
+    ]
+    srcs = [os.path.join(libdir, cf) for cf in cfiles]
+    compile_flags = ["-O3", "-fopenmp", "-march=native", "-shared", "-fPIC"]
+    link_flags = ["-lgomp"]
+    libraries = []
+    extensions = [Extension("fqe.lib.libfqe", srcs,
+                            extra_compile_args=compile_flags,
+                            extra_link_args=link_flags,
+                            include_dirs=[libdir],
+                            library_dirs=[libdir],
+                            libraries=libraries,
+                            language='c')]
+
+    cythonfiles = [ "_linalg.pyx", ]
+    srcs = [os.path.join(libdir, cf) for cf in cythonfiles]
+    extensions.append(Extension("fqe.lib.linalg",
+                                srcs,
+                                language='c'))
+
+    cythonfiles = [ "_fqe_data.pyx", ]
+    srcs = [os.path.join(libdir, cf) for cf in cythonfiles]
+    extensions.append(Extension("fqe.lib.fqe_data",
+                                srcs,
+                                language='c'))
+
     setup(
         name='fqe',
         version=__version__,
@@ -61,6 +99,8 @@ def main() -> None:
         author_email='help@openfermion.org',
         url='http://www.openfermion.org',
         description='OpenFermion Fermionic Quantum Emulator',
+        ext_modules=cythonize(extensions,
+                              compiler_directives={'language_level' : "3"}),
         long_description=long_description,
         long_description_content_type="text/markdown",
         install_requires=requirements,

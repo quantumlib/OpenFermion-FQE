@@ -16,6 +16,7 @@
 
 import unittest
 
+import numpy
 from scipy import special
 from fqe import fci_graph
 
@@ -113,16 +114,23 @@ class FciGraphTest(unittest.TestCase):
         }
         alist = [3, 5, 9, 6, 10, 12]
         blist = [1, 2, 4, 8]
-        aind = {3: 0, 5: 1, 6: 3, 9: 2, 10: 4, 12: 5}
-        bind = {1: 0, 2: 1, 4: 2, 8: 3}
+        # aind = {3: 0, 5: 1, 6: 3, 9: 2, 10: 4, 12: 5}
+        # bind = {1: 0, 2: 1, 4: 2, 8: 3}
         norb = 4
         nalpha = 2
         nbeta = 1
         testgraph = fci_graph.FciGraph(nalpha, nbeta, norb)
-        alpha_map = testgraph._build_mapping(alist, aind)
-        self.assertDictEqual(alpha_map, ref_alpha_map)
-        beta_map = testgraph._build_mapping(blist, bind)
-        self.assertDictEqual(beta_map, ref_beta_map)
+        alpha_map = testgraph._build_mapping(alist, nalpha)
+        beta_map = testgraph._build_mapping(blist, nbeta)
+
+        assert alpha_map.keys() == ref_alpha_map.keys()
+        for ak in alpha_map:
+            numpy.testing.assert_equal(alpha_map[ak], ref_alpha_map[ak])
+
+        assert beta_map.keys() == ref_beta_map.keys()
+        for ak in alpha_map:
+            numpy.testing.assert_equal(alpha_map[ak], ref_alpha_map[ak])
+
         dummy_map = ({(1, 1): (0, 1, 2)}, {(-1, -1), (0, 1, 2)})
         testgraph.insert_mapping(1, -1, dummy_map)
         self.assertEqual(testgraph.find_mapping(1, -1), dummy_map)

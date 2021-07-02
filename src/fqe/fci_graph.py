@@ -15,14 +15,55 @@
 """
 
 from typing import Dict, List, Tuple
+from functools import lru_cache
 
 from scipy.special import binom
+import numpy
+from numpy import ndarray as Nparray
 
 from fqe.bitstring import integer_index, lexicographic_bitstring_generator
-from fqe.bitstring import count_bits_between, get_bit, set_bit, unset_bit
 from fqe.util import init_bitstring_groundstate
+from fqe.lib.fci_graph import _build_mapping_strings
 
-Spinmap = Dict[Tuple[int, ...], List[Tuple[int, int, int]]]
+Spinmap = Dict[Tuple[int, ...], Nparray]
+
+
+def map_to_deexc(mappings, states, norbs):
+    dexc = [[] for state in range(states)]
+    for (i, j), values in mappings.items():
+        for state, target, parity in values:
+            dexc[target].append([state, i * norbs + j, parity])
+    return numpy.asarray(dexc, dtype=numpy.int32)
+
+
+@lru_cache()
+def _get_Z_matrix(norb: int, nele: int) -> Nparray:
+    """Builds the Z-matrix as given in eq.11 in 'A new determinant-based full
+    configuration interaction method' (Knowles, Handy). Uses lru_cache for
+    caching already calculated z matrices.
+
+    Args:
+        norb (int) - the number of spatial orbitals
+
+        nele (int) - the number of electrons for a single spin case
+
+        Returns:
+            Z (Nparray) - The Z matrix for building addresses.
+    """
+    Z = numpy.zeros((nele, norb), dtype=numpy.int32)
+    # If nele or norb == 0
+    if Z.size == 0:
+        return Z
+
+    for k in range(1, nele):
+        for ll in range(k, norb - nele + k + 1):
+            Z[k - 1, ll - 1] = sum(
+                binom(m, nele-k) - binom(m-1, nele-k-1)
+                for m in range(norb - ll + 1, norb - k + 1))
+    k = nele
+    for ll in range(nele, norb + 1):
+        Z[k - 1, ll - 1] = ll - nele
+    return Z
 
 
 class FciGraph:
@@ -57,8 +98,10 @@ class FciGraph:
         self._bind: Dict[int, int] = {}  # map string-binary to matrix index
         self._astr, self._aind = self._build_strings(self._nalpha, self._lena)
         self._bstr, self._bind = self._build_strings(self._nbeta, self._lenb)
-        self._alpha_map: Spinmap = self._build_mapping(self._astr, self._aind)
-        self._beta_map: Spinmap = self._build_mapping(self._bstr, self._bind)
+        self._alpha_map: Spinmap = self._build_mapping(self._astr, self._nalpha)
+        self._beta_map: Spinmap = self._build_mapping(self._bstr, self._nbeta)
+        self._dexca = map_to_deexc(self._alpha_map, self._lena, self._norb)
+        self._dexcb = map_to_deexc(self._beta_map, self._lenb, self._norb)
 
         self._fci_map: Dict[Tuple[int, ...], Tuple[Spinmap, Spinmap]] = {}
 
@@ -94,8 +137,7 @@ class FciGraph:
         assert (dna, dnb) in self._fci_map
         return self._fci_map[(dna, dnb)]
 
-    def _build_mapping(self, strings: List[int],
-                       index: Dict[int, int]) -> Spinmap:
+    def _build_mapping(self, strings: List[int], nele: int) -> Spinmap:
         """Construct the mapping of alpha string and beta string excitations
         for :math:`a^\\dagger_i a_j` from the bitstrings contained in the fci_graph.
 
@@ -105,23 +147,13 @@ class FciGraph:
             index (Dict[int,int])) - list of the indices corresponding to the \
                 determinant bitstrings
         """
-        out: Dict[Tuple[int, ...], List[Tuple[int, int, int]]] = {}
         norb = self._norb
-        for iorb in range(norb):  #excitation
-            for jorb in range(norb):  #deexcitation
-                value = []
-                for string in strings:
-                    if get_bit(string, jorb) and not get_bit(string, iorb):
-                        parity = count_bits_between(string, iorb, jorb)
-                        value.append((index[string],
-                                      index[unset_bit(set_bit(string, iorb),
-                                                      jorb)], int(
-                                                          (-1)**parity)))
-                    elif iorb == jorb and get_bit(string, iorb):
-                        value.append((index[string], index[string], 1))
-                out[(iorb, jorb)] = value
-
-        return out
+        return _build_mapping_strings(
+            strings,
+            _get_Z_matrix(norb, nele),
+            nele,
+            norb
+        )
 
     def alpha_map(self, iorb: int, jorb: int) -> List[Tuple[int, int, int]]:
         """
@@ -291,45 +323,44 @@ class FciGraph:
             address (int) - A pointer into a spin a block of the CI addressing
                 system
         """
-        det_addr = 0
+        Z = _get_Z_matrix(norb, nele)
+        return sum(Z[i, occupation[i]] for i in range(nele))
 
-        def _addressing_array_element(norb: int, nele: int, el_i: int,
-                                      or_i: int) -> int:
-            """Calculate an addressing array element zar( el_i, or_i)
+    def _get_block_mappings(self, max_states=100, jorb=None):
+        from itertools import product
 
-            Args:
-                norb : Number of orbitals
+        def split(maps, totstates, max_states):
+            totmaps = []
+            for (io, jo), mp in maps.items():
+                if jorb is not None and jo != jorb:
+                    continue
 
-                nele : number of electrons in the state
+                index = io * self.norb() + jo if jorb is None else io
+                totmaps.extend([[index, t, s, p] for s, t, p in mp])
 
-                el_i : index of the current electron
+            totmaps = numpy.asarray(
+                sorted(totmaps, key=lambda x: (x[1], x[0])),
+                dtype=numpy.int32
+            )
+            rangelist = list(range(0, totstates, max_states)) + [totstates]
+            dat = []
+            for begin, end in zip(rangelist, rangelist[1:]):
+                indexes1 = numpy.logical_and(end > totmaps[:, 1],
+                                             totmaps[:, 1] >= begin)
+                indexes2 = numpy.logical_and(end > totmaps[:, 2],
+                                             totmaps[:, 2] >= begin)
 
-                or_i : index of the current orbital
+                map1 = numpy.sort(totmaps[indexes1].view('i4,i4,i4,i4'),
+                                  order=['f0', 'f1']).view(numpy.int32)
+                map2 = numpy.sort(totmaps[indexes2].view('i4,i4,i4,i4'),
+                                  order=['f0', 'f1']).view(numpy.int32)
+                dat.append([range(begin, end), map1, map2])
+            return dat
 
-            Returns:
-                int: weight associated with step on string graph
-            """
-            if el_i == nele:
-                zar = or_i - nele
-            else:
-                zar = 0
-
-                def _addressing_array_summand(oc_i: int, nmk: int) -> int:
-                    """Calculate a summand in the addressing array
-                    """
-                    assert nmk > 0, '-1 meaningless in binomial address'
-                    return binom(oc_i, nmk) - binom(oc_i - 1, nmk - 1)
-
-                for i in range(norb - or_i + 1, norb - el_i + 1):
-                    zar += _addressing_array_summand(i, nele - el_i)
-
-            return int(zar)
-
-        for i in range(1, nele + 1):
-            det_addr += _addressing_array_element(norb, nele, i,
-                                                  occupation[i - 1] + 1)
-
-        return int(det_addr)
+        adat = split(self._alpha_map, self.lena(), max_states)
+        bdat = split(self._beta_map, self.lenb(), max_states)
+        return [(ar, br, (am1, am2), (bm1, bm2))
+                for (ar, am1, am2), (br, bm1, bm2) in product(adat, bdat)]
 
 
 if __name__ == "__main__":
