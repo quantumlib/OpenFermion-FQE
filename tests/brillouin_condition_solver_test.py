@@ -20,7 +20,7 @@ from openfermion.chem.molecular_data import spinorb_from_spatial
 
 import fqe
 from fqe.algorithm.brillouin_condition_solver import BrillouinCondition
-from fqe.unittest_data.generate_openfermion_molecule import (
+from tests.unittest_data.generate_openfermion_molecule import (
     build_lih_moleculardata,)
 
 

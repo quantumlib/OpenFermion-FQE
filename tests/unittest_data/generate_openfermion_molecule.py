@@ -16,7 +16,7 @@
 import os
 
 from openfermion import MolecularData
-import fqe.unittest_data as fud
+import tests.unittest_data as fud
 
 
 def build_lih_moleculardata() -> MolecularData:

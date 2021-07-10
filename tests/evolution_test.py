@@ -34,7 +34,7 @@ from fqe.fqe_data import FqeData
 from fqe.wavefunction import Wavefunction
 from fqe import fqe_decorators
 
-from fqe.unittest_data import build_hamiltonian
+from tests.unittest_data import build_hamiltonian
 
 
 class EvolutionTest(unittest.TestCase):

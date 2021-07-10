@@ -23,12 +23,13 @@ import cirq
 import numpy
 
 from openfermion.transforms.opconversions import jordan_wigner
-from openfermion.ops import FermionOperator
+from openfermion.ops import FermionOperator, BinaryCode
 from openfermion import normal_ordered
 
 from fqe.util import qubit_particle_number_index_spin
 from fqe import util
 from fqe.cirq_utils import qubit_wavefunction_from_vacuum
+from fqe.lib.cirq_utils import detect_cirq_sectors
 from fqe import transform
 from fqe import wavefunction
 from fqe.openfermion_utils import fqe_to_fermion_operator
@@ -46,6 +47,7 @@ from fqe.hamiltonians import gso_hamiltonian
 from fqe.hamiltonians import restricted_hamiltonian
 from fqe.hamiltonians import sparse_hamiltonian
 from fqe.hamiltonians import sso_hamiltonian
+from fqe.lib.fqe_data import _to_cirq
 
 if TYPE_CHECKING:
     from fqe.hamiltonians import hamiltonian
@@ -206,7 +208,7 @@ def get_wavefunction_multiple(param: List[List[int]]
     return state
 
 
-def to_cirq(wfn: 'wavefunction.Wavefunction') -> numpy.ndarray:
+def to_cirq_old(wfn: 'wavefunction.Wavefunction') -> numpy.ndarray:
     """Interoperability between cirq and the openfermion-fqe.  This takes an
     FQE wavefunction and returns a cirq compatible wavefunction based on the
     information stored within.
@@ -224,7 +226,42 @@ def to_cirq(wfn: 'wavefunction.Wavefunction') -> numpy.ndarray:
     return qubit_wavefunction_from_vacuum(ops, qid)
 
 
+def to_cirq(wfn: 'wavefunction.Wavefunction',
+            binarycode: Optional['BinaryCode'] = None
+            ) -> numpy.ndarray:
+    """Interoperability between cirq and the openfermion-fqe.  This takes an
+    FQE wavefunction and returns a cirq compatible wavefunction based on the
+    information stored within.
+
+    Args:
+        wfn (wavefunction.Wavefunction) - a openfermion-fqe wavefunction object
+
+        binarycode (Optional[openfermion.ops.BinaryCode]) - binary code to \
+            encode the fermions to the qbit bosons. If None given,
+            Jordan-Wigner transform is assumed.
+
+    Returns:
+        numpy.array(dtype=numpy.complex128) - a cirq wavefunction that can be \
+            used in a simulator object.
+    """
+
+    nqubits = wfn.norb() * 2
+    wf = numpy.zeros(2**nqubits, dtype=numpy.complex128)
+
+    for key in wfn.sectors():
+        csector = wfn._civec[(key[0], key[1])]
+        _to_cirq(csector, wf, binarycode)
+    return wf
+
+
 def to_cirq_ncr(wfn: 'wavefunction.Wavefunction') -> numpy.ndarray:
+    """Warning: this function does not take into account the parity when
+    going from fqe ordering to openfermion ordering.
+
+    Sign errors wit hsome basis states will occur.
+
+    Please use `to_cirq`
+    """
     nqubit = wfn.norb() * 2
     ops = normal_ordered(fqe_to_fermion_operator(wfn))
     wf = numpy.zeros(2**nqubit, dtype=numpy.complex128)
@@ -234,7 +271,7 @@ def to_cirq_ncr(wfn: 'wavefunction.Wavefunction') -> numpy.ndarray:
     return wf
 
 
-def from_cirq(state: numpy.ndarray,
+def from_cirq_old(state: numpy.ndarray,
               thresh: float) -> 'wavefunction.Wavefunction':
     """Interoperability between cirq and the openfermion-fqe.  This takes a
     cirq wavefunction and creates an FQE wavefunction object initialized with
@@ -252,15 +289,43 @@ def from_cirq(state: numpy.ndarray,
     param = []
     nqubits = int(numpy.log2(state.size))
     norb = nqubits // 2
+
     for pnum in range(nqubits + 1):
         occ = qubit_particle_number_index_spin(nqubits, pnum)
         for orb in occ:
             if numpy.absolute(state[orb[0]]) > thresh:
                 param.append([pnum, orb[1], norb])
-    param_set = set([tuple(p) for p in param])
+
+    param_set = set(tuple(p) for p in param)
     param_list = [list(x) for x in param_set]
     wfn = wavefunction.Wavefunction(param_list)
-    transform.from_cirq(wfn, state)
+    transform.from_cirq_old(wfn, state)
+    return wfn
+
+
+def from_cirq(state: numpy.ndarray, thresh: float,
+              binarycode: Optional['BinaryCode'] = None
+              ) -> 'wavefunction.Wavefunction':
+    """Interoperability between cirq and the openfermion-fqe.  This takes a
+    cirq wavefunction and creates an FQE wavefunction object initialized with
+    the correct data.
+
+    Args:
+        state (numpy.array(dtype=numpy.complex128)) - a cirq wavefunction
+
+        thresh (double) - set the limit at which a cirq element should be \
+            considered zero and not make a contribution to the FQE wavefunction
+
+        binarycode (Optional[openfermion.ops.BinaryCode]) - binary code to \
+            encode the fermions to the qbit bosons. If None given,
+            Jordan-Wigner transform is assumed.
+
+    Returns:
+        openfermion-fqe.Wavefunction
+    """
+    params = detect_cirq_sectors(state, thresh, binarycode)
+    wfn = wavefunction.Wavefunction(params)
+    transform.from_cirq(wfn, state, binarycode)
     return wfn
 
 

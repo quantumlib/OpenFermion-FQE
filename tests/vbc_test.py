@@ -7,7 +7,7 @@ import openfermion as of
 
 import fqe
 from fqe.algorithm.vbc import VBC
-from fqe.unittest_data.generate_openfermion_molecule import (
+from tests.unittest_data.generate_openfermion_molecule import (
     build_lih_moleculardata, build_h4square_moleculardata)
 from fqe.algorithm.brillouin_calculator import two_rdo_commutator_symm
 from fqe.fqe_decorators import build_hamiltonian

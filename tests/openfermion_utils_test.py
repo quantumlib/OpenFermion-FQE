@@ -23,7 +23,7 @@ import numpy
 
 from fqe import openfermion_utils
 from fqe import wavefunction
-from fqe.unittest_data.build_lih_data import build_lih_data
+from tests.unittest_data.build_lih_data import build_lih_data
 
 
 class OpenFermionUtilsTest(unittest.TestCase):

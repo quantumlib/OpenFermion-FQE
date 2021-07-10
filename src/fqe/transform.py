@@ -15,9 +15,9 @@
 that provide interoperability.
 """
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
-from openfermion import FermionOperator
+from openfermion import FermionOperator, BinaryCode
 
 import numpy
 
@@ -28,6 +28,7 @@ from fqe.openfermion_utils import convert_qubit_wfn_to_fqe_syntax
 from fqe.openfermion_utils import fci_qubit_representation
 from fqe.openfermion_utils import update_operator_coeff
 from fqe.openfermion_utils import fermion_opstring_to_bitstring
+from fqe.lib.fqe_data import _from_cirq
 
 if TYPE_CHECKING:
     from fqe.wavefunction import Wavefunction
@@ -83,7 +84,7 @@ def cirq_to_fqe_single(cirq_wfn: numpy.ndarray, nele: int, m_s: int,
     return convert_qubit_wfn_to_fqe_syntax(jw_ops)
 
 
-def from_cirq(wfn: 'Wavefunction', state: numpy.ndarray) -> None:
+def from_cirq_old(wfn: 'Wavefunction', state: numpy.ndarray) -> None:
     """For each availble FqeData structure, find the projection onto the cirq
     wavefunction and set the coefficients to the proper value.
 
@@ -104,3 +105,33 @@ def from_cirq(wfn: 'Wavefunction', state: numpy.ndarray) -> None:
         wfndata = fermion_opstring_to_bitstring(fqe_wfn)
         for val in wfndata:
             wfn[(val[0], val[1])] = val[2]
+
+
+def from_cirq(wfn: 'Wavefunction', state: numpy.ndarray,
+              binarycode: Optional['BinaryCode'] = None) -> None:
+    """For each availble FqeData structure, find the projection onto the cirq
+    wavefunction and set the coefficients to the proper value.
+
+    Cirq coefficients that have zero projection onto the wfn are ignored. It is
+    up to the user's own descretion to provide a correct Wavefunction.
+
+    If in doubt, the user can use `fqe.from_cirq`, which initializes the
+    Wavefunction for you.
+
+    Args:
+        wfn (wavefunction.Wavefunction) - an Fqe Wavefunction to fill from the \
+            cirq wavefunction
+
+        state (numpy.array(numpy.dtype=complex64)) - a cirq state to convert \
+            into an Fqe wavefunction
+
+        binarycode (Optional[openfermion.ops.BinaryCode]) - binary code to \
+            encode the fermions to the qbit bosons. If None given,
+            Jordan-Wigner transform is assumed.
+
+    Returns:
+        nothing - mutates the wfn in place
+    """
+    for key in wfn.sectors():
+        csector = wfn._civec[(key[0], key[1])]
+        _from_cirq(csector, state, binarycode)

@@ -19,7 +19,6 @@ Fermionic Quantum Emulator setup script.
 import io
 import re
 import os
-import numpy as np
 
 from setuptools import setup, find_packages, Extension
 from distutils.sysconfig import get_config_vars
@@ -67,6 +66,8 @@ def main() -> None:
         "mylapack.c",
         "fci_graph.c",
         "fqe_data.c",
+        "cirq_utils.c",
+        "wick.c",
     ]
     srcs = [os.path.join(libdir, cf) for cf in cfiles]
     compile_flags = ["-O3", "-fopenmp", "-march=native", "-shared", "-fPIC"]
@@ -80,17 +81,13 @@ def main() -> None:
                             libraries=libraries,
                             language='c')]
 
-    cythonfiles = [ "_linalg.pyx", ]
+    cythonfiles = ["_linalg.pyx"]
     srcs = [os.path.join(libdir, cf) for cf in cythonfiles]
-    extensions.append(Extension("fqe.lib.linalg",
-                                srcs,
-                                language='c'))
+    extensions.append(Extension("fqe.lib.linalg", srcs, language='c'))
 
-    cythonfiles = [ "_fqe_data.pyx", ]
+    cythonfiles = ["_fqe_data.pyx"]
     srcs = [os.path.join(libdir, cf) for cf in cythonfiles]
-    extensions.append(Extension("fqe.lib.fqe_data",
-                                srcs,
-                                language='c'))
+    extensions.append(Extension("fqe.lib.fqe_data", srcs, language='c'))
 
     setup(
         name='fqe',
@@ -100,7 +97,7 @@ def main() -> None:
         url='http://www.openfermion.org',
         description='OpenFermion Fermionic Quantum Emulator',
         ext_modules=cythonize(extensions,
-                              compiler_directives={'language_level' : "3"}),
+                              compiler_directives={'language_level': "3"}),
         long_description=long_description,
         long_description_content_type="text/markdown",
         install_requires=requirements,

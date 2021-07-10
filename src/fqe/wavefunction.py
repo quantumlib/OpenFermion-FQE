@@ -364,7 +364,7 @@ class Wavefunction:
             if self._conserve_spin and not self._conserve_number:
                 out = self._copy_beta_inversion()
             else:
-                out = copy.deepcopy(self)
+                out = self
 
             if isinstance(hamil, diagonal_hamiltonian.Diagonal):
                 transformed = out._apply_diagonal(hamil)
@@ -527,7 +527,7 @@ class Wavefunction:
             and self._conserve_spin and not self._conserve_number:
             base = self._copy_beta_inversion()
         else:
-            base = copy.deepcopy(self)
+            base = self
 
         if algo == 'taylor':
             ham_arrays = hamil.iht(time)

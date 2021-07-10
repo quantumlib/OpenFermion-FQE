@@ -36,8 +36,8 @@ from fqe.hamiltonians import sparse_hamiltonian
 from fqe.hamiltonians import diagonal_hamiltonian
 from fqe import get_restricted_hamiltonian
 
-from fqe.unittest_data import build_wfn, build_hamiltonian
-from fqe.unittest_data.build_lih_data import build_lih_data
+from tests.unittest_data import build_wfn, build_hamiltonian
+from tests.unittest_data.build_lih_data import build_lih_data
 
 
 class WavefunctionTest(unittest.TestCase):

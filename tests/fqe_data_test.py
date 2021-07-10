@@ -28,7 +28,7 @@ import openfermion as of
 
 from fqe import fqe_data
 from fqe import fci_graph
-import fqe.unittest_data as fud
+import tests.unittest_data as fud
 import fqe
 
 
@@ -995,7 +995,7 @@ class FqeDataTest(unittest.TestCase):
             test_tpdm_bb[i, j, k, l] = state.conj().T @ op @ state
             assert numpy.isclose(test_tpdm_bb[i, j, k, l], tpdm_bb[i, j, k, l])
 
-        cirq_wf = fqe.to_cirq_ncr(wfn).reshape((-1, 1))
+        cirq_wf = fqe.to_cirq(wfn).reshape((-1, 1))
         test_of_tpdm = numpy.zeros(tuple([2 * norb] * 4),
                                    dtype=numpy.complex128)
         of_opdm, of_tpdm = work.get_openfermion_rdms()
