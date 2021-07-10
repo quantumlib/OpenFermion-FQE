@@ -21,7 +21,7 @@ from scipy.linalg import expm
 import openfermion as of
 from openfermion.config import EQ_TOLERANCE
 from fqe.algorithm.low_rank_api import LowRankTrotter
-from fqe.unittest_data.generate_openfermion_molecule import (
+from tests.unittest_data.generate_openfermion_molecule import (
     build_lih_moleculardata,)
 
 

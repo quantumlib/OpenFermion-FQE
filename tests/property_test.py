@@ -30,7 +30,7 @@ from fqe.fqe_ops.fqe_ops import (
     TimeReversalOp,
 )
 
-from fqe.unittest_data import build_lih_data, build_nh_data
+from tests.unittest_data import build_lih_data, build_nh_data
 
 
 class TestFQE(unittest.TestCase):

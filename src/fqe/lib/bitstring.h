@@ -1,4 +1,5 @@
 #pragma once
+#include <stdio.h>
 
 #define CHECK_BIT(b,pos) ((b) & (1<<(pos)))
 #define SET_BIT(b,pos) ((b) | (1<<(pos)))

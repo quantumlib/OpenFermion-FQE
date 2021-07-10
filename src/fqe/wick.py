@@ -25,6 +25,7 @@ from typing import List, Tuple, Optional
 import copy
 
 import numpy
+from fqe.lib.wick import _wickfill
 
 Mapping = Tuple[List[Tuple[str, str]], List[Tuple[str, bool, int]], float]
 
@@ -181,15 +182,16 @@ def wick(target: str,
             delta.append((indices[j_t[0]], indices[j_t[1]]))
 
         if irank > 0:
-            wickfill(out, data[irank - 1], sources, term[2], delta)
+            out = wickfill(out, data[irank - 1], sources, term[2], delta)
         else:
-            wickfill(out, None, sources, term[2], delta)
+            out = wickfill(out, None, sources, term[2], delta)
 
     return out
 
 
-def wickfill(target: numpy.ndarray, source: numpy.ndarray, indices: List[int],
-             factor: float, delta: List[Tuple[int, int]]) -> None:
+def wickfill(target: numpy.ndarray, source: Optional[numpy.ndarray],
+             indices: List[int], factor: float, delta: List[Tuple[int, int]]
+             ) -> numpy.ndarray:
     """
     This function is an internal utility that fills in custom RDMs using
     particle RDMs. The result of Wick's theorem is passed as lists (indices
@@ -206,10 +208,27 @@ def wickfill(target: numpy.ndarray, source: numpy.ndarray, indices: List[int],
         factor (float) - factor associated with this contribution
 
         delta (List[Tuple[int, int]]) - Kronecker delta's due to Wick's theorem
+
+    Returns:
+        target (numpy.ndarray) - Returns the output array. If target in the \
+            input Args was not C-contigious, this can be a new numpy object.
     """
+    delta_flat = None
+    if len(delta) > 0:
+        delta_flat = numpy.asarray(delta, dtype=numpy.uint32)
+
+    indices_flat = None
+    if indices is not None:
+        indices_flat = numpy.array(indices, dtype=numpy.uint32)
+
     norb = target.shape[0]
     srank = len(source.shape) // 2 if source is not None else 0
     trank = len(target.shape) // 2
+
+    # TODO branching here
+    if True:
+        return _wickfill(target, source, indices_flat, factor, delta_flat)
+
     assert srank * 2 == len(indices)
     if srank == 0 and trank == 1:
         assert len(delta) == 1
@@ -481,3 +500,4 @@ def wickfill(target: numpy.ndarray, source: numpy.ndarray, indices: List[int],
                                                             mat[indices[5]],
                                                             mat[indices[6]],
                                                             mat[indices[7]]]
+    return target

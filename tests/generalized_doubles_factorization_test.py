@@ -29,7 +29,7 @@ from fqe.algorithm.low_rank import (
     evolve_fqe_givens_unrestricted,)
 from fqe.fqe_decorators import build_hamiltonian
 
-from fqe.unittest_data.generate_openfermion_molecule import \
+from tests.unittest_data.generate_openfermion_molecule import \
     build_lih_moleculardata
 
 

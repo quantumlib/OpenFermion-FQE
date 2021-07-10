@@ -143,16 +143,16 @@ int lm_apply_array12_diff_spin(const double complex *coeff,
   free(blockc);
 }
 
-int lm_apply_array1(const double complex *coeff,
-                    double complex *out,
-                    const int (*dexc)[3],
-                    const int astates,
-                    const int bstates,
-                    const int ndexc,
-                    const double complex *h1e,
-                    const int norbs,
-                    const bool is_alpha,
-                    const struct blasfunctions * blasfunc) {
+int lm_apply_array1_old(const double complex *coeff,
+                        double complex *out,
+                        const int (*dexc)[3],
+                        const int astates,
+                        const int bstates,
+                        const int ndexc,
+                        const double complex *h1e,
+                        const int norbs,
+                        const bool is_alpha,
+                        const struct blasfunctions * blasfunc) {
   const int inc1 = is_alpha ? bstates : 1;
   const int inc2 = is_alpha ? 1 : bstates;
   const int states1 = is_alpha ? astates : bstates;
@@ -174,6 +174,97 @@ int lm_apply_array1(const double complex *coeff,
       const double complex pref = parity * h1e[ijshift];
       // Dedicated code for fixedj?
       blasfunc->zaxpy(&states2, &pref, ccoeff, &inc2, cout, &ONE);
+    }
+  }
+}
+
+// This doesn't provide any significant advantage
+int lm_apply_array1_sparse(const double complex *coeff,
+                           double complex *out,
+                           const int *dexc,
+                           const int astates,
+                           const int bstates,
+                           const int ndexc,
+                           const double complex *h1e,
+                           const int norbs,
+                           const bool is_alpha,
+                           const int jorb,
+                           const struct blasfunctions * blasfunc) {
+  const int states1 = is_alpha ? astates : bstates;
+  const int states2 = is_alpha ? bstates : astates;
+  const int inc1 = is_alpha ? bstates : 1;
+  const int inc2 = is_alpha ? 1 : bstates;
+  const int ONE = 1;
+
+#pragma omp parallel
+  {
+  double complex *temp = safe_malloc(temp, states1);
+#pragma omp for schedule(static, 1)
+  for (int s1 = 0; s1 < states1; ++s1) {
+    for (int ii = 0; ii < states1; ii++) temp[ii] = 0.0;
+    const int *cdexc = dexc + 3*s1*ndexc;
+    const int *lim1 = cdexc + 3*ndexc;
+    bool any = false;
+    double complex * cout = &out[s1 * inc1];
+    for (; cdexc < lim1; cdexc = cdexc + 3) {
+      // *cdexc = [target, orbj, orbi, parity]
+      // The array dexc gives the dexcitation, I want the dedexc
+      const int target = cdexc[0];
+      const int ijshift = cdexc[1];
+      const int parity = cdexc[2];
+      if (!any && jorb > -1) {
+        int jidx = ijshift % norbs;
+        any = jidx == jorb ? true : false;
+      }
+
+      const double complex pref = parity * h1e[ijshift];
+      temp[target] += pref;
+    }
+    const double complex *xptr = coeff;
+    if (!any && jorb > -1) continue;
+    for (int ii = 0; ii < states1; ii++) {
+      const double complex ttt = temp[ii];
+      blasfunc->zaxpy(&states2, &ttt, xptr, &inc2, cout, &inc2);
+      //zaxpy_opt(&states2, &ttt, xptr, &inc2, cout, &inc2, blasfunc);
+      xptr += inc1;
+    }
+  }
+  free(temp);
+  }  // end parallel block
+}
+
+int lm_apply_array1(const double complex *coeff,
+                    double complex *out,
+                    const int *dexc,
+                    const int astates,
+                    const int bstates,
+                    const int ndexc,
+                    const double complex *h1e,
+                    const int norbs,
+                    const bool is_alpha,
+                    const struct blasfunctions * blasfunc) {
+  const int states1 = is_alpha ? astates : bstates;
+  const int states2 = is_alpha ? bstates : astates;
+  const int inc1 = is_alpha ? bstates : 1;
+  const int inc2 = is_alpha ? 1 : bstates;
+  const int ONE = 1;
+  const int jorb = -1;
+
+#pragma omp parallel for schedule(static)
+  for (int s1 = 0; s1 < states1; ++s1) {
+    const int *cdexc = dexc + 3*s1*ndexc;
+    const int *lim1 = cdexc + 3*ndexc;
+    double complex * cout = &out[s1 * inc1];
+    for (; cdexc < lim1; cdexc = cdexc + 3) {
+      // *cdexc = [target, orbj, orbi, parity]
+      // The array dexc gives the dexcitation, I want the dedexc
+      const int target = cdexc[0];
+      const int ijshift = cdexc[1];
+      const int parity = cdexc[2];
+
+      const double complex pref = parity * h1e[ijshift];
+      const double complex *xptr = coeff + target*inc1;
+      blasfunc->zaxpy(&states2, &pref, xptr, &inc2, cout, &inc2);
     }
   }
 }
@@ -758,4 +849,197 @@ int lm_apply_array12_diff_spin_opt(const double complex *coeff,
     h2e,
     norbs,
     blasfunc);
+}
+
+int apply_array12_lowfillingab(const double complex *coeff,
+                               const int *alpha_array,
+                               const int *beta_array,
+                               const int nalpha,
+                               const int nbeta,
+                               const int na1,
+                               const int nb1,
+                               const int nca,
+                               const int ncb,
+                               const int nia,
+                               const int nib,
+                               const int norb,
+                               double complex *intermediate) {
+
+#pragma omp parallel for schedule(dynamic) collapse(2)
+  for (int i = 0; i < norb; ++i) {
+    for (int j = 0; j < norb; ++j) {
+      complex double *iptr = intermediate + i*nia*nib*norb + j*nia*nib;
+      for (int k = 0; k < na1; ++k) {
+        int sourcea = alpha_array[i*na1*3 + k*3];
+        int targeta = alpha_array[i*na1*3 + k*3 + 1];
+        int paritya = alpha_array[i*na1*3 + k*3 + 2];
+        int tpar = nalpha % 2 == 0 ? -1 : 1;
+        int sign = tpar*paritya;
+        for (int l = 0; l < nb1; ++l) {
+          int sourceb = beta_array[j*nb1*3 + l*3];
+          int targetb = beta_array[j*nb1*3 + l*3 + 1];
+          int parityb = beta_array[j*nb1*3 + l*3 + 2];
+          complex double work = coeff[sourcea*ncb + sourceb] * sign * parityb;
+          iptr[targeta*nib + targetb] += 2 * work;
+        }
+      }
+    }
+  }
+}
+
+int apply_array12_lowfillingab2(const double complex *intermediate,
+                                const int *alpha_array,
+                                const int *beta_array,
+                                const int nalpha,
+                                const int nbeta,
+                                const int na1,
+                                const int nb1,
+                                const int nia,
+                                const int nib,
+                                const int noa,
+                                const int nob,
+                                const int norb,
+                                double complex *out) {
+  for (int i = 0; i < norb; ++i) {
+    for (int j = 0; j < norb; ++j) {
+      for (int k = 0; k < na1; ++k) {
+        int sourcea = alpha_array[i*na1*3 + k*3];
+        int targeta = alpha_array[i*na1*3 + k*3 + 1];
+        int paritya = alpha_array[i*na1*3 + k*3 + 2];
+        int tpar = nalpha % 2 == 0 ? 1 : -1;
+        int sign = tpar*paritya;
+        for (int l = 0; l < nb1; ++l) {
+          int sourceb = beta_array[j*nb1*3 + l*3];
+          int targetb = beta_array[j*nb1*3 + l*3 + 1];
+          int parityb = beta_array[j*nb1*3 + l*3 + 2];
+          int offset = i*norb*nia*nib + j*nia*nib;
+          double complex work = intermediate[offset + targeta*nib + targetb] * sign;
+          out[sourcea*nob + sourceb] += work * parityb;
+        }
+      }
+    }
+  }
+}
+
+void apply_individual_nbody1(const double complex coeff,
+                             double complex *ocoeff,
+                             const double complex * icoeff,
+                             const int n,
+                             const int na,
+                             const int nb,
+                             const int nt,
+                             const int *amap,
+                             const int *btarget,
+                             const int *bsource,
+                             const int *bparity) {
+  for (int i = 0; i < n; ++i) {
+    const int sourcea = amap[i*3 + 0];
+    const int targeta = amap[i*3 + 1];
+    const int paritya = amap[i*3 + 2];
+    double complex *optr = ocoeff + targeta*nb;
+    const double complex *iptr = icoeff + sourcea*nb;
+    const double complex pref = coeff*paritya;
+    for (int j = 0; j < nt; ++j) {
+      //ocoeff[targeta*nb + btarget[j]] =
+      optr[btarget[j]] = pref * iptr[bsource[j]] * bparity[j];
+    }
+  }
+  //      sourcea = aarray[i, 0]
+  //      targeta = aarray[i, 1]
+  //      paritya = aarray[i, 2]
+  //      ocoeff[targeta, btarget] = \
+  //          coeff * paritya * numpy.multiply(
+  //              icoeff[sourcea, bsource], bparity)
+
+
+}
+
+/* C-kernel for filling a FqeData from a cirq state */
+static void _from_to_cirq(double complex * const cirq_wfn,
+                          double complex * const fqe_wfn,
+                          const int alpha_states,
+                          const int beta_states,
+                          const long long * cirq_alpha_id,
+                          const long long * cirq_beta_id,
+                          const int * const alpha_swaps,
+                          const int * const beta_occs,
+                          const int nbeta,
+                          const int norbs,
+                          void (*fill_func)(double complex * cirq_el,
+                                            double complex * fqe_el,
+                                            double parity)
+                         )
+{
+  const int nqubits = norbs * 2;
+#pragma omp parallel for schedule(static)
+  for (int beta_id = 0; beta_id < beta_states; ++beta_id) {
+    const int * beta_occ = &beta_occs[beta_id * nbeta];
+    const long long this_cirq_beta_id = cirq_beta_id[beta_id];
+
+    for (int alpha_id = 0; alpha_id < alpha_states; ++alpha_id) {
+      // count number of swaps to convert from and to fqe-openfermion convention
+      int swaps = 0;
+      const int * this_alpha_swaps = &alpha_swaps[alpha_id * nqubits];
+      for (int beta_el = 0; beta_el < nbeta; ++beta_el) {
+        swaps += this_alpha_swaps[beta_occ[beta_el]];
+      }
+
+      const double parity = swaps % 2 == 0 ? 1.0 : -1.0;
+      const long long cirq_id = this_cirq_beta_id ^ cirq_alpha_id[alpha_id];
+
+      (*fill_func)(&cirq_wfn[cirq_id],
+                   &fqe_wfn[alpha_id * beta_states + beta_id],
+                   parity);
+    }
+  }
+}
+
+static void fill_to_cirq(double complex * cirq_el,
+                         double complex * fqe_el,
+                         double parity)
+{
+  *cirq_el = parity * (*fqe_el);
+}
+
+static void fill_from_cirq(double complex * cirq_el,
+                           double complex * fqe_el,
+                           double parity)
+{
+  *fqe_el = parity * (*cirq_el);
+}
+
+/* C-kernel for filling a cirq state from FqeData */
+void to_cirq(double complex * const cirq_wfn,
+             double complex * const fqe_wfn,
+             const int alpha_states,
+             const int beta_states,
+             const long long * cirq_alpha_id,
+             const long long * cirq_beta_id,
+             const int * const alpha_swaps,
+             const int * const beta_occs,
+             const int nbeta,
+             const int norbs
+            )
+{
+  _from_to_cirq(cirq_wfn, fqe_wfn, alpha_states, beta_states, cirq_alpha_id,
+                cirq_beta_id, alpha_swaps, beta_occs, nbeta, norbs,
+                &fill_to_cirq);
+}
+
+/* C-kernel for filling a FqeData from a cirq state */
+void from_cirq(double complex * const cirq_wfn,
+               double complex * const fqe_wfn,
+               const int alpha_states,
+               const int beta_states,
+               const long long * cirq_alpha_id,
+               const long long * cirq_beta_id,
+               const int * const alpha_swaps,
+               const int * const beta_occs,
+               const int nbeta,
+               const int norbs
+              )
+{
+  _from_to_cirq(cirq_wfn, fqe_wfn, alpha_states, beta_states, cirq_alpha_id,
+                cirq_beta_id, alpha_swaps, beta_occs, nbeta, norbs,
+                &fill_from_cirq);
 }

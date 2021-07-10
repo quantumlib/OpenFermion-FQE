@@ -22,7 +22,7 @@ import openfermion as of
 from openfermion.chem.molecular_data import spinorb_from_spatial
 
 import fqe
-from fqe.unittest_data.generate_openfermion_molecule import (
+from tests.unittest_data.generate_openfermion_molecule import (
     build_lih_moleculardata, build_h4square_moleculardata)
 
 from fqe.algorithm.brillouin_calculator import (
@@ -110,7 +110,7 @@ def test_get_acse_residual_fqe():
         (oei, np.einsum('ijlk', -0.5 * tei)))
     fqe_wf = fqe.Wavefunction([[sdim, 0, sdim]])
     fqe_wf.set_wfn('random')
-    cirq_wf = fqe.to_cirq_ncr(fqe_wf).reshape((-1, 1))
+    cirq_wf = fqe.to_cirq(fqe_wf).reshape((-1, 1))
     true_acse_residual = get_acse_residual(cirq_wf, molehammat, 2 * sdim)
     test_acse_residual = get_acse_residual_fqe(fqe_wf, elec_ham, sdim)
     assert np.allclose(true_acse_residual, test_acse_residual)
@@ -131,7 +131,7 @@ def test_get_acse_residual_fqe_lih():
         (oei, np.einsum('ijlk', -0.5 * tei)))
     fqe_wf = fqe.Wavefunction([[sdim, 0, sdim]])
     fqe_wf.set_wfn('random')
-    cirq_wf = fqe.to_cirq_ncr(fqe_wf).reshape((-1, 1))
+    cirq_wf = fqe.to_cirq(fqe_wf).reshape((-1, 1))
     true_acse_residual = get_acse_residual(cirq_wf, molehammat, 2 * sdim)
     test_acse_residual = get_acse_residual_fqe(fqe_wf, elec_ham, sdim)
     assert np.allclose(true_acse_residual, test_acse_residual)
@@ -148,7 +148,7 @@ def test_get_tpdm_grad_residual_fqe():
     molehammat = of.get_sparse_operator(molecule.get_molecular_hamiltonian())
     fqe_wf = fqe.Wavefunction([[sdim, 0, sdim]])
     fqe_wf.set_wfn('random')
-    cirq_wf = fqe.to_cirq_ncr(fqe_wf).reshape((-1, 1))
+    cirq_wf = fqe.to_cirq(fqe_wf).reshape((-1, 1))
     true_acse_residual = get_acse_residual(cirq_wf, molehammat, 2 * sdim)
     acse_res_op = get_fermion_op(true_acse_residual)
     acse_res_op_mat = of.get_sparse_operator(acse_res_op, n_qubits=2 * sdim)
@@ -169,7 +169,7 @@ def test_get_tpdm_grad_residual_fqe_lih():
     molehammat = of.get_sparse_operator(molecule.get_molecular_hamiltonian())
     fqe_wf = fqe.Wavefunction([[sdim, 0, sdim]])
     fqe_wf.set_wfn('random')
-    cirq_wf = fqe.to_cirq_ncr(fqe_wf).reshape((-1, 1))
+    cirq_wf = fqe.to_cirq(fqe_wf).reshape((-1, 1))
     true_acse_residual = get_acse_residual(cirq_wf, molehammat, 2 * sdim)
     acse_res_op = get_fermion_op(true_acse_residual)
     acse_res_op_mat = of.get_sparse_operator(acse_res_op, n_qubits=2 * sdim)
@@ -189,7 +189,7 @@ def test_to_cirq_fast():
             fqe_wf = fqe.get_number_conserving_wavefunction(nn, norbs)
             fqe_wf.set_wfn('random')
             fqe_wf.normalize()
-            cirq_wf = fqe.to_cirq_ncr(fqe_wf).reshape((-1, 1))
+            cirq_wf = fqe.to_cirq(fqe_wf).reshape((-1, 1))
             true_cirq_wf = fqe.to_cirq(fqe_wf).reshape((-1, 1))
             assert np.isclose(abs(cirq_wf.conj().T @ true_cirq_wf), 1)
 
@@ -219,7 +219,7 @@ def test_get_acse_residual_rdm():
     fqe_wf.set_wfn(strategy='from_data',
                    raw_data={(nalpha + nbeta, sz): coeffs})
     fqe_wf.normalize()
-    cirq_wf = fqe.to_cirq_ncr(fqe_wf).reshape((-1, 1))
+    cirq_wf = fqe.to_cirq(fqe_wf).reshape((-1, 1))
 
     # check that the Reduced Hamiltonian is antisymmetric
     for p, q, r, s in product(range(2 * sdim), repeat=4):

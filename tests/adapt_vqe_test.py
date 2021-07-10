@@ -21,7 +21,7 @@ from openfermion.chem.molecular_data import spinorb_from_spatial
 
 import fqe
 from fqe.algorithm.adapt_vqe import OperatorPool, ADAPT
-from fqe.unittest_data.generate_openfermion_molecule import (
+from tests.unittest_data.generate_openfermion_molecule import (
     build_lih_moleculardata,)
 
 

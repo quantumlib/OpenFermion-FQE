@@ -15,17 +15,24 @@
 """
 
 from ctypes import c_int, c_bool, POINTER, c_int64
-from typing import List
+from typing import List, Optional, Tuple, TYPE_CHECKING
 
 import numpy
 from numpy.ctypeslib import ndpointer
-from numpy import ndarray as Nparray
-
-from fqe.lib import lib_fqe
+from openfermion import up_index, down_index
+from fqe.bitstring import integer_index
 
 from scipy.linalg.cython_blas cimport zaxpy
 from libc.stdint cimport uintptr_t
+
+from fqe.lib import lib_fqe, c_double_complex
 include "blas_helpers.pxi"
+
+if TYPE_CHECKING:
+    from numpy import ndarray as Nparray
+    from fqe.fqe_data import FqeData
+    from openfermion import BinaryCode
+
 
 def _lm_apply_array1(coeff, h1e, dexc, lena, lenb, norb, alpha=True, out=None):
     func = lib_fqe.lm_apply_array1
@@ -596,3 +603,363 @@ def _lm_apply_array12_diff_spin_opt(coeff, h2e, adexc, bdexc, lena, lenb, norb,
     func(coeff, out, adexc, bdexc, lena, lenb, nadexc, nbdexc, h2e, norb,
          pointer)
     return out
+
+
+def _apply_array12_lowfillingab(coeff, alpha_array, beta_array,
+                                nalpha, nbeta, na1, nb1, norb,
+                                intermediate):
+    dtype = numpy.complex128
+    assert(intermediate.dtype == dtype)
+    assert(coeff.dtype == dtype)
+    func = lib_fqe.apply_array12_lowfillingab
+    func.argtypes = [
+        ndpointer(
+            shape=coeff.shape,
+            dtype=numpy.complex128,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        ndpointer(
+            shape=alpha_array.shape,
+            dtype=numpy.int32,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        ndpointer(
+            shape=beta_array.shape,
+            dtype=numpy.int32,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        c_int,
+        c_int,
+        c_int,
+        c_int,
+        c_int,
+        c_int,
+        c_int,
+        c_int,
+        c_int,
+        ndpointer(
+            shape=intermediate.shape,
+            dtype=numpy.complex128,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        )
+    ]
+    nca = coeff.shape[0]
+    ncb = coeff.shape[1]
+    nia = intermediate.shape[2]
+    nib = intermediate.shape[3]
+    func(coeff, alpha_array, beta_array,
+         nalpha, nbeta, na1, nb1, nca, ncb, nia, nib, norb, intermediate)
+
+
+def _apply_array12_lowfillingab2(alpha_array, beta_array,
+                                 nalpha, nbeta, na1, nb1, norb,
+                                 intermediate, out):
+    dtype = numpy.complex128
+    assert(intermediate.dtype == dtype)
+    func = lib_fqe.apply_array12_lowfillingab2
+    func.argtypes = [
+        ndpointer(
+            shape=intermediate.shape,
+            dtype=numpy.complex128,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        ndpointer(
+            shape=alpha_array.shape,
+            dtype=numpy.int32,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        ndpointer(
+            shape=beta_array.shape,
+            dtype=numpy.int32,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        c_int,
+        c_int,
+        c_int,
+        c_int,
+        c_int,
+        c_int,
+        c_int,
+        c_int,
+        c_int,
+        ndpointer(
+            shape=out.shape,
+            dtype=numpy.complex128,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        )
+    ]
+    nia = intermediate.shape[2]
+    nib = intermediate.shape[3]
+    noa = out.shape[0]
+    nob = out.shape[1]
+    func(intermediate, alpha_array, beta_array,
+         nalpha, nbeta, na1, nb1, nia, nib, noa, nob, norb, out)
+
+
+def _apply_individual_nbody1(coeff, ocoeff, icoeff, amap,
+                             btarget, bsource, bparity):
+    dtype = numpy.complex128
+    assert(ocoeff.dtype == dtype)
+    assert(icoeff.dtype == dtype)
+    aarray = numpy.asarray(amap, dtype=numpy.int32)
+    n = aarray.shape[0]
+    na = icoeff.shape[0]
+    nb = icoeff.shape[1]
+    nt = btarget.shape[0]
+    assert(nb == ocoeff.shape[1])
+
+    func = lib_fqe.apply_individual_nbody1
+    func.argtypes = [
+        c_double_complex,
+        ndpointer(
+            shape=ocoeff.shape,
+            dtype=numpy.complex128,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        ndpointer(
+            shape=icoeff.shape,
+            dtype=numpy.complex128,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        c_int,
+        c_int,
+        c_int,
+        c_int,
+        ndpointer(
+            shape=aarray.shape,
+            dtype=numpy.int32,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        ndpointer(
+            shape=btarget.shape,
+            dtype=numpy.int32,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        ndpointer(
+            shape=bsource.shape,
+            dtype=numpy.int32,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        ndpointer(
+            shape=bparity.shape,
+            dtype=numpy.int32,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+    ]
+    cc = c_double_complex(coeff.real, coeff.imag)
+    func(cc, ocoeff, icoeff, n, na, nb, nt, aarray, btarget, bsource, bparity)
+    #for i in range(n):
+    #    sourcea = aarray[i, 0]
+    #    targeta = aarray[i, 1]
+    #    paritya = aarray[i, 2]
+    #    for j in range(nt):
+    #        ocoeff[targeta, btarget[j]] = \
+    #            coeff * paritya * numpy.multiply(
+    #                icoeff[sourcea, bsource[j]], bparity[j])
+
+
+def _prepare_cirq_from_to_metadata(fqedata: 'FqeData',
+                                   binarycode: Optional['BinaryCode']
+                                   ) -> Tuple(numpy.ndarray, numpy.ndarray,
+                                              numpy.ndarray, numpy.ndarray):
+    """Generates some metadata for the cirq-fqe conversion.
+
+    Args:
+        fqedata(fqe_data.FqeData) - an FqeData to fill or read from.
+
+        binarycode (Optional[openfermion.ops.BinaryCode]) - binary code to \
+            encode the fermions to the qbit bosons. If None given,
+            Jordan-Wigner transform is assumed.
+
+    Returns:
+        aswaps (numpy.ndarray) - for each alpha state, aswaps[state][i] gives \
+            the number of electrons in orbitals j > i
+        boccs (numpy.ndarray) - the occupied openfermion orbitals for each \
+            beta state
+        cirq_aid (numpy.ndarray) - For each alpha-state the corresponding part \
+            of the cirq index.
+        cirq_bid (numpy.ndarray) - For each beta-state the corresponding part \
+            of the cirq index.
+
+        the cirq_id for (alpha_state, beta_state) is then given by \
+        cirq_aid[beta_state] XOR cirq_bid[alpha_state]. This can be done since \
+        the encoder is a linear map modulo 2.
+    """
+
+    norb = fqedata.norb()
+    # Get the alpha and beta dets
+    alphadets = fqedata._core.string_alpha_all()
+    betadets = fqedata._core.string_beta_all()
+
+    #### These are for the conversion between fqe and openfermion
+    # The occupied openfermion orbitals for each alpha state
+    aoccs = [[up_index(x) for x in integer_index(astr)] for astr in alphadets]
+    # For each alpha state, aswaps[state][i] gives the number of electrons in
+    # orbitals j > i
+    aswaps = numpy.array([[sum(ii > x for ii in aocc) for x in range(2*norb)]
+                          for aocc in aoccs], dtype=numpy.int32)
+
+    # The occupied openfermion orbitals for each beta state
+    boccs = numpy.array([[down_index(x) for x in integer_index(bstr)]
+                         for bstr in betadets], dtype=numpy.int32)
+
+    nqubit = norb * 2
+    # Since cirq starts counting from the leftmost bit in a bitstring
+    pow_of_two = 2 ** (nqubit - numpy.arange(nqubit, dtype=numpy.int64) - 1)
+    if binarycode is None:
+        cirq_aid = numpy.array([pow_of_two[aocc].sum() for aocc in aoccs])
+        cirq_bid = numpy.array([pow_of_two[bocc].sum() for bocc in boccs])
+    else:
+        def occ_to_cirq_ids(occs):
+            cirq_ids = numpy.zeros(len(aoccs), dtype=numpy.int64)
+            for ii, occ in enumerate(occs):
+                of_state = numpy.zeros(nqubit, dtype=int)
+                of_state[occ] = 1
+                # Encode the occupation state to the qbit spin state
+                cirq_state = numpy.mod(binarycode.encoder.dot(of_state), 2)
+                cirq_ids[ii] = numpy.dot(pow_of_two, cirq_state)
+            return cirq_ids
+
+        cirq_aid = occ_to_cirq_ids(aoccs)
+        cirq_bid = occ_to_cirq_ids(boccs)
+    return aswaps, boccs, cirq_aid, cirq_bid
+
+
+def _to_cirq(fqedata : 'FqeData', cwfn: numpy.ndarray,
+             binarycode: Optional['BinaryCode'] = None) -> None:
+    """Interoperability between cirq and the openfermion-fqe.  This takes an
+    FqeData and fills a cirq compatible wavefunction
+
+    Args:
+        fqedata(fqe_data.FqeData) - an FqeData to fill the cirq wavefunction \
+            with.
+
+        cwfn (numpy.array(numpy.dtype=complex64)) - a cirq state to fill
+
+        binarycode (Optional[openfermion.ops.BinaryCode]) - binary code to \
+            encode the fermions to the qbit bosons. If None given,
+            Jordan-Wigner transform is assumed.
+
+    Returns:
+        nothing - mutates cwfn in place
+    """
+    # Preparing metadata
+    aswaps, boccs, cirq_aid, cirq_bid = \
+        _prepare_cirq_from_to_metadata(fqedata, binarycode)
+
+    func = lib_fqe.to_cirq
+
+    norbs = fqedata.norb()
+    nbeta = fqedata.nbeta()
+    lena = fqedata.lena()
+    lenb = fqedata.lenb()
+
+    func.argtypes = [
+        ndpointer(
+            shape=(2 ** (2 * norbs),),
+            dtype=numpy.complex128,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        ndpointer(
+            shape=(lena, lenb),
+            dtype=numpy.complex128,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        c_int,
+        c_int,
+        ndpointer(
+            shape=(lena,),
+            dtype=numpy.int64,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        ndpointer(
+            shape=(lenb,),
+            dtype=numpy.int64,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        ndpointer(
+            shape=(lena, norbs * 2),
+            dtype=numpy.int32,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        ndpointer(
+            shape=(lenb, nbeta),
+            dtype=numpy.int32,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        c_int,
+        c_int
+    ]
+
+    func(cwfn, fqedata.coeff, lena, lenb, cirq_aid, cirq_bid, aswaps, boccs,
+         nbeta, norbs)
+
+
+def _from_cirq(fqedata : 'FqeData', cwfn: numpy.ndarray,
+               binarycode: Optional['BinaryCode'] = None) -> None:
+    """For the given FqeData structure, find the projection onto the cirq
+    wavefunction and set the coefficients to the proper value.
+
+    Args:
+        fqedata (fqe_data.FqeData) - an FqeData to fill from the cirq \
+            wavefunction
+
+        cwfn (numpy.array(numpy.dtype=complex64)) - a cirq state to full in \
+            with
+
+        binarycode (Optional[openfermion.ops.BinaryCode]) - binary code to \
+            encode the fermions to the qbit bosons. If None given,
+            Jordan-Wigner transform is assumed.
+
+    Returns:
+        nothing - mutates fqedata in place
+    """
+    aswaps, boccs, cirq_aid, cirq_bid = \
+        _prepare_cirq_from_to_metadata(fqedata, binarycode)
+
+    func = lib_fqe.from_cirq
+
+    norbs = fqedata.norb()
+    nbeta = fqedata.nbeta()
+    lena = fqedata.lena()
+    lenb = fqedata.lenb()
+
+    func.argtypes = [
+        ndpointer(
+            shape=(2 ** (2 * norbs),),
+            dtype=numpy.complex128,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        ndpointer(
+            shape=(lena, lenb),
+            dtype=numpy.complex128,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        c_int,
+        c_int,
+        ndpointer(
+            shape=(lena,),
+            dtype=numpy.int64,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        ndpointer(
+            shape=(lenb,),
+            dtype=numpy.int64,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        ndpointer(
+            shape=(lena, norbs * 2),
+            dtype=numpy.int32,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        ndpointer(
+            shape=(lenb, nbeta),
+            dtype=numpy.int32,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        c_int,
+        c_int
+    ]
+
+    func(cwfn, fqedata.coeff, lena, lenb, cirq_aid, cirq_bid, aswaps, boccs,
+         nbeta, norbs)

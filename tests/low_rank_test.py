@@ -226,7 +226,7 @@ def test_double_factorization_trotter():
     fqe_wfn = fqe.Wavefunction([[n_elec, sz, norbs]])
     fqe_wfn.set_wfn(strategy="random")
     fqe_wfn.print_wfn()
-    initial_wf = fqe.to_cirq_ncr(fqe_wfn).reshape((-1, 1))
+    initial_wf = fqe.to_cirq(fqe_wfn).reshape((-1, 1))
 
     basis_change_unitaries = []
     for ii in range(2):
