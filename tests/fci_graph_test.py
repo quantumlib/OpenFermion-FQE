@@ -28,12 +28,14 @@ class FciGraphTest(unittest.TestCase):
     def test_fci_graph(self):
         """Check the basic initializers and getter functions.
         """
-        reflist = [15, 23, 39, 71, 135, 27, 43, 75, 139, 51, 83, 147, 99, \
-                    163, 195, 29, 45, 77, 141, 53, 85, 149, 101, 165, 197, \
-                    57, 89, 153, 105, 169, 201, 113, 177, 209, 225, 30, 46,\
-                    78, 142, 54, 86, 150, 102, 166, 198, 58, 90, 154, 106, \
-                    170, 202, 114, 178, 210, 226, 60, 92, 156, 108, 172, \
-                    204, 116, 180, 212, 228, 120, 184, 216, 232, 240]
+        refdata = [15, 23, 39, 71, 135, 27, 43, 75, 139, 51, 83, 147, 99, \
+                   163, 195, 29, 45, 77, 141, 53, 85, 149, 101, 165, 197, \
+                   57, 89, 153, 105, 169, 201, 113, 177, 209, 225, 30, 46,\
+                   78, 142, 54, 86, 150, 102, 166, 198, 58, 90, 154, 106, \
+                   170, 202, 114, 178, 210, 226, 60, 92, 156, 108, 172, \
+                   204, 116, 180, 212, 228, 120, 184, 216, 232, 240]
+        reflist = numpy.array(refdata, dtype=numpy.uint64)
+
         refdict = {15: 0, 23: 1, 27: 5, 29: 15, 30: 35, 39: 2, 43: 6, 45: 16, \
                     46: 36, 51: 9, 53: 19, 54: 39, 57: 25, 58: 45, 60: 55, \
                     71: 3, 75: 7, 77: 17, 78: 37, 83: 10, 85: 20, 86: 40, \
@@ -56,7 +58,7 @@ class FciGraphTest(unittest.TestCase):
         self.assertEqual(
             testgraph._build_string_address(nalpha, norb, [1, 2, 3, 7]), 38)
         test_list, test_dict = testgraph._build_strings(nalpha, lena)
-        self.assertListEqual(test_list, reflist)
+        self.assertTrue(numpy.array_equal(test_list, reflist))
         self.assertDictEqual(test_dict, refdict)
         self.assertEqual(testgraph.string_beta(0), 0)
         self.assertEqual(testgraph.string_alpha(lena - 1), max_bitstring)
@@ -68,8 +70,12 @@ class FciGraphTest(unittest.TestCase):
         self.assertEqual(testgraph.nbeta(), nbeta)
         self.assertEqual(testgraph.norb(), norb)
         self.assertEqual(testgraph.string_alpha(lena - 1), max_bitstring)
-        self.assertListEqual(testgraph.string_alpha_all(), reflist)
-        self.assertListEqual(testgraph.string_beta_all(), [0])
+        self.assertTrue(numpy.array_equal(testgraph.string_alpha_all(),
+                                          reflist))
+        self.assertTrue(numpy.array_equal(testgraph.string_beta_all(),
+                                          numpy.array([0],
+                                                      dtype=numpy.uint64
+                                                     )))
         self.assertDictEqual(testgraph.index_alpha_all(), refdict)
         self.assertDictEqual(testgraph.index_beta_all(), {0: 0})
 
@@ -112,8 +118,8 @@ class FciGraphTest(unittest.TestCase):
             (3, 2): [(2, 3, 1)],
             (3, 3): [(3, 3, 1)]
         }
-        alist = [3, 5, 9, 6, 10, 12]
-        blist = [1, 2, 4, 8]
+        alist = numpy.array([3, 5, 9, 6, 10, 12], dtype=numpy.uint64)
+        blist = numpy.array([1, 2, 4, 8], dtype=numpy.uint64)
         # aind = {3: 0, 5: 1, 6: 3, 9: 2, 10: 4, 12: 5}
         # bind = {1: 0, 2: 1, 4: 2, 8: 3}
         norb = 4

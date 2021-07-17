@@ -14,6 +14,7 @@
 """FciGraph stores the addressing scheme for the fqe_data structures.
 """
 
+import copy
 from typing import Dict, List, Tuple
 from functools import lru_cache
 
@@ -22,18 +23,27 @@ import numpy
 from numpy import ndarray as Nparray
 
 from fqe.bitstring import integer_index, lexicographic_bitstring_generator
-from fqe.util import init_bitstring_groundstate
-from fqe.lib.fci_graph import _build_mapping_strings
+from fqe.lib.fci_graph import _build_mapping_strings, _map_deexc, \
+                              _calculate_string_address, _c_map_to_deexc_alpha_icol
 
 Spinmap = Dict[Tuple[int, ...], Nparray]
 
 
-def map_to_deexc(mappings, states, norbs):
-    dexc = [[] for state in range(states)]
+def map_to_deexc(mappings, states, norbs, nele):
+    lk = nele * (norbs - nele + 1)
+    dexc = numpy.zeros((states, lk, 3), dtype=numpy.int32)
+    index = numpy.zeros((states,), dtype=numpy.uint32) 
     for (i, j), values in mappings.items():
-        for state, target, parity in values:
-            dexc[target].append([state, i * norbs + j, parity])
-    return numpy.asarray(dexc, dtype=numpy.int32)
+        idx = i * norbs + j
+        if True:
+            _map_deexc(dexc, values, index, idx)
+        else:
+            for state, target, parity in values:
+                dexc[target, index[target], 0] = state
+                dexc[target, index[target], 1] = idx
+                dexc[target, index[target], 2] = parity
+                index[target] += 1
+    return dexc
 
 
 @lru_cache()
@@ -92,18 +102,30 @@ class FciGraph:
         self._nbeta = nbeta
         self._lena = int(binom(norb, nalpha))  # size of alpha-Hilbert space
         self._lenb = int(binom(norb, nbeta))  # size of beta-Hilbert space
-        self._astr: List[int] = []  # string labels for alpha-Hilbert space
-        self._bstr: List[int] = []  # string labels for beta-Hilbert space
+        self._astr: Nparray = None  # string labels for alpha-Hilbert space
+        self._bstr: Nparray = None  # string labels for beta-Hilbert space
         self._aind: Dict[int, int] = {}  # map string-binary to matrix index
         self._bind: Dict[int, int] = {}  # map string-binary to matrix index
         self._astr, self._aind = self._build_strings(self._nalpha, self._lena)
         self._bstr, self._bind = self._build_strings(self._nbeta, self._lenb)
         self._alpha_map: Spinmap = self._build_mapping(self._astr, self._nalpha)
         self._beta_map: Spinmap = self._build_mapping(self._bstr, self._nbeta)
-        self._dexca = map_to_deexc(self._alpha_map, self._lena, self._norb)
-        self._dexcb = map_to_deexc(self._beta_map, self._lenb, self._norb)
+        self._dexca = map_to_deexc(self._alpha_map, self._lena, self._norb,
+                                   self._nalpha)
+        self._dexcb = map_to_deexc(self._beta_map, self._lenb, self._norb,
+                                   self._nbeta)
 
         self._fci_map: Dict[Tuple[int, ...], Tuple[Spinmap, Spinmap]] = {}
+
+    def alpha_beta_transpose(self):
+        out = copy.deepcopy(self)
+        out._nalpha, out._nbeta = out._nbeta, out._nalpha
+        out._lena,   out._lenb  = out._lenb,  out._lena
+        out._astr,   out._bstr  = out._bstr,  out._astr
+        out._aind,   out._bind  = out._bind,  out._aind
+        out._alpha_map, out._beta_map = out._beta_map, out._alpha_map
+        out._dexca,  out.dexcb  = out._dexcb, out._dexca
+        return out
 
     def insert_mapping(self, dna: int, dnb: int,
                        mapping_pair: Tuple[Spinmap, Spinmap]) -> None:
@@ -137,7 +159,7 @@ class FciGraph:
         assert (dna, dnb) in self._fci_map
         return self._fci_map[(dna, dnb)]
 
-    def _build_mapping(self, strings: List[int], nele: int) -> Spinmap:
+    def _build_mapping(self, strings: Nparray, nele: int) -> Spinmap:
         """Construct the mapping of alpha string and beta string excitations
         for :math:`a^\\dagger_i a_j` from the bitstrings contained in the fci_graph.
 
@@ -225,20 +247,23 @@ class FciGraph:
         Returns:
             An initialized string array for accessing configurations in the FCI
         """
-        grs = init_bitstring_groundstate(nele)
-        blist = lexicographic_bitstring_generator(grs, self._norb)
+        blist = lexicographic_bitstring_generator(nele, self._norb)
         string_list = [0 for _ in range(length)
                       ]  # strings in lexicographic order
         index_list = {}  # map bitsting to its lexicographic address
         for i in range(length):
             wbit = blist[i]  # integer that is the spin-bitstring
-            occ = integer_index(wbit)
             # get the lexicographic address of the bitstring
-            address = self._build_string_address(nele, self._norb, occ)
+            #TODO
+            if True:
+                address = self._build_string_address_opt(nele, self._norb, wbit)
+            else:
+                occ = integer_index(int(wbit))
+                address = self._build_string_address(nele, self._norb, occ)
             string_list[address] = wbit
             index_list[wbit] = address
 
-        return string_list, index_list
+        return numpy.array(string_list, dtype=numpy.uint64), index_list
 
     def string_alpha(self, address: int) -> int:
         """Retrieve the alpha bitstring reprsentation stored at the address
@@ -262,12 +287,12 @@ class FciGraph:
         """
         return self._bstr[address]
 
-    def string_alpha_all(self) -> List[int]:
+    def string_alpha_all(self) -> Nparray:
         """Return all bitstrings for alpha occupied orbitals
         """
         return self._astr
 
-    def string_beta_all(self) -> List[int]:
+    def string_beta_all(self) -> Nparray:
         """Return all bitstrings for beta occupied orbitals
         """
         return self._bstr
@@ -326,6 +351,26 @@ class FciGraph:
         Z = _get_Z_matrix(norb, nele)
         return sum(Z[i, occupation[i]] for i in range(nele))
 
+    def _build_string_address_opt(self, nele: int, norb: int,
+                                  occupation: int) -> int:
+        """Given a list of occupied orbitals in ascending order generate the
+        index into the CI matrix.
+
+        Args:
+            nele (int) - the number of electrons for a single spin case
+
+            norb (int) - the number of spatial orbitals
+
+            occupation (int) - a string indicating the occupation
+
+        Returns:
+            address (int) - A pointer into a spin a block of the CI addressing
+                system
+        """
+        Z = _get_Z_matrix(norb, nele)
+        #return sum(Z[i, occupation[i]] for i in range(nele))
+        return _calculate_string_address(Z, nele, norb, occupation)
+
     def _get_block_mappings(self, max_states=100, jorb=None):
         from itertools import product
 
@@ -361,6 +406,56 @@ class FciGraph:
         bdat = split(self._beta_map, self.lenb(), max_states)
         return [(ar, br, (am1, am2), (bm1, bm2))
                 for (ar, am1, am2), (br, bm1, bm2) in product(adat, bdat)]
+
+    def _map_to_deexc_alpha_icol(self):
+        """Internal function for generating mapping for column-wise application
+        of one-body hamiltonian.
+        """
+        norb = self.norb()
+        nele = self.nalpha()
+        length = int(binom(norb - 1, nele - 1))
+        length2 = int(binom(norb - 1, nele))
+
+        exc = numpy.zeros((norb, length2, norb - nele, 3), dtype=numpy.int32)
+        diag = numpy.zeros((norb, length,), dtype=numpy.int32)
+        index = numpy.zeros((norb, length2,), dtype=numpy.int32)
+        astrings = self.string_alpha_all()
+        # TODO: Python switch
+        if True:
+            _c_map_to_deexc_alpha_icol(
+                exc, diag, index, astrings, norb, self._alpha_map
+            )
+        else:
+            counter = numpy.zeros((norb, length2,), dtype=int)
+            alpha = numpy.ones((norb, self.lena()), dtype=int) * -1
+            count = numpy.zeros(norb, dtype=int)
+            for i, astring in enumerate(astrings):
+                # Loop unoccupied orbitals
+                for icol in set(range(norb)).difference(integer_index(astring)):
+                    alpha[icol, i] = count[icol]
+                    index[icol, count[icol]] = i
+                    count[icol] += 1
+
+            assert numpy.all(numpy.equal(count, length2))
+            icounter = numpy.zeros(norb, dtype=int)
+
+            for (i, j), values in self._alpha_map.items():
+                icol = j
+                if i != j:
+                    for source, target, parity in values:
+                        pos = alpha[icol, target]
+                        assert pos != -1
+                        exc[icol, pos, counter[icol, pos]] = source, i, parity
+                        counter[icol, pos] += 1
+                else:
+                    for source, target, parity in values:
+                        assert source == target
+                        assert parity == 1
+                        diag[icol, icounter[icol]] = target
+                        icounter[icol] += 1
+
+        return index, exc, diag
+
 
 
 if __name__ == "__main__":

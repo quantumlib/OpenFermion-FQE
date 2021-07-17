@@ -109,6 +109,14 @@ class FqeDataTest(unittest.TestCase):
         test.conj()
         self.assertTrue(numpy.allclose(test.coeff, numpy.conj(ref)))
 
+    def test_fqe_clone(self):
+        test = fqe_data.FqeData(1, 1, 2)
+        ref = numpy.random.rand(2, 2) + 1.j * numpy.random.rand(2, 2)
+        test.set_wfn(strategy='from_data', raw_data=ref)
+        test2 = test.clone()
+        self.assertTrue(test.coeff.shape == test2.coeff.shape)
+        self.assertTrue(not numpy.any(test2.coeff))
+
     def test_fqe_data_initialize_errors(self):
         """There are many ways to not initialize a wavefunction
         """

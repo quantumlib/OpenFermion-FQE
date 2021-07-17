@@ -16,6 +16,8 @@
 
 import unittest
 
+import numpy
+
 from fqe import bitstring
 
 
@@ -58,28 +60,29 @@ class BitstringTest(unittest.TestCase):
         test_list = list(range(8))
         start = (1 << 8) - 1
         biti_list = bitstring.integer_index(start)
-        self.assertListEqual(biti_list, test_list)
+        self.assertEqual(biti_list, test_list)
 
     def test_lexicographic_bitstring_generator_init(self):
-        """Check that the first element returned is the initial case.
+        """Check that the returned array is empty when arguments are wrong 
         """
-        _gbitl = bitstring.lexicographic_bitstring_generator(15, 1)
-        self.assertListEqual(_gbitl, [15])
+        self.assertRaises(ValueError,
+                          bitstring.lexicographic_bitstring_generator, 4, 1)
 
     def test_lexicographic_bitstring_generator_list(self):
         """lexicographic bitstrings for a single bit should be the set of binary
         numbers.
         """
-        test_list = [2**i for i in range(10)]
+        test_list = numpy.array([2**i for i in range(10)], dtype=numpy.int32)
         _gbitl = bitstring.lexicographic_bitstring_generator(1, 10)
-        self.assertListEqual(_gbitl, test_list)
+        self.assertTrue(numpy.array_equal(_gbitl, test_list))
 
     def test_lexicographic_bitstring_generator_order(self):
         """Here is a use case of the lexicographic bitstring routine.
         """
-        test_list = [3, 5, 6, 9, 10, 12, 17, 18, 20, 24, 33, 34, 36, 40, 48]
-        _gbitl = bitstring.lexicographic_bitstring_generator(3, 6)
-        self.assertListEqual(_gbitl, test_list)
+        test_data = [3, 5, 6, 9, 10, 12, 17, 18, 20, 24, 33, 34, 36, 40, 48]
+        test_list = numpy.array(test_data, dtype=numpy.int32)
+        _gbitl = bitstring.lexicographic_bitstring_generator(2, 6)
+        self.assertTrue(numpy.array_equal(_gbitl, test_list))
 
     def test_count_bits(self):
         """Return the number of set bits in the bitstring

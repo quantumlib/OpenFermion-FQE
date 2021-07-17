@@ -86,6 +86,17 @@ class WavefunctionTest(unittest.TestCase):
         ref = numpy.zeros((4, 4), dtype=numpy.complex128)
         self.assertTrue(numpy.allclose(ref, work._civec[(2, 0)].coeff))
 
+    def test_clone(self):
+        """Test clone function
+        """
+        test = Wavefunction(param=[[2, 0, 4]])
+        test.set_wfn(strategy='ones')
+        test1 = test.clone()
+        self.assertTrue(test1._norb == test._norb)
+        self.assertTrue(len(test1._civec) == len(test._civec))
+        self.assertTrue((2, 0) in test1._civec.keys())
+        self.assertTrue(not numpy.any(test1._civec[(2, 0)].coeff))
+
     def test_apply_number(self):
         norb = 4
         test = numpy.random.rand(norb, norb)
@@ -124,7 +135,8 @@ class WavefunctionTest(unittest.TestCase):
         self.assertRaises(TypeError, wfn.time_evolve, 0.1, hamil)
 
         wfn = Wavefunction([[2, 0, 2]])
-        hamil = get_restricted_hamiltonian((data,))
+        data2 = numpy.zeros((2, 2, 2, 2), dtype=numpy.complex128)
+        hamil = get_restricted_hamiltonian((data, data2))
         self.assertRaises(ValueError, wfn.time_evolve, 0.1, hamil, True)
 
     def test_apply_individual_nbody_error(self):

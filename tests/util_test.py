@@ -153,8 +153,8 @@ class UnitTest(unittest.TestCase):
         zero = 0
         one = 1
         ref = [
-            numpy.array([zero, zero, one, zero], dtype=numpy.int),
-            numpy.array([zero, one, zero, zero], dtype=numpy.int)
+            numpy.array([zero, zero, one, zero], dtype=numpy.int32),
+            numpy.array([zero, one, zero, zero], dtype=numpy.int32)
         ]
         test = util.qubit_particle_number_sector(2, 1)
         for i, j in zip(test, ref):
@@ -183,13 +183,13 @@ class UnitTest(unittest.TestCase):
             zero, zero, zero, zero, zero
         ]
         ref = [
-            numpy.array(lowstate, dtype=numpy.int),
-            numpy.array(highstate, dtype=numpy.int)
+            numpy.array(lowstate, dtype=numpy.int32),
+            numpy.array(highstate, dtype=numpy.int32)
         ]
         test = util.qubit_config_sector(4, 1, 1)
         for i, j in zip(test, ref):
             self.assertEqual(i.all(), j.all())
-        ref = [numpy.array([zero, zero, zero, one], dtype=numpy.int)]
+        ref = [numpy.array([zero, zero, zero, one], dtype=numpy.int32)]
         test = util.qubit_config_sector(2, 2, 0)
         for i, j in zip(test, ref):
             self.assertEqual(i.all(), j.all())

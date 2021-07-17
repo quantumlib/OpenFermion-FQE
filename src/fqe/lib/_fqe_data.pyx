@@ -14,7 +14,7 @@
 """This file implements wrappers to some of the functions in fqe.fqe_data
 """
 
-from ctypes import c_int, c_bool, POINTER, c_int64
+from ctypes import c_int, c_bool, c_double, POINTER, c_int64, byref
 from typing import List, Optional, Tuple, TYPE_CHECKING
 
 import numpy
@@ -22,7 +22,7 @@ from numpy.ctypeslib import ndpointer
 from openfermion import up_index, down_index
 from fqe.bitstring import integer_index
 
-from scipy.linalg.cython_blas cimport zaxpy
+from scipy.linalg.cython_blas cimport zaxpy, zscal
 from libc.stdint cimport uintptr_t
 
 from fqe.lib import lib_fqe, c_double_complex
@@ -85,6 +85,111 @@ def _lm_apply_array1(coeff, h1e, dexc, lena, lenb, norb, alpha=True, out=None):
     cdef object pointer = <uintptr_t>&blas_functions
 
     func(coeff, out, dexc, lena, lenb, ndexc, h1e, norb, alpha, pointer)
+    return out
+
+def _lm_apply_array1_alpha_column(coeff, h1e, index, exc, exc2, lena, lenb, icol):
+    func = lib_fqe.lm_apply_array1_column_alpha
+    nexc0 = exc.shape[0]
+    nexc1 = exc.shape[1]
+    nexc2 = exc2.shape[0]
+
+    func.argtypes = [
+        ndpointer(
+            shape=(lena, lenb),
+            dtype=numpy.complex128,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        ndpointer(
+            shape=(nexc0,),
+            dtype=numpy.int32,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        ndpointer(
+            shape=(nexc0, nexc1, 3),
+            dtype=numpy.int32,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        ndpointer(
+            shape=(nexc2,),
+            dtype=numpy.int32,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        c_int,
+        c_int,
+        c_int,
+        c_int,
+        c_int,
+        ndpointer(
+            dtype=numpy.complex128,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        c_int,
+        c_int64
+    ]
+    dtype = numpy.complex128
+    if h1e.dtype != dtype or not h1e.flags['C']:
+        h1e = numpy.asarray(h1e, dtype=dtype).copy()
+
+    cdef blasfunctions blas_functions
+    blas_functions.zaxpy = zaxpy
+    blas_functions.zscal = zscal
+    cdef object pointer = <uintptr_t>&blas_functions
+
+    func(coeff, index, exc, exc2, lena, lenb, nexc0, nexc1, nexc2, h1e, icol, pointer)
+
+
+def _sparse_apply_array1(coeff, h1e, dexc, lena, lenb, norb, jorb, alpha=True, out=None):
+    func = lib_fqe.lm_apply_array1_sparse
+    len1 = lena if alpha else lenb
+    len2 = lenb if alpha else lena
+    outshape = (len1, len2)
+    ndexc = dexc.shape[1]
+
+    func.argtypes = [
+        ndpointer(
+            shape=(lena, lenb),
+            dtype=numpy.complex128,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        ndpointer(
+            shape=outshape,
+            dtype=numpy.complex128,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        ndpointer(
+            shape=(len1, ndexc, 3),
+            dtype=numpy.int32,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        c_int,
+        c_int,
+        c_int,
+        ndpointer(
+            shape=(norb, norb),
+            dtype=numpy.complex128,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        c_int,
+        c_int,
+        c_bool,
+        c_int64
+    ]
+
+    dtype = numpy.complex128
+    if out is None:
+        out = numpy.zeros(outshape, dtype=dtype)
+
+    if h1e.dtype != dtype or not h1e.flags['C']:
+        h1e = numpy.asarray(h1e, dtype=dtype).copy()
+
+    if coeff.dtype != dtype or not coeff.flags['C']:
+        coeff = numpy.asarray(coeff, dtype=dtype).copy()
+
+    cdef blasfunctions blas_functions
+    blas_functions.zaxpy = zaxpy
+    cdef object pointer = <uintptr_t>&blas_functions
+
+    func(coeff, out, dexc, lena, lenb, ndexc, h1e, norb, jorb, alpha, pointer)
     return out
 
 
@@ -415,12 +520,12 @@ def _diagonal_coulomb(data: 'Nparray',
     func.argtypes = [
         ndpointer(
             shape=(lena,),
-            dtype=numpy.uint32,
+            dtype=numpy.uint64,
             flags=('C_CONTIGUOUS', 'ALIGNED')
         ),
         ndpointer(
             shape=(lenb,),
-            dtype=numpy.uint32,
+            dtype=numpy.uint64,
             flags=('C_CONTIGUOUS', 'ALIGNED')
         ),
         ndpointer(
@@ -527,6 +632,7 @@ def _lm_apply_array12_same_spin_opt(coeff, h1e, h2e, dexc, len1, len2, norb,
     func(coeff, out, dexc, len1, len2, ndexc, h1e, h2e, norb, alpha, pointer)
     return out
 
+
 def _lm_apply_array12_diff_spin_opt(coeff, h2e, adexc, bdexc, lena, lenb, norb,
                                     out=None, dtype=None):
     """Apply the opposite-spin part of a dense, spin-conserving operator
@@ -606,8 +712,7 @@ def _lm_apply_array12_diff_spin_opt(coeff, h2e, adexc, bdexc, lena, lenb, norb,
 
 
 def _apply_array12_lowfillingab(coeff, alpha_array, beta_array,
-                                nalpha, nbeta, na1, nb1, norb,
-                                intermediate):
+                                nalpha, nbeta, intermediate):
     dtype = numpy.complex128
     assert(intermediate.dtype == dtype)
     assert(coeff.dtype == dtype)
@@ -643,6 +748,8 @@ def _apply_array12_lowfillingab(coeff, alpha_array, beta_array,
             flags=('C_CONTIGUOUS', 'ALIGNED')
         )
     ]
+    norb, na1, _ = alpha_array.shape
+    nb1 = beta_array.shape[1]
     nca = coeff.shape[0]
     ncb = coeff.shape[1]
     nia = intermediate.shape[2]
@@ -652,7 +759,7 @@ def _apply_array12_lowfillingab(coeff, alpha_array, beta_array,
 
 
 def _apply_array12_lowfillingab2(alpha_array, beta_array,
-                                 nalpha, nbeta, na1, nb1, norb,
+                                 nalpha, nbeta,
                                  intermediate, out):
     dtype = numpy.complex128
     assert(intermediate.dtype == dtype)
@@ -688,6 +795,8 @@ def _apply_array12_lowfillingab2(alpha_array, beta_array,
             flags=('C_CONTIGUOUS', 'ALIGNED')
         )
     ]
+    norb, na1, _ = alpha_array.shape
+    nb1 = beta_array.shape[1]
     nia = intermediate.shape[2]
     nib = intermediate.shape[3]
     noa = out.shape[0]
@@ -696,19 +805,128 @@ def _apply_array12_lowfillingab2(alpha_array, beta_array,
          nalpha, nbeta, na1, nb1, nia, nib, noa, nob, norb, out)
 
 
-def _apply_individual_nbody1(coeff, ocoeff, icoeff, amap,
-                             btarget, bsource, bparity):
+def _apply_array12_lowfillingaa(coeff, alpha_array, intermediate, alpha=True):
+    func = lib_fqe.apply_array12_lowfillingaa
+    func.argtypes = [
+        ndpointer(
+            shape=coeff.shape,
+            dtype=numpy.complex128,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        ndpointer(
+            shape=alpha_array.shape,
+            dtype=numpy.int32,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        c_bool,
+        c_int,
+        c_int,
+        c_int,
+        c_int,
+        c_int,
+        c_int,
+        c_int,
+        ndpointer(
+            shape=intermediate.shape,
+            dtype=numpy.complex128,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        )
+    ]
+
+    nlt, na, _ = alpha_array.shape
+    ni1, ni2, ni3 = intermediate.shape
+    nc1, nc2 = coeff.shape
+    func(coeff, alpha_array, alpha, nlt, na, ni1, ni2, ni3, nc1, nc2, intermediate)
+    #for ijn in range(nlt):
+    #    for k in range(na):
+    #        source = alpha_array[ijn, k, 0]
+    #        target = alpha_array[ijn, k, 1]
+    #        parity = alpha_array[ijn, k, 2]
+    #        if alpha:
+    #            work = coeff[source, :] * parity
+    #            intermediate[ijn, target, :] += work
+    #            pass
+    #        else:
+    #            work = coeff[:, source] * parity
+    #            intermediate[ijn, :, target] += work
+
+
+def _apply_array12_lowfillingaa2(intermediate, alpha_array, out, alpha=True):
+    func = lib_fqe.apply_array12_lowfillingaa2
+    func.argtypes = [
+        ndpointer(
+            shape=intermediate.shape,
+            dtype=numpy.complex128,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        ndpointer(
+            shape=alpha_array.shape,
+            dtype=numpy.int32,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        c_bool,
+        c_int,
+        c_int,
+        c_int,
+        c_int,
+        c_int,
+        c_int,
+        c_int,
+        ndpointer(
+            shape=out.shape,
+            dtype=numpy.complex128,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        )
+    ]
+
+    nlt, na, _ = alpha_array.shape
+    ni1, ni2, ni3 = intermediate.shape
+    no1, no2 = out.shape
+    func(intermediate, alpha_array, alpha, nlt, na, ni1, ni2, ni3, no1, no2, out)
+    #for ijn in range(nlt):
+    #    for k in range(na):
+    #        source = alpha_array[ijn, k, 0]
+    #        target = alpha_array[ijn, k, 1]
+    #        parity = alpha_array[ijn, k, 2]
+    #        if alpha:
+    #            out[source, :] -= intermediate[ijn, target, :] * parity
+    #        else:
+    #            out[:, source] -= intermediate[ijn, :, target] * parity
+
+
+def _make_Hcomp(norb, nlt, h2e, h2ecomp):
+    dtype = numpy.complex128
+    assert(h2e.dtype == dtype)
+    assert(h2ecomp.dtype == dtype)
+    func = lib_fqe.make_Hcomp
+    func.argtypes = [
+        c_int,
+        c_int,
+        ndpointer(
+            shape=h2e.shape,
+            dtype=numpy.complex128,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        ndpointer(
+            shape=h2ecomp.shape,
+            dtype=numpy.complex128,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        )
+    ]
+    func(norb, nlt, h2e, h2ecomp)
+
+
+def _apply_individual_nbody1_accumulate(coeff, ocoeff, icoeff, amap,
+                                        btarget, bsource, bparity):
     dtype = numpy.complex128
     assert(ocoeff.dtype == dtype)
-    assert(icoeff.dtype == dtype)
-    aarray = numpy.asarray(amap, dtype=numpy.int32)
-    n = aarray.shape[0]
-    na = icoeff.shape[0]
-    nb = icoeff.shape[1]
+    n = amap.shape[0]
+    na = ocoeff.shape[0]
+    nb = ocoeff.shape[1]
     nt = btarget.shape[0]
     assert(nb == ocoeff.shape[1])
 
-    func = lib_fqe.apply_individual_nbody1
+    func = lib_fqe.apply_individual_nbody1_accumulate
     func.argtypes = [
         c_double_complex,
         ndpointer(
@@ -726,36 +944,28 @@ def _apply_individual_nbody1(coeff, ocoeff, icoeff, amap,
         c_int,
         c_int,
         ndpointer(
-            shape=aarray.shape,
-            dtype=numpy.int32,
+            shape=amap.shape,
+            dtype=numpy.int64,
             flags=('C_CONTIGUOUS', 'ALIGNED')
         ),
         ndpointer(
             shape=btarget.shape,
-            dtype=numpy.int32,
+            dtype=numpy.int64,
             flags=('C_CONTIGUOUS', 'ALIGNED')
         ),
         ndpointer(
             shape=bsource.shape,
-            dtype=numpy.int32,
+            dtype=numpy.int64,
             flags=('C_CONTIGUOUS', 'ALIGNED')
         ),
         ndpointer(
             shape=bparity.shape,
-            dtype=numpy.int32,
+            dtype=numpy.int64,
             flags=('C_CONTIGUOUS', 'ALIGNED')
         ),
     ]
     cc = c_double_complex(coeff.real, coeff.imag)
-    func(cc, ocoeff, icoeff, n, na, nb, nt, aarray, btarget, bsource, bparity)
-    #for i in range(n):
-    #    sourcea = aarray[i, 0]
-    #    targeta = aarray[i, 1]
-    #    paritya = aarray[i, 2]
-    #    for j in range(nt):
-    #        ocoeff[targeta, btarget[j]] = \
-    #            coeff * paritya * numpy.multiply(
-    #                icoeff[sourcea, bsource[j]], bparity[j])
+    func(cc, ocoeff, icoeff, n, na, nb, nt, amap, btarget, bsource, bparity)
 
 
 def _prepare_cirq_from_to_metadata(fqedata: 'FqeData',
@@ -963,3 +1173,486 @@ def _from_cirq(fqedata : 'FqeData', cwfn: numpy.ndarray,
 
     func(cwfn, fqedata.coeff, lena, lenb, cirq_aid, cirq_bid, aswaps, boccs,
          nbeta, norbs)
+
+def _sparse_scale(xi, yi, factor, data):
+    dtype = numpy.complex128
+    assert(data.dtype == dtype)
+    fac = dtype(factor)
+    ni1 = xi.shape[0]
+    ni2 = xi.shape[1]
+    ni = xi.size
+    nd1 = data.shape[0]
+    nd2 = data.shape[1]
+    func = lib_fqe.sparse_scale
+    func.argtypes = [
+        ndpointer(
+            shape=(ni1, ni2),
+            dtype=numpy.int64,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        ndpointer(
+            shape=(ni1, ni2),
+            dtype=numpy.int64,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        c_double_complex,
+        c_int,
+        c_int,
+        c_int,
+        ndpointer(
+            shape=(nd1, nd2),
+            dtype=numpy.complex128,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        )
+    ]
+    cfac = c_double_complex(fac.real, fac.imag)
+    func(xi, yi, cfac, ni, nd1, nd2, data)
+    #data[xi, yi] *= factor
+    #for i in range(xi.shape[0]):
+    #    for j in range(xi.shape[1]):
+    #        data[xi[i,j], yi[i,j]] *= factor
+
+def _integer_index_accumulate(out, occupation, nele, norb):
+    func1 = lib_fqe.integer_index_accumulate_real
+    func1.argtypes = [
+        POINTER(c_double),
+        ndpointer(
+            dtype=numpy.float64,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        c_int,
+        c_int,
+        c_int
+    ]
+    func2 = lib_fqe.integer_index_accumulate
+    func2.argtypes = [
+        POINTER(c_double_complex),
+        ndpointer(
+            dtype=numpy.complex128,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        c_int,
+        c_int,
+        c_int
+    ]
+    if out.dtype == numpy.float64:
+        result = c_double(0.0)
+        func1(byref(result), out, occupation, nele, norb)
+        return result.value
+    elif out.dtype == numpy.complex128:
+        result = c_double_complex(0.0)
+        func2(byref(result), out, occupation, nele, norb)
+        return result.value
+
+def _evaluate_map_each(out: Nparray, strings: Nparray,
+                       length: int, pmask :int, hmask: int): 
+    
+    func = lib_fqe.evaluate_map_each
+    func.argtypes = [
+        ndpointer(
+            shape=(length,),
+            dtype=numpy.int64,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        ndpointer(
+            shape=(length,),
+            dtype=numpy.uint64,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        c_int,
+        c_int,
+        c_int
+    ]
+    return func(out, strings, length, pmask, hmask)
+
+
+def _make_mapping_each(out: Nparray, strings: Nparray,
+                       length: int, dag: Nparray, undag: Nparray):
+    func = lib_fqe.make_mapping_each_opt
+    func.argtypes = [
+        ndpointer(
+            shape=(length, 3),
+            dtype=numpy.int64,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        ndpointer(
+            shape=(length,),
+            dtype=numpy.uint64,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        c_int,
+        ndpointer(
+            dtype=numpy.int32,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        c_int,
+        ndpointer(
+            dtype=numpy.int32,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        c_int
+    ]
+    return func(out, strings, length,
+                dag, dag.size, undag, undag.size)
+
+
+def _calculate_dvec1(alpha_array: Nparray,
+                     beta_array: Nparray,
+                     norb: int,
+                     i: int,
+                     j: int,
+                     nalpha: int,
+                     nbeta: int,
+                     coeff: Nparray,
+                     dvec: Nparray):
+    func = lib_fqe.calculate_dvec1
+    func.argtypes = [
+        ndpointer(
+            shape=alpha_array.shape,
+            dtype=numpy.int32,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        ndpointer(
+            shape=beta_array.shape,
+            dtype=numpy.int32,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        c_int,
+        c_int,
+        c_int,
+        c_int,
+        c_int,
+        c_int,
+        c_int,
+        c_int,
+        c_int,
+        c_int,
+        c_int,
+        c_int,
+        c_int,
+        ndpointer(
+            shape=coeff.shape,
+            dtype=numpy.complex128,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        ndpointer(
+            shape=dvec.shape,
+            dtype=numpy.complex128,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        )
+    ]
+    na = alpha_array.shape[1]
+    nb = beta_array.shape[1]
+    nc1, nc2 = coeff.shape
+    nd1, nd2, nd3, nd4 = dvec.shape
+    func(alpha_array, beta_array, norb, i, j, nalpha, nbeta,
+         na, nb, nc1, nc2, nd1, nd2, nd3, nd4, coeff, dvec)
+
+
+def _calculate_dvec2(alpha_array: Nparray,
+                     beta_array: Nparray,
+                     norb: int,
+                     i: int,
+                     j: int,
+                     nalpha: int,
+                     nbeta: int,
+                     coeff: Nparray,
+                     dvec: Nparray):
+    func = lib_fqe.calculate_dvec2
+    func.argtypes = [
+        ndpointer(
+            shape=alpha_array.shape,
+            dtype=numpy.int32,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        ndpointer(
+            shape=beta_array.shape,
+            dtype=numpy.int32,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        c_int,
+        c_int,
+        c_int,
+        c_int,
+        c_int,
+        c_int,
+        c_int,
+        c_int,
+        c_int,
+        c_int,
+        c_int,
+        c_int,
+        c_int,
+        ndpointer(
+            shape=coeff.shape,
+            dtype=numpy.complex128,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        ndpointer(
+            shape=dvec.shape,
+            dtype=numpy.complex128,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        )
+    ]
+    na = alpha_array.shape[1]
+    nb = beta_array.shape[1]
+    nc1, nc2 = coeff.shape
+    nd1, nd2, nd3, nd4 = dvec.shape
+    func(alpha_array, beta_array, norb, i, j, nalpha, nbeta,
+         na, nb, nc1, nc2, nd1, nd2, nd3, nd4, coeff, dvec)
+
+
+def _calculate_coeff1(alpha_array: Nparray,
+                      beta_array: Nparray,
+                      norb: int,
+                      i: int,
+                      j: int,
+                      nalpha: int,
+                      nbeta: int,
+                      dvec: Nparray,
+                      out: Nparray):
+    func = lib_fqe.calculate_coeff1
+    func.argtypes = [
+        ndpointer(
+            shape=alpha_array.shape,
+            dtype=numpy.int32,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        ndpointer(
+            shape=beta_array.shape,
+            dtype=numpy.int32,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        c_int,
+        c_int,
+        c_int,
+        c_int,
+        c_int,
+        c_int,
+        c_int,
+        c_int,
+        c_int,
+        c_int,
+        c_int,
+        c_int,
+        c_int,
+        ndpointer(
+            shape=dvec.shape,
+            dtype=numpy.complex128,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        ndpointer(
+            shape=out.shape,
+            dtype=numpy.complex128,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        )
+    ]
+    na = alpha_array.shape[1]
+    nb = beta_array.shape[1]
+    nd1, nd2, nd3, nd4 = dvec.shape
+    no1, no2 = out.shape
+    func(alpha_array, beta_array, norb, i, j, nalpha, nbeta,
+         na, nb, nd1, nd2, nd3, nd4, no1, no2, dvec, out)
+    #for k in range(alpha_array.shape[1]):
+    #    sourcea = alpha_array[j, k, 0]
+    #    targeta = alpha_array[j, k, 1]
+    #    paritya = alpha_array[j, k, 2]
+    #    paritya *= (-1)**nalpha
+    #    for l in range(beta_array.shape[1]):
+    #        sourceb = beta_array[i, l, 0]
+    #        targetb = beta_array[i, l, 1]
+    #        parityb = beta_array[i, l, 2]
+    #        work = dvec[i + norb, j, targeta, targetb]
+    #        out[sourcea,
+    #             sourceb] += work * paritya * parityb
+
+def _calculate_coeff2(alpha_array: Nparray,
+                      beta_array: Nparray,
+                      norb: int,
+                      i: int,
+                      j: int,
+                      nalpha: int,
+                      nbeta: int,
+                      dvec: Nparray,
+                      out: Nparray):
+    func = lib_fqe.calculate_coeff2
+    func.argtypes = [
+        ndpointer(
+            shape=alpha_array.shape,
+            dtype=numpy.int32,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        ndpointer(
+            shape=beta_array.shape,
+            dtype=numpy.int32,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        c_int,
+        c_int,
+        c_int,
+        c_int,
+        c_int,
+        c_int,
+        c_int,
+        c_int,
+        c_int,
+        c_int,
+        c_int,
+        c_int,
+        c_int,
+        ndpointer(
+            shape=dvec.shape,
+            dtype=numpy.complex128,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        ndpointer(
+            shape=out.shape,
+            dtype=numpy.complex128,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        )
+    ]
+    na = alpha_array.shape[1]
+    nb = beta_array.shape[1]
+    nd1, nd2, nd3, nd4 = dvec.shape
+    no1, no2 = out.shape
+    func(alpha_array, beta_array, norb, i, j, nalpha, nbeta,
+         na, nb, nd1, nd2, nd3, nd4, no1, no2, dvec, out)
+    #for k in range(alpha_array.shape[1]):
+    #    sourcea = alpha_array[i, k, 0]
+    #    targeta = alpha_array[i, k, 1]
+    #    paritya = alpha_array[i, k, 2]
+    #    paritya *= (-1)**(nalpha - 1)
+    #    for l in range(beta_array.shape[1]):
+    #        sourceb = beta_array[j, l, 0]
+    #        targetb = beta_array[j, l, 1]
+    #        parityb = beta_array[j, l, 2]
+    #        work = dvec[i, j + norb, targeta, targetb]
+    #        out[sourcea,
+    #             sourceb] += work * paritya * parityb
+
+def _calculate_dvec1_j(alpha_array: Nparray,
+                       beta_array: Nparray,
+                       norb: int,
+                       i: int,
+                       j: int,
+                       nalpha: int,
+                       nbeta: int,
+                       coeff: Nparray,
+                       dvec: Nparray):
+    func = lib_fqe.calculate_dvec1_j
+    func.argtypes = [
+        ndpointer(
+            shape=alpha_array.shape,
+            dtype=numpy.int32,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        ndpointer(
+            shape=beta_array.shape,
+            dtype=numpy.int32,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        c_int,
+        c_int,
+        c_int,
+        c_int,
+        c_int,
+        c_int,
+        c_int,
+        c_int,
+        c_int,
+        c_int,
+        c_int,
+        c_int,
+        ndpointer(
+            shape=coeff.shape,
+            dtype=numpy.complex128,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        ndpointer(
+            shape=dvec.shape,
+            dtype=numpy.complex128,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        )
+    ]
+    na = alpha_array.shape[1]
+    nb = beta_array.shape[1]
+    nc1, nc2 = coeff.shape
+    nd1, nd2, nd3 = dvec.shape
+    func(alpha_array, beta_array, norb, i, j, nalpha, nbeta,
+         na, nb, nc1, nc2, nd1, nd2, nd3, coeff, dvec)
+    #for k in range(alpha_array.shape[1]):
+    #    sourcea = alpha_array[j, k, 0]
+    #    targeta = alpha_array[j, k, 1]
+    #    paritya = alpha_array[j, k, 2]
+    #    paritya *= (-1)**(nalpha - 1)
+    #    for l in range(beta_array.shape[1]):
+    #        sourceb = beta_array[i, l, 0]
+    #        targetb = beta_array[i, l, 1]
+    #        parityb = beta_array[i, l, 2]
+    #        work = coeff[sourcea, sourceb]
+    #        dvec[i + norb, targeta,
+    #              targetb] += work * paritya * parityb
+
+
+def _calculate_dvec2_j(alpha_array: Nparray,
+                       beta_array: Nparray,
+                       norb: int,
+                       i: int,
+                       j: int,
+                       nalpha: int,
+                       nbeta: int,
+                       coeff: Nparray,
+                       dvec: Nparray):
+    func = lib_fqe.calculate_dvec2_j
+    func.argtypes = [
+        ndpointer(
+            shape=alpha_array.shape,
+            dtype=numpy.int32,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        ndpointer(
+            shape=beta_array.shape,
+            dtype=numpy.int32,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        c_int,
+        c_int,
+        c_int,
+        c_int,
+        c_int,
+        c_int,
+        c_int,
+        c_int,
+        c_int,
+        c_int,
+        c_int,
+        c_int,
+        ndpointer(
+            shape=coeff.shape,
+            dtype=numpy.complex128,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        ndpointer(
+            shape=dvec.shape,
+            dtype=numpy.complex128,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        )
+    ]
+    na = alpha_array.shape[1]
+    nb = beta_array.shape[1]
+    nc1, nc2 = coeff.shape
+    nd1, nd2, nd3 = dvec.shape
+    func(alpha_array, beta_array, norb, i, j, nalpha, nbeta,
+         na, nb, nc1, nc2, nd1, nd2, nd3, coeff, dvec)
+    #for k in range(alpha_array.shape[1]):
+    #    sourcea = alpha_array[i, k, 0]
+    #    targeta = alpha_array[i, k, 1]
+    #    paritya = alpha_array[i, k, 2]
+    #    paritya *= (-1)**(nalpha)
+    #    for l in range(beta_array.shape[1]):
+    #        sourceb = beta_array[j - norb, l, 0]
+    #        targetb = beta_array[j - norb, l, 1]
+    #        parityb = beta_array[j - norb, l, 2]
+    #        work = coeff[sourcea, sourceb]
+    #        dvec[i, targeta,
+    #              targetb] += work * paritya * parityb

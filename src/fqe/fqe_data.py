@@ -25,7 +25,7 @@
 #pylint: disable=too-many-arguments
 import copy
 import itertools
-from typing import List, Optional, Tuple, TYPE_CHECKING
+from typing import Set, List, Optional, Tuple, TYPE_CHECKING
 
 import numpy
 from scipy.special import binom
@@ -40,8 +40,12 @@ from fqe.lib.fqe_data import _lm_apply_array1, _make_dvec_part, \
     _make_coeff_part, _make_dvec, _make_coeff, _diagonal_coulomb, \
     _lm_apply_array12_same_spin_opt, _lm_apply_array12_diff_spin_opt, \
     _apply_array12_lowfillingab, _apply_array12_lowfillingab2, \
-    _apply_individual_nbody1
-from fqe.lib.linalg import _zimatadd
+    _apply_array12_lowfillingaa, _apply_array12_lowfillingaa2, \
+    _apply_individual_nbody1_accumulate, _sparse_scale, \
+    _integer_index_accumulate, _evaluate_map_each, _make_Hcomp, \
+    _sparse_apply_array1, _make_mapping_each, \
+    _lm_apply_array1_alpha_column
+from fqe.lib.linalg import _zimatadd, _transpose
 
 if TYPE_CHECKING:
     from numpy import ndarray as Nparray
@@ -116,19 +120,37 @@ class FqeData:
             raise ValueError('Non-diagonal array passed'
                              ' into apply_diagonal_array')
 
-        alpha = []
+        alpha = numpy.zeros((self._core.lena(),), dtype=numpy.complex128)
+        if not array.flags['C_CONTIGUOUS']:
+            array = numpy.copy(array)
         for alp_cnf in range(self._core.lena()):
-            diag_ele = 0.0
-            for ind in integer_index(self._core.string_alpha(alp_cnf)):
-                diag_ele += array[ind]
-            alpha.append(diag_ele)
+            occupation = self._core.string_alpha(alp_cnf)
+            #TODO
+            if True:
+                diag_ele = _integer_index_accumulate(array,
+                                                     occupation,
+                                                     self._core.nalpha(),
+                                                     self.norb())
+            else:
+                diag_ele = 0.0
+                for ind in integer_index(occupation):
+                    diag_ele += array[ind]
+            alpha[alp_cnf] = diag_ele
 
-        beta = []
+        beta = numpy.zeros((self._core.lenb(),), dtype=numpy.complex128)
         for bet_cnf in range(self._core.lenb()):
-            diag_ele = 0.0
-            for ind in integer_index(self._core.string_beta(bet_cnf)):
-                diag_ele += array[beta_ptr + ind]
-            beta.append(diag_ele)
+            occupation = self._core.string_beta(bet_cnf)
+            #TODO
+            if True:
+                diag_ele = _integer_index_accumulate(array[beta_ptr:],
+                                                     occupation,
+                                                     self._core.nbeta(),
+                                                     self.norb())
+            else:
+                diag_ele = 0.0
+                for ind in integer_index(occupation):
+                    diag_ele += array[beta_ptr + ind]
+            beta[bet_cnf] = diag_ele
 
         for alp_cnf in range(self._core.lena()):
             for bet_cnf in range(self._core.lenb()):
@@ -153,18 +175,37 @@ class FqeData:
         else:
             data = numpy.copy(self.coeff).astype(numpy.complex128)
 
+        if not array.flags['C_CONTIGUOUS']:
+            array = numpy.copy(array)
+
         for alp_cnf in range(self._core.lena()):
-            diag_ele = 0.0
-            for ind in integer_index(self._core.string_alpha(alp_cnf)):
-                diag_ele += array[ind]
+            occupation = self._core.string_alpha(alp_cnf)
+            #TODO
+            if True:
+                diag_ele = _integer_index_accumulate(array,
+                                                     occupation,
+                                                     self._core.nalpha(),
+                                                     self.norb())
+            else:
+                diag_ele = 0.0
+                for ind in integer_index(self._core.string_alpha(alp_cnf)):
+                    diag_ele += array[ind]
 
             if diag_ele != 0.0:
                 data[alp_cnf, :] *= numpy.exp(diag_ele)
 
         for bet_cnf in range(self._core.lenb()):
-            diag_ele = 0.0
-            for ind in integer_index(self._core.string_beta(bet_cnf)):
-                diag_ele += array[beta_ptr + ind]
+            occupation = self._core.string_beta(bet_cnf)
+            #TODO
+            if True:
+                diag_ele = _integer_index_accumulate(array[beta_ptr:],
+                                                     occupation,
+                                                     self._core.nbeta(),
+                                                     self.norb())
+            else:
+                diag_ele = 0.0
+                for ind in integer_index(occupation):
+                    diag_ele += array[beta_ptr + ind]
 
             if diag_ele:
                 data[:, bet_cnf] *= numpy.exp(diag_ele)
@@ -182,16 +223,10 @@ class FqeData:
         else:
             data = numpy.copy(self.coeff)
 
-        alpha_strings = numpy.array(
-            [self._core.string_alpha(i) for i in range(self.lena())],
-            dtype=numpy.uint32
-        )
-        beta_strings = numpy.array(
-            [self._core.string_beta(i) for i in range(self.lenb())],
-            dtype=numpy.uint32
-        )
-        _diagonal_coulomb(data, alpha_strings, beta_strings, diag, array,
-                          self.lena(), self.lenb(),
+        _diagonal_coulomb(data,
+                          self._core.string_alpha_all(),
+                          self._core.string_beta_all(),
+                          diag, array, self.lena(), self.lenb(),
                           self.nalpha(), self.nbeta(), self.norb())
 
         return data
@@ -260,15 +295,19 @@ class FqeData:
                 break
 
         def dense_apply_array_spatial1(self, h1e):
-            out = _lm_apply_array1(self.coeff, h1e, self._core._dexca,
-                                   self.lena(), self.lenb(), self.norb(),
-                                   True)
-            out += _lm_apply_array1(self.coeff.T, h1e, self._core._dexcb,
-                                    self.lenb(), self.lena(), self.norb(),
-                                    True).T
+            out = numpy.zeros(self.coeff.shape, dtype=self._dtype)
+            out_b = numpy.zeros(self.coeff.shape, dtype=self._dtype)
+            cT = numpy.empty(self.coeff.shape[::-1], dtype=self._dtype)
+            _transpose(cT, self.coeff)
+
+            _lm_apply_array1(self.coeff, h1e, self._core._dexca, self.lena(),
+                             self.lenb(), self.norb(), True, out=out)
+            _lm_apply_array1(cT, h1e, self._core._dexcb, self.lenb(),
+                             self.lena(), self.norb(), True, out=out_b)
+            _zimatadd(out, out_b, 1.)
             return out
 
-        # doesn't create any copies
+        # doesn't create any copies (~60% slower)
         def dense_apply_array_spatial1_lm(self, h1e):
             out = _lm_apply_array1(self.coeff, h1e, self._core._dexca,
                                    self.lena(), self.lenb(), self.norb(),
@@ -278,12 +317,38 @@ class FqeData:
                              False, out=out)
             return out
 
+        # specialized for a single column
+        def sparse_apply_array_spatial1(self, h1e, jorb):
+            out = numpy.zeros(self.coeff.shape, dtype=self._dtype)
+            out_b = numpy.zeros(self.coeff.shape, dtype=self._dtype)
+            cT = numpy.empty(self.coeff.shape[::-1], dtype=self._dtype)
+            _transpose(cT, self.coeff)
+
+            _sparse_apply_array1(self.coeff, h1e, self._core._dexca, self.lena(),
+                                 self.lenb(), self.norb(), jorb, True, out=out)
+            _sparse_apply_array1(cT, h1e, self._core._dexcb, self.lenb(),
+                                 self.lena(), self.norb(), jorb, True, out=out_b)
+            _zimatadd(out, out_b, 1.)
+            return out
+
+        def sparse_apply_array_spatial1_lm(self, h1e, jorb):
+            out = _sparse_apply_array1(self.coeff, h1e, self._core._dexca,
+                                       self.lena(), self.lenb(), self.norb(),
+                                       jorb, True)
+            _sparse_apply_array1(self.coeff, h1e, self._core._dexcb,
+                                 self.lena(), self.lenb(), self.norb(),
+                                 jorb, False, out=out)
+            return out
+
         if ncol > 1:
             out = dense_apply_array_spatial1(self, h1e)
         else:
             # Seems that this one is also fast for sparse h1e.
             # Probably because zaxpy checks if alpha is nonzero.
             out = dense_apply_array_spatial1(self, h1e)
+            # This code does have slightly better threading, but
+            # It is currently too slow to make the default
+            #out = sparse_apply_array_spatial1_lm(self, h1e, jorb)
             # Previous implementation:
             # dvec = self.calculate_dvec_spatial_fixed_j(jorb)
             # out = numpy.tensordot(h1e[:, jorb], dvec, axes=1)
@@ -333,12 +398,14 @@ class FqeData:
         if ncol > 1:
             out = dense_apply_array_spin1_lm(self, h1e)
         else:
-            dvec = self.calculate_dvec_spin_fixed_j(jorb)
-            if jorb < norb:
-                h1eview = h1e[:norb, jorb]
-            else:
-                h1eview = h1e[norb:, jorb]
-            out = numpy.tensordot(h1eview, dvec, axes=1)
+            # use the dense code here for now
+            out = dense_apply_array_spin1_lm(self, h1e)
+            #dvec = self.calculate_dvec_spin_fixed_j(jorb)
+            #if jorb < norb:
+            #    h1eview = h1e[:norb, jorb]
+            #else:
+            #    h1eview = h1e[norb:, jorb]
+            #out = numpy.tensordot(h1eview, dvec, axes=1)
 
         return out
 
@@ -573,42 +640,35 @@ class FqeData:
         nlt = norb * (norb + 1) // 2
 
         h2ecomp = numpy.zeros((nlt, nlt), dtype=self._dtype)
-        for i in range(norb):
-            for j in range(i + 1, norb):
-                ijn = i + j * (j + 1) // 2
-                for k in range(norb):
-                    for l in range(k + 1, norb):
-                        h2ecomp[ijn, k + l * (l + 1) // 2] = (h2e[i, j, k, l] -
-                                                              h2e[i, j, l, k] -
-                                                              h2e[j, i, k, l] +
-                                                              h2e[j, i, l, k])
+        h2etemp = numpy.ascontiguousarray(h2e)
+        _make_Hcomp(norb, nlt, h2etemp, h2ecomp)
 
         if nalpha - 2 >= 0:
+            def to_array(maps, norb):
+                nstate = len(maps[(0, 1)])
+                arrays = numpy.zeros((nlt, nstate, 3), dtype=numpy.int32)
+                for i in range(norb):
+                    for j in range(i + 1, norb):
+                        ijn = i + j * (j + 1) // 2
+                        for k, data in enumerate(maps[(i, j)]):
+                            arrays[ijn, k, 0] = data[0]
+                            arrays[ijn, k, 1] = data[1]
+                            arrays[ijn, k, 2] = data[2]
+                return arrays
+
             alpha_map, _ = self._core.find_mapping(-2, 0)
+            alpha_array = to_array(alpha_map, norb)
             intermediate = numpy.zeros(
                 (nlt, int(binom(norb, nalpha - 2)), lenb), dtype=self._dtype)
-            for i in range(norb):
-                for j in range(i + 1, norb):
-                    ijn = i + j * (j + 1) // 2
-                    for source, target, parity in alpha_map[(i, j)]:
-                        work = self.coeff[source, :] * parity
-                        intermediate[ijn, target, :] += work
+            _apply_array12_lowfillingaa(
+                self.coeff, alpha_array, intermediate)
 
             intermediate = numpy.tensordot(h2ecomp, intermediate, axes=1)
 
-            for i in range(norb):
-                for j in range(i + 1, norb):
-                    ijn = i + j * (j + 1) // 2
-                    for source, target, parity in alpha_map[(i, j)]:
-                        out[source, :] -= intermediate[ijn, target, :] * parity
+            _apply_array12_lowfillingaa2(
+                intermediate, alpha_array, out)
 
         if self.nalpha() - 1 >= 0 and self.nbeta() - 1 >= 0:
-            alpha_map, beta_map = self._core.find_mapping(-1, -1)
-            nastates = int(binom(norb, nalpha - 1))
-            nbstates = int(binom(norb, nbeta - 1))
-            intermediate = numpy.zeros((norb, norb, nastates, nbstates),
-                                       dtype=self._dtype)
-
             def to_array(maps, norb):
                 nstate = len(maps[(0,)])
                 arrays = numpy.zeros((norb, nstate, 3), dtype=numpy.int32)
@@ -619,35 +679,46 @@ class FqeData:
                         arrays[i, k, 2] = data[2]
                 return arrays
 
+            alpha_map, beta_map = self._core.find_mapping(-1, -1)
+            nastates = int(binom(norb, nalpha - 1))
+            nbstates = int(binom(norb, nbeta - 1))
+            intermediate = numpy.zeros((norb, norb, nastates, nbstates),
+                                       dtype=self._dtype)
+
             alpha_array = to_array(alpha_map, norb)
             beta_array = to_array(beta_map, norb)
             na = alpha_array.shape[1]
             nb = beta_array.shape[1]
             _apply_array12_lowfillingab(self.coeff, alpha_array, beta_array,
-                                        nalpha, nbeta, na, nb, norb, intermediate)
+                                        nalpha, nbeta, intermediate)
             intermediate = numpy.tensordot(h2e, intermediate, axes=2)
-            _apply_array12_lowfillingab2(alpha_array, beta_array, nalpha, nbeta,
-                                         na, nb, norb, intermediate, out)
+            _apply_array12_lowfillingab2(alpha_array, beta_array,
+                                         nalpha, nbeta, intermediate, out)
 
         if self.nbeta() - 2 >= 0:
+            def to_array(maps, norb):
+                nstate = len(maps[(0, 1)])
+                arrays = numpy.zeros((nlt, nstate, 3), dtype=numpy.int32)
+                for i in range(norb):
+                    for j in range(i + 1, norb):
+                        ijn = i + j * (j + 1) // 2
+                        for k, data in enumerate(maps[(i, j)]):
+                            arrays[ijn, k, 0] = data[0]
+                            arrays[ijn, k, 1] = data[1]
+                            arrays[ijn, k, 2] = data[2]
+                return arrays
+
             _, beta_map = self._core.find_mapping(0, -2)
+            beta_array = to_array(beta_map, norb)
             intermediate = numpy.zeros((nlt, lena, int(binom(norb, nbeta - 2))),
                                        dtype=self._dtype)
-            for i in range(norb):
-                for j in range(i + 1, norb):
-                    ijn = i + j * (j + 1) // 2
-                    for source, target, parity in beta_map[(i, j)]:
-                        work = self.coeff[:, source] * parity
-                        intermediate[ijn, :, target] += work
+            _apply_array12_lowfillingaa(
+                self.coeff, beta_array, intermediate, alpha=False)
 
             intermediate = numpy.tensordot(h2ecomp, intermediate, axes=1)
 
-            for i in range(norb):
-                for j in range(i + 1, norb):
-                    ijn = i + j * (j + 1) // 2
-                    for source, target, sign in beta_map[(min(i, j), max(i,
-                                                                         j))]:
-                        out[:, source] -= intermediate[ijn, :, target] * sign
+            _apply_array12_lowfillingaa2(
+                intermediate, beta_array, out, alpha=False)
         return out
 
     def _apply_array_spatial12_lowfilling_simple(self, h1e: 'Nparray',
@@ -778,23 +849,28 @@ class FqeData:
                                               h2e[jno, ino, lno, kno])
 
         if nalpha - 2 >= 0:
+            def to_array(maps, norb):
+                nstate = len(maps[(0, 1)])
+                arrays = numpy.zeros((nlt, nstate, 3), dtype=numpy.int32)
+                for i in range(norb):
+                    for j in range(i + 1, norb):
+                        ijn = i + j * (j + 1) // 2
+                        for k, data in enumerate(maps[(i, j)]):
+                            arrays[ijn, k, 0] = data[0]
+                            arrays[ijn, k, 1] = data[1]
+                            arrays[ijn, k, 2] = data[2]
+                return arrays
+
             alpha_map, _ = self._core.find_mapping(-2, 0)
+            alpha_array = to_array(alpha_map, norb)
             intermediate = numpy.zeros(
                 (nlt, int(binom(norb, nalpha - 2)), lenb), dtype=self._dtype)
-            for i in range(norb):
-                for j in range(i + 1, norb):
-                    ijn = i + j * (j + 1) // 2
-                    for source, target, parity in alpha_map[(i, j)]:
-                        work = self.coeff[source, :] * parity
-                        intermediate[ijn, target, :] += work
+            _apply_array12_lowfillingaa(
+                self.coeff, alpha_array, intermediate)
 
             intermediate = numpy.tensordot(h2ecompa, intermediate, axes=1)
-
-            for i in range(norb):
-                for j in range(i + 1, norb):
-                    ijn = i + j * (j + 1) // 2
-                    for source, target, parity in alpha_map[(i, j)]:
-                        out[source, :] -= intermediate[ijn, target, :] * parity
+            _apply_array12_lowfillingaa2(
+                intermediate, alpha_array, out)
 
         if self.nalpha() - 1 >= 0 and self.nbeta() - 1 >= 0:
             alpha_map, beta_map = self._core.find_mapping(-1, -1)
@@ -817,31 +893,35 @@ class FqeData:
             na = alpha_array.shape[1]
             nb = beta_array.shape[1]
             _apply_array12_lowfillingab(self.coeff, alpha_array, beta_array,
-                                        nalpha, nbeta, na, nb, norb, intermediate)
+                                        nalpha, nbeta, intermediate)
             intermediate = numpy.tensordot(h2e[:norb, norb:, :norb, norb:],
                                            intermediate, axes=2)
             _apply_array12_lowfillingab2(alpha_array, beta_array, nalpha, nbeta,
-                                         na, nb, norb, intermediate, out)
+                                         intermediate, out)
 
         if self.nbeta() - 2 >= 0:
+            def to_array(maps, norb):
+                nstate = len(maps[(0, 1)])
+                arrays = numpy.zeros((nlt, nstate, 3), dtype=numpy.int32)
+                for i in range(norb):
+                    for j in range(i + 1, norb):
+                        ijn = i + j * (j + 1) // 2
+                        for k, data in enumerate(maps[(i, j)]):
+                            arrays[ijn, k, 0] = data[0]
+                            arrays[ijn, k, 1] = data[1]
+                            arrays[ijn, k, 2] = data[2]
+                return arrays
+
             _, beta_map = self._core.find_mapping(0, -2)
+            beta_array = to_array(beta_map, norb)
             intermediate = numpy.zeros((nlt, lena, int(binom(norb, nbeta - 2))),
                                        dtype=self._dtype)
-            for i in range(norb):
-                for j in range(i + 1, norb):
-                    ijn = i + j * (j + 1) // 2
-                    for source, target, parity in beta_map[(i, j)]:
-                        work = self.coeff[:, source] * parity
-                        intermediate[ijn, :, target] += work
+            _apply_array12_lowfillingaa(
+                self.coeff, beta_array, intermediate, alpha=False)
 
             intermediate = numpy.tensordot(h2ecompb, intermediate, axes=1)
-
-            for i in range(norb):
-                for j in range(i + 1, norb):
-                    ijn = i + j * (j + 1) // 2
-                    for source, target, sign in beta_map[(min(i, j), max(i,
-                                                                         j))]:
-                        out[:, source] -= intermediate[ijn, :, target] * sign
+            _apply_array12_lowfillingaa2(
+                intermediate, beta_array, out, alpha=False)
         return out
 
     def _apply_array_spin12_lowfilling_simple(self, h1e: 'Nparray',
@@ -1290,6 +1370,47 @@ class FqeData:
         out += self.calculate_coeff_spin_with_dvec((dveca2, dvecb2))
         return out
 
+    def _apply_columns_recursive_alpha(self, mat: 'Nparray', buf: 'Nparray'):
+        """
+        Apply only alpha-alpha operator that is represented by mat, whose
+        dimension is norb times norb
+        """
+        norb = self.norb()
+        matT = mat.T.copy()
+        index, exc, diag = self._core._map_to_deexc_alpha_icol()
+
+        for icol in range(norb):
+            _lm_apply_array1_alpha_column(self.coeff, matT[icol, :],
+                                          index[icol], exc[icol], diag[icol],
+                                          self.lena(), self.lenb(), icol)
+
+    def apply_columns_recursive_inplace(self,
+                                        mat1: 'Nparray',
+                                        mat2: 'Nparray'
+                                       ) -> None:
+        """
+        Apply column operators recursively to perform wave function transformation
+        under the unitary transfomration of the orbitals. Only called from
+        Wavefunction.transform
+        """
+        trans = FqeData(self._core.nbeta(), self._core.nalpha(), self.norb(),
+                        self._core.alpha_beta_transpose(),
+                        dtype=self.coeff.dtype)
+        buf = trans.coeff.reshape(self.lena(), self.lenb())
+        self._apply_columns_recursive_alpha(mat1, buf)
+        #TODO
+        if True:
+            _transpose(trans.coeff, self.coeff)
+        else:
+            trans.coeff[:, :] = self.coeff.T[:, :]
+        buf = self.coeff.reshape(self.lenb(), self.lena())
+        trans._apply_columns_recursive_alpha(mat2, buf)
+        #TODO
+        if True:
+            _transpose(self.coeff, trans.coeff)
+        else:
+            self.coeff[:, :] = trans.coeff.T[:, :]
+
     def apply_inplace_s2(self) -> None:
         """
         Apply the S squared operator to self.
@@ -1318,101 +1439,45 @@ class FqeData:
         Apply function with an individual operator represented in arrays.
         It is assumed that the operator is spin conserving
         """
-        assert len(daga) == len(undaga) and len(dagb) == len(undagb)
 
-        alphamap = []
-        betamap = []
-
-        def make_mapping_each(alpha: bool) -> None:
-            (dag, undag) = (daga, undaga) if alpha else (dagb, undagb)
-            for index in range(self.lena() if alpha else self.lenb()):
-                if alpha:
-                    current = self._core.string_alpha(index)
-                else:
-                    current = self._core.string_beta(index)
-
-                check = True
-                for i in undag:
-                    if not check:
-                        break
-                    check &= bool(get_bit(current, i))
-                for i in dag:
-                    if not check:
-                        break
-                    check &= i in undag or not bool(get_bit(current, i))
-                if check:
-                    parity = 0
-                    for i in reversed(undag):
-                        parity += count_bits_above(current, i)
-                        current = unset_bit(current, i)
-                    for i in reversed(dag):
-                        parity += count_bits_above(current, i)
-                        current = set_bit(current, i)
-                    if alpha:
-                        alphamap.append((index, self._core.index_alpha(current),
-                                         (-1)**parity))
-                    else:
-                        betamap.append((index, self._core.index_beta(current),
-                                        (-1)**parity))
-
-        make_mapping_each(True)
-        make_mapping_each(False)
         out = copy.deepcopy(self)
         out.coeff.fill(0.0)
-        sourceb_vec = numpy.array([xx[0] for xx in betamap])
-        targetb_vec = numpy.array([xx[1] for xx in betamap])
-        parityb_vec = numpy.array([xx[2] for xx in betamap])
+        out.apply_individual_nbody_accumulate(coeff, self,
+                                              daga, undaga, dagb, undagb)
+        return out
 
-        if len(alphamap) == 0 or len(betamap) == 0:
-            return out
-        else:
-            for sourcea, targeta, paritya in alphamap:
-                out.coeff[targeta, targetb_vec] = \
-                    coeff * paritya * numpy.multiply(
-                        self.coeff[sourcea, sourceb_vec], parityb_vec)
-            # # TODO: THIS SHOULD BE CHECKED THOROUGHLY
-            # # NOTE: Apparently the meshgrid construction overhead
-            # # slows down this line so it is a little slower than the previous
-            # sourcea_vec = numpy.array([xx[0] for xx in alphamap])
-            # targeta_vec = numpy.array([xx[1] for xx in alphamap])
-            # paritya_vec = numpy.array([xx[2] for xx in alphamap])
-            # target_xi, target_yj = numpy.meshgrid(targeta_vec, targetb_vec)
-            # source_xi, source_yj = numpy.meshgrid(sourcea_vec, sourceb_vec)
-            # parity_xi, parity_yj = numpy.meshgrid(paritya_vec, parityb_vec)
-            # out.coeff[target_xi, target_yj] = coeff * \
-            #         (self.coeff[source_xi, source_yj] * parity_xi * parity_yj)
-
-            return out
-
-    def apply_individual_nbody_inplace(self, coeff: complex, daga: List[int],
-                                       undaga: List[int], dagb: List[int],
-                                       undagb: List[int]) -> 'FqeData':
+    def apply_individual_nbody_accumulate(self,
+                                          coeff: complex, idata: 'FqeData',
+                                          daga: List[int], undaga: List[int],
+                                          dagb: List[int], undagb: List[int]
+                                         ) -> 'FqeData':
         """
         Apply function with an individual operator represented in arrays.
         It is assumed that the operator is spin conserving
         """
         assert len(daga) == len(undaga) and len(dagb) == len(undagb)
 
-        alphamap = []
-        betamap = []
-
-        def make_mapping_each(alpha: bool) -> None:
+        def make_mapping_each(result: 'Nparray', alpha: bool) -> int:
             (dag, undag) = (daga, undaga) if alpha else (dagb, undagb)
+
+            dag_mask = 0
+            for i in dag:
+                if not i in undag:
+                    dag_mask = set_bit(dag_mask, i)
+            undag_mask = 0
+            for i in undag:
+                undag_mask = set_bit(undag_mask, i)
+
+            count = 0
             for index in range(self.lena() if alpha else self.lenb()):
                 if alpha:
-                    current = self._core.string_alpha(index)
+                    icurrent = self._core.string_alpha(index)
                 else:
-                    current = self._core.string_beta(index)
+                    icurrent = self._core.string_beta(index)
+                current = int(icurrent)
 
-                check = True
-                for i in undag:
-                    if not check:
-                        break
-                    check &= bool(get_bit(current, i))
-                for i in dag:
-                    if not check:
-                        break
-                    check &= i in undag or not bool(get_bit(current, i))
+                check = (current & dag_mask) == 0 and \
+                        (current & undag_mask ^ undag_mask) == 0
                 if check:
                     parity = 0
                     for i in reversed(undag):
@@ -1421,27 +1486,43 @@ class FqeData:
                     for i in reversed(dag):
                         parity += count_bits_above(current, i)
                         current = set_bit(current, i)
-                    if alpha:
-                        alphamap.append((index, self._core.index_alpha(current),
-                                         (-1)**parity))
-                    else:
-                        betamap.append((index, self._core.index_beta(current),
-                                        (-1)**parity))
+                    result[count, 0] = index
+                    result[count, 1] = current
+                    result[count, 2] = (-1)**parity
+                    count += 1
+            return count
 
-        make_mapping_each(True)
-        make_mapping_each(False)
-        ocoeff = numpy.zeros(self.coeff.shape, dtype=self.coeff.dtype)
-        sourceb_vec = numpy.array([xx[0] for xx in betamap], dtype=numpy.int32)
-        targetb_vec = numpy.array([xx[1] for xx in betamap], dtype=numpy.int32)
-        parityb_vec = numpy.array([xx[2] for xx in betamap], dtype=numpy.int32)
+        alphamap = numpy.zeros((self.lena(), 3), dtype=numpy.int64)
+        betamap = numpy.zeros((self.lenb(), 3), dtype=numpy.int64)
 
-        if len(alphamap) == 0 or len(betamap) == 0:
-            self.coeff = ocoeff
+        if True:
+            acount = _make_mapping_each(alphamap, self._core.string_alpha_all(),
+                                        self.lena(),
+                                        numpy.array(daga, dtype=numpy.int32),
+                                        numpy.array(undaga, dtype=numpy.int32))
+            bcount = _make_mapping_each(betamap, self._core.string_beta_all(),
+                                        self.lenb(),
+                                        numpy.array(dagb, dtype=numpy.int32),
+                                        numpy.array(undagb, dtype=numpy.int32))
         else:
-            _apply_individual_nbody1(
-                coeff, ocoeff, self.coeff, alphamap,
+            acount = make_mapping_each(alphamap, True)
+            bcount = make_mapping_each(betamap, False)
+
+        alphamap = alphamap[:acount, :]
+        for i in range(acount):
+            alphamap[i, 1] = self._core.index_alpha(alphamap[i, 1])
+        betamap = betamap[:bcount, :]
+        for i in range(bcount):
+            betamap[i, 1] = self._core.index_beta(betamap[i, 1])
+
+        sourceb_vec = numpy.array(betamap[:, 0])
+        targetb_vec = numpy.array(betamap[:, 1])
+        parityb_vec = numpy.array(betamap[:, 2])
+
+        if alphamap.size != 0 and betamap.size != 0:
+            _apply_individual_nbody1_accumulate(
+                coeff, self.coeff, idata.coeff, alphamap,
                 targetb_vec, sourceb_vec, parityb_vec)
-            self.coeff = ocoeff
 
     def rdm1(self, bradata: Optional['FqeData'] = None) -> Tuple['Nparray']:
         """
@@ -1692,16 +1773,26 @@ class FqeData:
         outunpack = numpy.zeros((norb, norb, norb, norb),
                                 dtype=self.coeff.dtype)
         if nalpha - 2 >= 0:
+            def to_array(maps, norb):
+                nstate = len(maps[(0, 1)])
+                arrays = numpy.zeros((nlt, nstate, 3), dtype=numpy.int32)
+                for i in range(norb):
+                    for j in range(i + 1, norb):
+                        ijn = i + j * (j + 1) // 2
+                        for k, data in enumerate(maps[(i, j)]):
+                            arrays[ijn, k, 0] = data[0]
+                            arrays[ijn, k, 1] = data[1]
+                            arrays[ijn, k, 2] = data[2]
+                return arrays
+
             alpha_map, _ = self._core.find_mapping(-2, 0)
+            alpha_array = to_array(alpha_map, norb)
 
             def compute_intermediate0(coeff):
                 tmp = numpy.zeros((nlt, int(binom(norb, nalpha - 2)), lenb),
                                   dtype=self.coeff.dtype)
-                for i in range(norb):
-                    for j in range(i + 1, norb):
-                        for source, target, parity in alpha_map[(i, j)]:
-                            tmp[i + j * (j + 1) //
-                                2, target, :] += coeff[source, :] * parity
+                _apply_array12_lowfillingaa(
+                    self.coeff, alpha_array, tmp)
                 return tmp
 
             inter = compute_intermediate0(self.coeff)
@@ -1732,7 +1823,7 @@ class FqeData:
 
             alpha_map, beta_map = self._core.find_mapping(-1, -1)
             _apply_array12_lowfillingab(self.coeff, alpha_array, beta_array,
-                                        nalpha, nbeta, na, nb, norb, inter)
+                                        nalpha, nbeta, inter)
 
             if bradata is None:
                 inter2 = inter
@@ -1740,23 +1831,33 @@ class FqeData:
                 inter2 = numpy.zeros((norb, norb, int(binom(norb, nalpha - 1)),
                                      int(binom(norb, nbeta - 1))), dtype=self._dtype)
                 _apply_array12_lowfillingab(bradata.coeff, alpha_array, beta_array,
-                                            nalpha, nbeta, na, nb, norb, inter2)
+                                            nalpha, nbeta, inter2)
 
             # 0.25 needed since _apply_array12_lowfillingab adds a factor 2
             outunpack += numpy.tensordot(inter2.conj(), inter,
                                          axes=((2, 3), (2, 3))) * 0.25
 
         if self.nbeta() - 2 >= 0:
+            def to_array(maps, norb):
+                nstate = len(maps[(0, 1)])
+                arrays = numpy.zeros((nlt, nstate, 3), dtype=numpy.int32)
+                for i in range(norb):
+                    for j in range(i + 1, norb):
+                        ijn = i + j * (j + 1) // 2
+                        for k, data in enumerate(maps[(i, j)]):
+                            arrays[ijn, k, 0] = data[0]
+                            arrays[ijn, k, 1] = data[1]
+                            arrays[ijn, k, 2] = data[2]
+                return arrays
+
             _, beta_map = self._core.find_mapping(0, -2)
+            beta_array = to_array(beta_map, norb)
 
             def compute_intermediate2(coeff):
                 tmp = numpy.zeros((nlt, lena, int(binom(norb, nbeta - 2))),
                                   dtype=self.coeff.dtype)
-                for i in range(norb):
-                    for j in range(i + 1, norb):
-                        for source, target, parity in beta_map[(i, j)]:
-                            tmp[i + j * (j + 1) //
-                                2, :, target] += coeff[:, source] * parity
+                _apply_array12_lowfillingaa(
+                    self.coeff, beta_array, tmp, alpha=False)
 
                 return tmp
 
@@ -2092,29 +2193,34 @@ class FqeData:
         n_b = len(opb)
         coeff *= (-1)**(n_a * (n_a - 1) // 2 + n_b * (n_b - 1) // 2)
 
-        amap = set()
-        bmap = set()
+        amap = numpy.zeros((self.lena(),), dtype=numpy.int64)
+        bmap = numpy.zeros((self.lenb(),), dtype=numpy.int64)
         amask = reverse_integer_index(opa)
         bmask = reverse_integer_index(opb)
+        count = 0
         for index in range(self.lena()):
-            current = self._core.string_alpha(index)
+            current = int(self._core.string_alpha(index))
             if (~current) & amask == 0:
-                amap.add(index)
+                amap[count] = index
+                count += 1
+        amap = amap[:count]
+        count = 0
         for index in range(self.lenb()):
-            current = self._core.string_beta(index)
+            current = int(self._core.string_beta(index))
             if (~current) & bmask == 0:
-                bmap.add(index)
+                bmap[count] = index
+                count += 1
+        bmap = bmap[:count]
 
         factor = numpy.exp(-time * numpy.real(coeff) * 2.j)
-        lamap = list(amap)
-        lbmap = list(bmap)
-        if len(lamap) != 0 and len(lbmap) != 0:
-            xi, yi = numpy.meshgrid(lamap, lbmap, indexing='ij')
-            self.coeff[xi, yi] *= factor
+        if amap.size != 0 and bmap.size != 0:
+            xi, yi = numpy.meshgrid(amap, bmap, indexing='ij')
+            #self.coeff[xi, yi] *= factor
+            _sparse_scale(xi, yi, factor, self.coeff)
 
-    def evolve_inplace_individual_nbody_nontrivial(
+    def evolve_individual_nbody_nontrivial(
             self, time: float, coeff: complex, daga: List[int],
-            undaga: List[int], dagb: List[int], undagb: List[int]) -> None:
+            undaga: List[int], dagb: List[int], undagb: List[int]) -> 'FqeData':
         """
         This code time-evolves a wave function with an individual n-body
         generator which is spin-conserving. It is assumed that hat{T}^2 = 0.
@@ -2162,28 +2268,85 @@ class FqeData:
         parity += isolate_number_operators(dagb, undagb, dagworkb, undagworkb,
                                            numberb)
         ncoeff = coeff * (-1)**parity
+        absol = numpy.absolute(ncoeff)
+        sinfactor = numpy.sin(time * absol) / absol
 
-        # code for (TTd)
+        out = copy.deepcopy(self)
+
+        out.apply_cos_inplace(time, ncoeff, numbera + dagworka,
+                              undagworka, numberb + dagworkb, undagworkb)
+
+        out.apply_cos_inplace(time, ncoeff, numbera + undagworka,
+                              dagworka, numberb + undagworkb, dagworkb)
+
         phase = (-1)**((len(daga) + len(undaga)) * (len(dagb) + len(undagb)))
-        (cosdata1,
-         sindata1) = self.apply_cos_sin(time, ncoeff, numbera + dagworka,
-                                        undagworka, numberb + dagworkb,
-                                        undagworkb)
+        work_cof = numpy.conj(coeff) * phase * (-1.0j)
 
-        work_cof = numpy.conj(coeff) * phase
-        sindata1.apply_individual_nbody_inplace(work_cof, undaga, daga, undagb,
-                                                dagb)
-        cosdata1.ax_plus_y(-1.0j, sindata1)
+        out.apply_individual_nbody_accumulate(work_cof * sinfactor, self,
+                                              undaga, daga, undagb, dagb)
 
-        # code for (TdT)
-        (cosdata2,
-         sindata2) = self.apply_cos_sin(time, ncoeff, numbera + undagworka,
-                                        dagworka, numberb + undagworkb,
-                                        dagworkb)
-        sindata2.apply_individual_nbody_inplace(coeff, daga, undaga, dagb, undagb)
-        cosdata2.ax_plus_y(-1.0j, sindata2)
+        out.apply_individual_nbody_accumulate(coeff * (-1.0j) * sinfactor, self,
+                                              daga, undaga, dagb, undagb)
+        return out
 
-        self.coeff = cosdata1.coeff + cosdata2.coeff - self.coeff
+    def _evaluate_map(self, opa: List[int], oha: List[int],
+                      opb: List[int], ohb: List[int]):
+        """
+        Utility internal function that performs part of the operations in
+        evolve_inplace_individual_nbody_nontrivial, in which alpha and beta
+        mappings are created.
+        """
+        amap = numpy.zeros((self.lena(),), dtype=numpy.int64)
+        bmap = numpy.zeros((self.lenb(),), dtype=numpy.int64)
+        apmask = reverse_integer_index(opa)
+        ahmask = reverse_integer_index(oha)
+        bpmask = reverse_integer_index(opb)
+        bhmask = reverse_integer_index(ohb)
+        if True:
+            count = _evaluate_map_each(amap, self._core._astr, self.lena(),
+                                       apmask, ahmask)
+            amap = amap[:count]
+            count = _evaluate_map_each(bmap, self._core._bstr, self.lenb(), 
+                                       bpmask, bhmask)
+            bmap = bmap[:count]
+        else:
+            counter = 0
+            for index in range(self.lena()):
+                current = int(self._core.string_alpha(index))
+                if ((~current) & apmask) == 0 and (current & ahmask) == 0:
+                    amap[counter] = index
+                    counter += 1
+            amap = amap[:counter]
+            counter = 0
+            for index in range(self.lenb()):
+                current = int(self._core.string_beta(index))
+                if ((~current) & bpmask) == 0 and (current & bhmask) == 0:
+                    bmap[counter] = index
+                    counter += 1
+            bmap = bmap[:counter]
+        return amap, bmap
+
+    def apply_cos_inplace(self, time: float, ncoeff: complex,
+                          opa: List[int],
+                          oha: List[int],
+                          opb: List[int],
+                          ohb: List[int]
+                         ) -> Tuple['FqeData', 'FqeData']:
+        """
+        Utility internal function that performs part of the operations in
+        evolve_inplace_individual_nbody_nontrivial. This function processes
+        both TTd and TdT cases simultaneously and in-lace without allocating
+        memory.
+        """
+        absol = numpy.absolute(ncoeff)
+        factor = numpy.cos(time * absol)
+
+        amap, bmap = self._evaluate_map(opa, oha, opb, ohb)
+
+        if amap.size != 0 and bmap.size != 0:
+            xi, yi = numpy.meshgrid(amap, bmap, indexing='ij')
+            #self.coeff[xi, yi] *= factor
+            _sparse_scale(xi, yi, factor, self.coeff)
 
     def apply_cos_sin(self, time: float, ncoeff: complex, opa: List[int],
                       oha: List[int], opb: List[int],
@@ -2191,45 +2354,22 @@ class FqeData:
         """
         Utility internal function that performs part of the operations in
         evolve_inplace_individual_nbody_nontrivial.  Isolated because it is
-        also used in the counterpart in FqeDataSet.
+        also used in the counterpart in FqeDataSet. This function allocates
+        two FqeData objects, which are both returned.
         """
-        amap = set()
-        bmap = set()
-        apmask = reverse_integer_index(opa)
-        ahmask = reverse_integer_index(oha)
-        bpmask = reverse_integer_index(opb)
-        bhmask = reverse_integer_index(ohb)
-        for index in range(self.lena()):
-            current = self._core.string_alpha(index)
-            if ((~current) & apmask) == 0 and (current & ahmask) == 0:
-                amap.add(index)
-        for index in range(self.lenb()):
-            current = self._core.string_beta(index)
-            if ((~current) & bpmask) == 0 and (current & bhmask) == 0:
-                bmap.add(index)
+        amap, bmap = self._evaluate_map(opa, oha, opb, ohb)
 
         absol = numpy.absolute(ncoeff)
         cosfactor = numpy.cos(time * absol)
         sinfactor = numpy.sin(time * absol) / absol
 
         cosdata = copy.deepcopy(self)
-        #sindata = copy.deepcopy(self)  # avoid deepcopy here
-        sindata = FqeData(nalpha=self._core.nalpha(),
-                          nbeta=self._core.nbeta(),
-                          norb=self._core.norb(),
-                          fcigraph=self._core,
-                          dtype=self._dtype)
-        sindata._low_thresh = self._low_thresh
-        sindata.coeff = numpy.zeros(self.coeff.shape, dtype=self.coeff.dtype)
-        lamap = list(amap)
-        lbmap = list(bmap)
-        if len(lamap) == 0 or len(lbmap) == 0:
-            return (cosdata, sindata)
-        else:
-            xi, yi = numpy.meshgrid(lamap, lbmap, indexing='ij')
+        sindata = self.clone()
+        if amap.size != 0 and bmap.size != 0:
+            xi, yi = numpy.meshgrid(amap, bmap, indexing='ij')
             cosdata.coeff[xi, yi] *= cosfactor
             sindata.coeff[xi, yi] = self.coeff[xi, yi] * sinfactor
-            return (cosdata, sindata)
+        return (cosdata, sindata)
 
     def alpha_map(self, iorb: int, jorb: int) -> List[Tuple[int, int, int]]:
         """Access the mapping for a singlet excitation from the current
@@ -2422,10 +2562,18 @@ class FqeData:
                            fcigraph=self._core,
                            dtype=self._dtype)
         new_data._low_thresh = self._low_thresh
-        # NOTE: numpy.copy only okay for numeric type self.coeff
-        # NOTE: Otherwise implement copy.deepcopy(self.coeff)
-        #new_data.coeff[:, :] = self.coeff[:, :]
         new_data.coeff = self.coeff.copy()
+        return new_data
+
+    def clone(self):
+        """create a copy of the self with zero coefficients"""
+        new_data = FqeData(nalpha=self._core.nalpha(),
+                           nbeta=self._core.nbeta(),
+                           norb=self._core.norb(),
+                           fcigraph=self._core,
+                           dtype=self._dtype)
+        new_data._low_thresh = self._low_thresh
+        new_data.coeff = numpy.zeros_like(self.coeff)
         return new_data
 
     def get_spin_opdm(self):

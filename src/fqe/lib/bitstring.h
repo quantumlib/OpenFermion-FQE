@@ -1,11 +1,18 @@
 #pragma once
 #include <stdio.h>
+#include <stdint.h>
 
-#define CHECK_BIT(b,pos) ((b) & (1<<(pos)))
-#define SET_BIT(b,pos) ((b) | (1<<(pos)))
-#define UNSET_BIT(b,pos) ((b) & (~(1<<(pos))))
+#define CHECK_BIT(b,pos) ((b) & (1ull<<(pos)))
+#define SET_BIT(b,pos) ((b) | (1ull<<(pos)))
+#define UNSET_BIT(b,pos) ((b) & (~(1ull<<(pos))))
 
-inline int gbit_index(unsigned int *str, int *bit_index) {
+inline int gbit_index(uint64_t *str, int *bit_index) {
+#ifdef __GNUC__
+  const int pos = __builtin_ffsll(*str);
+  *str >>= pos;
+  *bit_index += pos;
+  return pos;
+#else
   if (*bit_index == -1) { *str = *str << 1; }
   while  (*str) {
     *str = *str >> 1;
@@ -13,23 +20,37 @@ inline int gbit_index(unsigned int *str, int *bit_index) {
     if (*str & 1) { return 1; }
   }
   return 0;
+#endif
 }
 
-inline int count_bits_between(unsigned int cstring, const int i, const int j) {
-  // Simple implementation. Not necessarily efficient.
-  const int minshift = i > j ? j : i;
-  const int length = abs(i - j) - 1;
-  cstring = cstring >> (minshift + 1);
-  int count = 0;
-  for (int c = 0; c < length; ++c) {
-    count += cstring & 1;
-    cstring = cstring >> 1;
-  }
-  return count;
+inline int count_bits(const uint64_t cstring) {
+#ifdef __GNUC__
+  return __builtin_popcountll(cstring);
+#else
+  uint64_t v = cstring;
+#define T uint64_t
+  v = v - ((v >> 1) & (T)~(T)0/3);
+  v = (v & (T)~(T)0/15*3) + ((v >> 2) & (T)~(T)0/15*3);
+  v = (v + (v >> 4)) & (T)~(T)0/255*15;
+  return (T)(v * ((T)~(T)0/255)) >> (sizeof(T) - 1) * 8;
+#undef T
+#endif
+}
+
+inline int count_bits_between(uint64_t cstring, const int i, const int j) {
+  cstring &= (((1ull << i) - 1) ^ ((2ull << j) - 1));
+  cstring &= (((1ull << j) - 1) ^ ((2ull << i) - 1));
+  return count_bits(cstring);
+}
+
+
+inline int count_bits_above(uint64_t cstring, const int i) {
+  cstring &= ~((2ull << i) - 1);
+  return count_bits(cstring);
 }
 
 inline int get_occupation(int *occ,
-                          unsigned int str,
+                          uint64_t str,
                           const int nel,
                           const int norb) {
   int id = -1;
@@ -41,3 +62,7 @@ inline int get_occupation(int *occ,
   }
   return 0;
 }
+
+void lexicographic_bitstring_generator(uint64_t *out,
+                                       int norb,
+                                       int nele);
