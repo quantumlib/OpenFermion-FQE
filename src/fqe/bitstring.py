@@ -15,9 +15,13 @@
 frequently used operations.
 """
 
+import numpy
+from scipy import special
 from typing import Generator, List
 
 from itertools import combinations
+
+from fqe.lib.bitstring import _lexicographic_bitstring_generator
 
 
 def check_conserved_bits(str0: int, conserved: int) -> bool:
@@ -78,7 +82,7 @@ def integer_index(str0: int) -> List[int]:
         list[int] - a list of integers indicating the index of each occupied \
             orbital
     """
-    return list(gbit_index(str0))
+    return list(gbit_index(int(str0)))
 
 
 def reverse_integer_index(occ: List[int]) -> int:
@@ -97,7 +101,7 @@ def reverse_integer_index(occ: List[int]) -> int:
     return out
 
 
-def lexicographic_bitstring_generator(str0: int, norb: int) -> List[int]:
+def lexicographic_bitstring_generator(nele: int, norb: int) -> List[int]:
     """
     Generate all bitstrings with a definite bit count starting from an initial
     state
@@ -109,18 +113,24 @@ def lexicographic_bitstring_generator(str0: int, norb: int) -> List[int]:
          particles into
 
     Returns:
-        list[bitstrings] - a list of bitstrings representing the occupation \
+         Nparray - a list of bitstrings representing the occupation \
             states
     """
-    out = []
-    gs_bs = [int(x) for x in '{0:b}'.format(str0).zfill(norb)]
-    n_elec = sum(gs_bs)
-    n_orbs = len(gs_bs)
-    for ones_positions in combinations(range(n_orbs), n_elec):
-        out.append(sum([2**z for z in ones_positions
-                       ]))  # convert directly to int
-    return sorted(out)
-
+    if nele > norb:
+        raise ValueError("nele cannot be larger than norb")
+    #TODO
+    if True:
+        out = numpy.zeros((int(special.comb(norb, nele)),), dtype=numpy.uint64)
+        _lexicographic_bitstring_generator(out, norb, nele) 
+        return out
+    else:
+        out = []
+        gs_bs = [int(x) for x in '{0:b}'.format(2**nele-1).zfill(norb)]
+        n_orbs = len(gs_bs)
+        for ones_positions in combinations(range(n_orbs), nele):
+            out.append(sum([2**z for z in ones_positions
+                           ]))  # convert directly to int
+        return numpy.array(sorted(out), dtype=numpy.uint64)
 
 def count_bits(string: int, bitval: str = '1') -> int:
     """Count the bit value in a bistring
@@ -133,7 +143,7 @@ def count_bits(string: int, bitval: str = '1') -> int:
     Returns:
         int - the number of bits equal to bitval
     """
-    return bin(string).count(bitval)
+    return bin(int(string)).count(bitval)
 
 
 def get_bit(string: int, pos: int) -> int:
@@ -144,7 +154,7 @@ def get_bit(string: int, pos: int) -> int:
 
         pos (int) - position in the bit string
     """
-    return string & (2**pos)
+    return int(string) & (2**pos)
 
 
 def set_bit(string: int, pos: int) -> int:
@@ -155,7 +165,7 @@ def set_bit(string: int, pos: int) -> int:
 
         pos (int) - position in the bit string
     """
-    return string | (2**pos)
+    return int(string) | (2**pos)
 
 
 def unset_bit(string: int, pos: int) -> int:
@@ -166,7 +176,7 @@ def unset_bit(string: int, pos: int) -> int:
 
         pos (int) - position in the bit string
     """
-    return string & ~(2**pos)
+    return int(string) & ~(2**pos)
 
 
 def count_bits_above(string: int, pos: int) -> int:
@@ -177,7 +187,7 @@ def count_bits_above(string: int, pos: int) -> int:
 
         pos (int) - position in the bit string
     """
-    return count_bits(string & ~(2**(pos + 1) - 1))
+    return count_bits(int(string) & ~(2**(pos + 1) - 1))
 
 
 def count_bits_below(string: int, pos: int) -> int:
@@ -188,7 +198,7 @@ def count_bits_below(string: int, pos: int) -> int:
 
         pos (int) - position in the bit string
     """
-    return count_bits(string & (2**pos - 1))
+    return count_bits(int(string) & (2**pos - 1))
 
 
 def count_bits_between(string: int, pos1: int, pos2: int) -> int:
@@ -202,7 +212,7 @@ def count_bits_between(string: int, pos1: int, pos2: int) -> int:
         pos2 (int) - the other position in the bit string
     """
     mask = (2**max(pos1, pos2) - 1) ^ (2**(min(pos1, pos2) + 1) - 1)
-    return count_bits(string & mask)
+    return count_bits(int(string) & mask)
 
 
 def show_bits(string: int, nbits: int = 16) -> str:
@@ -213,4 +223,4 @@ def show_bits(string: int, nbits: int = 16) -> str:
 
         nbits (int) - the number of bits to show
     """
-    return str(bin(string)[2:].zfill(nbits))
+    return str(bin(int(string))[2:].zfill(nbits))

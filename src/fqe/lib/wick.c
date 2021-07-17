@@ -4,9 +4,9 @@
 /* C-kernel for filling custom RDMs using particle RDMs. */
 int wickfill(double complex *target,
              const double complex *source,
-             const unsigned int *indices,
+             const uint32_t *indices,
              const double factor,
-             const unsigned int *delta,
+             const uint32_t *delta,
              const int norb,
              const int trank,
              const int srank) {

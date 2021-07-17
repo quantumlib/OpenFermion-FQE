@@ -274,12 +274,12 @@ def qubit_particle_number_sector(nqubits: int,
     Returns:
         list[numpy.array(dtype=numpy.complex64)]
     """
-    occ = numpy.array([0, 1], dtype=numpy.int)
-    uno = numpy.array([1, 0], dtype=numpy.int)
-    seed = init_bitstring_groundstate(pnum)
-    pn_set = lexicographic_bitstring_generator(seed, nqubits)
+    occ = numpy.array([0, 1], dtype=numpy.int32)
+    uno = numpy.array([1, 0], dtype=numpy.int32)
+    pn_set = lexicographic_bitstring_generator(pnum, nqubits)
     vectors = []
-    for orbocc in pn_set:
+    for iorbocc in pn_set:
+        orbocc = int(iorbocc)
         if orbocc & 1:
             vec = occ
         else:
@@ -308,9 +308,8 @@ def qubit_config_sector(nqubits: int, pnum: int,
     Returns:
         list[numpy.array(dtype=numpy.complex64)]
     """
-    occ = numpy.array([0, 1], dtype=numpy.int)
-    uno = numpy.array([1, 0], dtype=numpy.int)
-    seed = init_bitstring_groundstate(pnum)
+    occ = numpy.array([0, 1], dtype=numpy.int32)
+    uno = numpy.array([1, 0], dtype=numpy.int32)
     achk = 0
     bchk = 0
     pn_set = []
@@ -321,8 +320,9 @@ def qubit_config_sector(nqubits: int, pnum: int,
         else:
             achk += 2**num
 
-    initpn = lexicographic_bitstring_generator(seed, nqubits)
-    for occu in initpn:
+    initpn = lexicographic_bitstring_generator(pnum, nqubits)
+    for ioccu in initpn:
+        occu = int(ioccu) 
         if (count_bits(occu & achk) - count_bits(occu & bchk)) == m_s:
             pn_set.append(occu)
 
@@ -355,10 +355,10 @@ def qubit_particle_number_index(nqubits: int, pnum: int) -> List[int]:
         list[int] - integers indicating where in the qubit wavefunction the
             basis state corresponds to particle number
     """
-    seed = init_bitstring_groundstate(pnum)
     indexes = []
-    pn_set = lexicographic_bitstring_generator(seed, nqubits)
-    for orbocc in pn_set:
+    pn_set = lexicographic_bitstring_generator(pnum, nqubits)
+    for occ in pn_set:
+        orbocc = int(occ)
         if orbocc & 1:
             index = 1
         else:
@@ -388,10 +388,10 @@ def qubit_particle_number_index_spin(nqubits: int,
             wavefunction the basis state corresponds to particle number and
             return the corresponding spin
     """
-    seed = init_bitstring_groundstate(pnum)
     indexes = []
-    pn_set = lexicographic_bitstring_generator(seed, nqubits)
-    for orbocc in pn_set:
+    pn_set = lexicographic_bitstring_generator(pnum, nqubits)
+    for occ in pn_set:
+        orbocc = int(occ)
         totspn = 0
         curspn = -1
         if orbocc & 1:

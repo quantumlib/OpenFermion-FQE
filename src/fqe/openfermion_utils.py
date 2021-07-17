@@ -83,7 +83,7 @@ def ascending_index_order(ops: 'FermionOperator',
     return coeff * ops * (-1.0 + 0.0j)**nperm
 
 
-def bit_to_fermion_creation(string: int, spin: Optional[str] = None
+def bit_to_fermion_creation(istring: int, spin: Optional[str] = None
                            ) -> Union[None, 'FermionOperator']:
     """Convert an occupation bitstring representation for a single spin case
     into openfermion operators
@@ -97,6 +97,7 @@ def bit_to_fermion_creation(string: int, spin: Optional[str] = None
     Returns:
         ops (Openfermion operators) - a FermionOperator string
     """
+    string = int(istring)
     ops = None
     if string != 0:
 
@@ -219,10 +220,8 @@ def fci_fermion_operator_representation(norb: int, nele: int,
         FermionOperator
     """
     nalpha, nbeta = alpha_beta_electrons(nele, m_s)
-    gsstr = init_bitstring_groundstate(nalpha)
-    alphadets = lexicographic_bitstring_generator(gsstr, norb)
-    gsstr = init_bitstring_groundstate(nbeta)
-    betadets = lexicographic_bitstring_generator(gsstr, norb)
+    alphadets = lexicographic_bitstring_generator(nalpha, norb)
+    betadets = lexicographic_bitstring_generator(nbeta, norb)
     ops = FermionOperator('', 1.0)
     for bstr in betadets:
         for astr in alphadets:

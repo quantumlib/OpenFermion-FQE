@@ -186,6 +186,15 @@ class Wavefunction:
                   count_bits(astr) - count_bits(bstr))
         self._civec[sector][key] = value
 
+    def clone(self):
+        out = Wavefunction()
+        out._norb = self._norb
+        out._conserved = self._conserved
+        out._symmetry_map = self._symmetry_map
+        for key, civec in self._civec.items():
+            out._civec[key] = civec.clone() 
+        return out
+
     def _copy_beta_restore(self, s_z: int, norb: int,
                            map_symm: Dict[Tuple[int, int], Tuple[int, int]]
                           ) -> 'Wavefunction':
@@ -529,13 +538,15 @@ class Wavefunction:
         else:
             base = self
 
+        max_expansion = max(30, expansion)
+
         if algo == 'taylor':
             ham_arrays = hamil.iht(time)
 
             time_evol = copy.deepcopy(base)
             work = copy.deepcopy(base)
 
-            for order in range(1, expansion):
+            for order in range(1, max_expansion):
                 work = work.apply(ham_arrays)
                 coeff = 1.0 / factorial(order)
                 time_evol.ax_plus_y(coeff, work)
@@ -560,7 +571,7 @@ class Wavefunction:
             current.scale(1.0 / ascale)
             time_evol.ax_plus_y(2.0 * jv(1, ascale * time) * (-1.j), current)
 
-            for order in range(2, expansion):
+            for order in range(2, max_expansion):
                 minus.scale(-1.0)
                 minus.ax_plus_y(2.0 / ascale, current.apply(hamil))
                 minus.ax_plus_y(2.0 * eshift / ascale, current)
@@ -628,15 +639,18 @@ class Wavefunction:
             """
             if fmt == 'occ':
 
-                def _occupation_format(astring: int, bstring: int):
+                def _occupation_format(iastring: int, ibstring: int):
                     """occ - Prints a string indicating occupation state of each spatial
                     orbital.  A doubly occupied orbital will be indicated with "2",
                     a singly occupied orbital will get "a" or "b" depending on the
                     spin state.  An empy orbital will be ".".
                     """
+                    astring = int(iastring)
+                    bstring = int(ibstring)
                     occstr = [
                         '.' for _ in range(
-                            max(astring.bit_length(), bstring.bit_length()))
+                            max(astring.bit_length(),
+                                bstring.bit_length()))
                     ]
                     docc = astring & bstring
 
@@ -668,12 +682,14 @@ class Wavefunction:
 
                 return _occupation_format
 
-            def _string_format(astring: int, bstring: int) -> str:
+            def _string_format(iastring: int, ibstring: int) -> str:
                 """ string - Prints a binary string representing indicating
                 which orbital creation operators are acting on the vacuum with
                 a 1.  The position in the string indicates the index of the
                 orbital.  The beta string is shown acting on the vacuum first.
                 """
+                astring = int(iastring)
+                bstring = int(ibstring)
                 fmt_a = bin(1 << self._norb | astring)
                 fmt_b = bin(1 << self._norb | bstring)
                 return "a'{}'b'{}'".format(fmt_a[3:], fmt_b[3:])
@@ -867,7 +883,7 @@ class Wavefunction:
                 output[icol, icol] -= 1.0
             return output
 
-        current = copy.deepcopy(self)
+        current = self
         perm = None
 
         if not self._conserve_spin:
@@ -890,13 +906,8 @@ class Wavefunction:
                 else:
                     lowt, uppt = low, upp
                 output = process_matrix(lowt, uppt)
-                for icol in range(norb):
-                    work = numpy.zeros_like(rotation)
-                    work[:, icol] = output[:, icol]
-                    onefwfn = current.apply((work,))
-                    twofwfn = onefwfn.apply((work,))
-                    current.ax_plus_y(1.0 - 0.5 * work[icol, icol], onefwfn)
-                    current.ax_plus_y(0.5, twofwfn)
+                for key, civec in current._civec.items():
+                    civec.apply_columns_recursive_inplace(output, output)
             elif rotation.shape[0] == norb * 2:
                 assert numpy.std(rotation[:norb, norb:]) \
                        + numpy.std(rotation[norb:, :norb]) < 1.0e-8
@@ -912,16 +923,8 @@ class Wavefunction:
                     uppt2 = upp[norb:, norb:]  # type: ignore
                 output1 = process_matrix(lowt1, uppt1)
                 output2 = process_matrix(lowt2, uppt2)
-                for icol in range(norb):
-                    work = numpy.zeros_like(rotation)
-                    work[:norb, icol] = output1[:, icol]
-                    onefwfn = current.apply((work,))
-                    current.ax_plus_y(1.0, onefwfn)
-                for icol in range(norb):
-                    work = numpy.zeros_like(rotation)
-                    work[norb:, icol + norb] = output2[:, icol]
-                    onefwfn = current.apply((work,))
-                    current.ax_plus_y(1.0, onefwfn)
+                for key, civec in current._civec.items():
+                    civec.apply_columns_recursive_inplace(output1, output2)
                 if not external:
                     perm = numpy.zeros_like(rotation)
                     perm[:norb, :norb] = perm1[:, :]
@@ -968,7 +971,7 @@ class Wavefunction:
         else:
             is_diag = ((hamil.quadratic() and hamil.diagonal()) or
                        hamil.diagonal_coulomb())
-            if inplace and not is_diag:
+            if inplace and (not is_diag and not hamil.quadratic()):
                 raise ValueError("Inplace is not implemented for this case")
 
             if self._conserve_spin and not self._conserve_number:
@@ -995,7 +998,8 @@ class Wavefunction:
                     h1e = hamil.transform(ci_trans)
 
                     ihtdiag = -1.j * time * h1e.diagonal()
-                    evolved_wfn = work_wfn._evolve_diagonal(ihtdiag)
+                    evolved_wfn = work_wfn._evolve_diagonal(ihtdiag,
+                                                            inplace=True)
 
                     _, _, _, final_wfn = evolved_wfn.transform(
                         ci_trans.T.conj(), low, upp)
@@ -1088,7 +1092,8 @@ class Wavefunction:
         return vdot(self, workwfn)
 
     def _apply_individual_nbody(self,
-                                hamil: 'sparse_hamiltonian.SparseHamiltonian'
+                                hamil: 'sparse_hamiltonian.SparseHamiltonian',
+                                base: 'Wavefunction' = None
                                ) -> 'Wavefunction':
         """
         Applies an individual n-body operator to the wave function self.
@@ -1096,8 +1101,10 @@ class Wavefunction:
         Args:
             hamil (SparseHamiltonian) - Sparse Hamiltonian to be applied to the wavefunction
 
+            base (Wavefunction) - the result will be accumulated to base
+
         Returns:
-            (Wavefunction) - resulting wavefunciton
+            (Wavefunction) - resulting wavefunciton. When base is provided, base is returned
         """
         assert isinstance(hamil, sparse_hamiltonian.SparseHamiltonian)
 
@@ -1126,16 +1133,24 @@ class Wavefunction:
         if len(daga) + len(dagb) != len(undaga) + len(undagb):
             raise ValueError('Number non-conserving operators specified')
 
-        out = copy.deepcopy(self)
         if len(daga) == len(undaga) and len(dagb) == len(undagb):
+            if base is None:
+                out = self.clone()
+            else:
+                out = base
             for key, sector in self._civec.items():
-                out._civec[key] = sector.apply_individual_nbody(
-                    coeff, daga, undaga, dagb, undagb)
+                out._civec[key].apply_individual_nbody_accumulate(
+                    coeff, self._civec[key], daga, undaga, dagb, undagb)
         else:
+            #TODO this deepcopy might be avoided
+            out = copy.deepcopy(self)
             nsectors = out._number_sectors()
             for _, nsector in nsectors.items():
                 nsector.apply_inplace_individual_nbody(coeff, daga, undaga,
                                                        dagb, undagb)
+            if base is not None:
+                base += out
+                out = base
         return out
 
     def _evolve_individual_nbody(self,
@@ -1219,21 +1234,23 @@ class Wavefunction:
                 raise ValueError(
                     'Coefficients in _evolve_individual_nbody is not Hermitian')
 
-        if inplace:
-            out = self
-        else:
-            out = copy.deepcopy(self)
-
         if daga == undaga and dagb == undagb:
+            out = self if inplace else copy.deepcopy(self)
             for _, sector in out._civec.items():
                 sector.evolve_inplace_individual_nbody_trivial(
                     time, coeff0, daga, dagb)
         else:
             if len(daga) == len(undaga) and len(dagb) == len(undagb):
-                for _, sector in out._civec.items():
-                    sector.evolve_inplace_individual_nbody_nontrivial(time, coeff0, daga, \
-                                                                      undaga, dagb, undagb)
+                out = Wavefunction()
+                out._norb = self._norb
+                out._conserved = self._conserved
+                out._symmetry_map = self._symmetry_map
+                for label, isec in self._civec.items():
+                    osec = isec.evolve_individual_nbody_nontrivial(time, coeff0, daga, \
+                                                                   undaga, dagb, undagb)
+                    out._civec[label] = osec
             else:
+                out = self if inplace else copy.deepcopy(self)
                 nsectors = out._number_sectors()
                 for _, nsector in nsectors.items():
                     nsector.evolve_inplace_individual_nbody(
@@ -1251,10 +1268,15 @@ class Wavefunction:
         Returns:
             (Wavefunction) - resulting wavefunciton
         """
-        out = copy.deepcopy(self)
-        out.set_wfn(strategy="zero")
+        out = None
         for oper in hamil.terms_hamiltonian():
-            out += self._apply_individual_nbody(oper)
+            if out is None:
+                out = self._apply_individual_nbody(oper)
+            else:
+                out = self._apply_individual_nbody(oper, base=out)
+
+        if out is None:
+            out = copy.deepcopy(self)
 
         if numpy.abs(hamil.e_0()) > 1.e-15:
             out.ax_plus_y(hamil.e_0(), self)

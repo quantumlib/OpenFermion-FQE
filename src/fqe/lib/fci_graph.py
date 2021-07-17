@@ -14,12 +14,45 @@
 """This file implements wrappers to some of the functions in fqe.fci_graph
 """
 
-from ctypes import c_int, c_bool, POINTER
+from ctypes import c_int, c_bool, c_ulonglong, POINTER
+from typing import TYPE_CHECKING, Dict, Tuple
 
 import numpy
 from numpy.ctypeslib import ndpointer
 
 from fqe.lib import lib_fqe
+
+if TYPE_CHECKING:
+    from numpy import ndarray as Nparray
+
+
+def _map_deexc(out, inp, index, idx):
+    func = lib_fqe.map_deexc
+    lena = out.shape[0]
+    lk = out.shape[1] 
+    size = inp.shape[0]
+    func.argtypes = [
+        ndpointer(
+            shape=(lena, lk, 3),
+            dtype=numpy.int32,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        ndpointer(
+            shape=(size, 3),
+            dtype=numpy.int32,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        c_int,
+        c_int,
+        ndpointer(
+            shape=(lena,),
+            dtype=numpy.uint32,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        c_int
+    ]
+    func(out, inp, lk, size, index, idx)
+
 
 def _build_mapping_strings(strings, zmat, nele: int, norb: int):
     func = lib_fqe.build_mapping_strings
@@ -39,8 +72,7 @@ def _build_mapping_strings(strings, zmat, nele: int, norb: int):
         ),
         c_int,
         ndpointer(
-            shape=(len(strings),),
-            dtype=numpy.uint32,
+            dtype=numpy.uint64,
             flags=('C_CONTIGUOUS', 'ALIGNED')
         ),
         c_int,
@@ -52,12 +84,6 @@ def _build_mapping_strings(strings, zmat, nele: int, norb: int):
         ),
         c_int
     ]
-
-    # Cast strings if not ndarray
-    if not isinstance(strings, numpy.ndarray) \
-            or strings.dtype != numpy.uint32 \
-            or not strings.flags['C']:
-        strings = numpy.array(list(strings), dtype=numpy.uint32)
 
     maplengths = numpy.zeros((norb, norb), dtype=numpy.int32)
     exc_dexc = numpy.asarray(
@@ -89,3 +115,71 @@ def _build_mapping_strings(strings, zmat, nele: int, norb: int):
     )
 
     return out
+
+
+def _calculate_string_address(zmat, nele: int, norb: int, string: int):
+    func = lib_fqe.calculate_string_address
+    func.argtypes = [
+        ndpointer(
+            shape=(nele, norb),
+            dtype=numpy.int32,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        c_int,
+        c_int,
+        c_ulonglong
+    ]
+    return func(zmat, nele, norb, c_ulonglong(string))
+
+
+def _c_map_to_deexc_alpha_icol(exc: 'Nparray', diag: 'Nparray',
+                               index: 'Nparray', strings: 'Nparray', norb: int,
+                               mappings: Dict[Tuple[int, int], 'Nparray']):
+    func = lib_fqe.map_to_deexc_alpha_icol
+    c_ptr_map = POINTER(c_int * 3)
+    nmaps = len(mappings)
+    if nmaps != norb ** 2:
+        raise ValueError('number of mappings passed should be norb ** 2')
+
+    list_map = [mappings[(i, j)] for j in range(norb) for i in range(norb)]
+    exc0 = exc.shape[1]
+    exc1 = exc.shape[2]
+    ldiag = diag.shape[1]
+
+    func.argtypes = [
+        POINTER(c_ptr_map),
+        ndpointer(
+            shape=(nmaps,),
+            dtype=numpy.int32,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        ndpointer(
+            dtype=numpy.uint64,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        c_int,
+        ndpointer(
+            shape=(norb, exc0, exc1, 3),
+            dtype=numpy.int32,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        ndpointer(
+            shape=(norb, ldiag),
+            dtype=numpy.int32,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        ndpointer(
+            shape=(norb, exc0),
+            dtype=numpy.int32,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        c_int,
+        c_int,
+        c_int,
+        c_int
+    ]
+    func(
+        (c_ptr_map * nmaps)(
+            *[mp.ctypes.data_as(c_ptr_map) for mp in list_map]),
+        numpy.array([len(x) for x in list_map], dtype=numpy.int32),
+        strings, len(strings), exc, diag, index, norb, exc0, exc1, ldiag)

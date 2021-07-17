@@ -2,7 +2,6 @@
 
 #include <complex.h>
 #include <stdlib.h>
-#include <omp.h>
 
 #include "bitstring.h"
 #include "macros.h"

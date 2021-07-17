@@ -51,7 +51,7 @@ class FqeControlTest(unittest.TestCase):
         self.assertAlmostEqual(fqe.vdot(wfn1, wfn1), 1. + .0j)
 
     def test_initialize_new_wavefunctions(self):
-        """APply the generated unitary transformation from the fqe namespace
+        """Apply the generated unitary transformation from the fqe namespace
         """
         nele = 3
         m_s = -1
@@ -65,7 +65,7 @@ class FqeControlTest(unittest.TestCase):
                 self.assertIsInstance(wfn, wavefunction.Wavefunction)
 
     def test_apply_generated_unitary(self):
-        """APply the generated unitary transformation from the fqe namespace
+        """Apply the generated unitary transformation from the fqe namespace
         """
         norb = 4
         nele = 3
