@@ -34,9 +34,10 @@ class RestrictedHamiltonian(hamiltonian.Hamiltonian):
         Arguments:
             tensors: Variable length tuple containg between one and four
                      numpy.arrays of increasing rank. The tensors contain the
-                     n-body hamiltonian elements. Tensors up to the highest
-                     order must be included even if the lower terms are full of
-                     zeros.
+                     n-body hamiltonian elements in the spin-free form.
+                     Therefore, the size of each dimension is the number of
+                     spatial orbitals.  Tensors up to the highest order must be
+                     included even if the lower terms are full of zeros.
             e_0: Scalar potential associated with the Hamiltonian.
         """
         super().__init__(e_0=e_0)

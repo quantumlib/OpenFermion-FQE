@@ -446,7 +446,9 @@ def get_restricted_hamiltonian(
     """Initialize spin conserving spin restricted hamiltonian
 
     Args:
-        tensors (Tuple[numpy.ndarray, ...]) - tensors for the Hamiltonian elements
+        tensors (Tuple[numpy.ndarray, ...]) - tensors for the Hamiltonian elements. \
+            Note that the tensor should be in a spin-free form; therefore, \
+            the size of each dimension is the number of spatial orbitals.
 
         e_0 (complex) - scalar part of the Hamiltonian
     """

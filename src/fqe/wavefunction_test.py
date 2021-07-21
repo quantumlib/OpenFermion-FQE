@@ -34,6 +34,7 @@ from fqe import get_number_conserving_wavefunction
 from fqe.hamiltonians import general_hamiltonian
 from fqe.hamiltonians import sparse_hamiltonian
 from fqe.hamiltonians import diagonal_hamiltonian
+from fqe.hamiltonians import restricted_hamiltonian
 from fqe import get_restricted_hamiltonian
 
 from fqe.unittest_data import build_wfn, build_hamiltonian
@@ -123,9 +124,18 @@ class WavefunctionTest(unittest.TestCase):
         self.assertRaises(TypeError, wfn.apply, hamil)
         self.assertRaises(TypeError, wfn.time_evolve, 0.1, hamil)
 
+    def test_apply_value_error(self):
+        data = numpy.zeros((2, 2), dtype=numpy.complex128)
         wfn = Wavefunction([[2, 0, 2]])
-        hamil = get_restricted_hamiltonian((data,))
-        self.assertRaises(ValueError, wfn.time_evolve, 0.1, hamil, True)
+        hamil = general_hamiltonian.General((data,))
+        self.assertRaises(ValueError, wfn.apply, hamil)
+
+        data2 = numpy.zeros((3, 3), dtype=numpy.complex128)
+        hamil2 = restricted_hamiltonian.RestrictedHamiltonian((data2,))
+        self.assertRaises(ValueError, wfn.apply, hamil2)
+
+        hamil3 = restricted_hamiltonian.RestrictedHamiltonian((data,))
+        self.assertRaises(ValueError, wfn.time_evolve, 0.1, hamil3, True)
 
     def test_apply_individual_nbody_error(self):
         fop = FermionOperator('1^ 0')
