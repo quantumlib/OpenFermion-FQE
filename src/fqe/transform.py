@@ -20,6 +20,7 @@ from typing import TYPE_CHECKING, Optional
 from openfermion import FermionOperator, BinaryCode
 
 import numpy
+import fqe.settings
 
 from cirq import LineQubit
 
@@ -132,6 +133,9 @@ def from_cirq(wfn: 'Wavefunction', state: numpy.ndarray,
     Returns:
         nothing - mutates the wfn in place
     """
-    for key in wfn.sectors():
-        csector = wfn._civec[(key[0], key[1])]
-        _from_cirq(csector, state, binarycode)
+    if fqe.settings.use_accelerated_code:
+        for key in wfn.sectors():
+            csector = wfn._civec[(key[0], key[1])]
+            _from_cirq(csector, state, binarycode)
+    else:
+        from_cirq_old(wfn, state)

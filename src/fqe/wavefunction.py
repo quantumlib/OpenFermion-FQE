@@ -186,13 +186,13 @@ class Wavefunction:
                   count_bits(astr) - count_bits(bstr))
         self._civec[sector][key] = value
 
-    def clone(self):
+    def empty_copy(self):
         out = Wavefunction()
         out._norb = self._norb
         out._conserved = self._conserved
         out._symmetry_map = self._symmetry_map
         for key, civec in self._civec.items():
-            out._civec[key] = civec.clone() 
+            out._civec[key] = civec.empty_copy() 
         return out
 
     def _copy_beta_restore(self, s_z: int, norb: int,
@@ -712,7 +712,7 @@ class Wavefunction:
             path (str) - the path to save the file.  If no path is given then \
               it is saved in the current working directory.
         """
-        with open(path + '/' + filename, 'r+b') as wfnfile:
+        with open(os.path.join(path, filename), 'r+b') as wfnfile:
             wfn_data = numpy.load(wfnfile, allow_pickle=True)
 
         self._symmetry_map = wfn_data[0]
@@ -741,7 +741,7 @@ class Wavefunction:
         for key in self._civec:
             wfn_data.append([key, self._civec[key]])
 
-        with open(path + '/' + filename, 'w+b') as wfnfile:
+        with open(os.path.join(path, filename), 'w+b') as wfnfile:
             numpy.save(wfnfile, wfn_data, allow_pickle=True)
 
     def scale(self, sval: complex) -> None:
@@ -1009,7 +1009,7 @@ class Wavefunction:
                 diag, vij = hamil.iht(time)
 
                 final_wfn = work_wfn._evolve_diagonal_coulomb(
-                    diag, vij, inplace)
+                    diag, vij, inplace=True)
 
             else:
 
@@ -1133,24 +1133,21 @@ class Wavefunction:
         if len(daga) + len(dagb) != len(undaga) + len(undagb):
             raise ValueError('Number non-conserving operators specified')
 
+        if base is None:
+            out = self.empty_copy()
+        else:
+            out = base
         if len(daga) == len(undaga) and len(dagb) == len(undagb):
-            if base is None:
-                out = self.clone()
-            else:
-                out = base
             for key, sector in self._civec.items():
                 out._civec[key].apply_individual_nbody_accumulate(
                     coeff, self._civec[key], daga, undaga, dagb, undagb)
         else:
-            #TODO this deepcopy might be avoided
-            out = copy.deepcopy(self)
+            ssectors = self._number_sectors()
             nsectors = out._number_sectors()
-            for _, nsector in nsectors.items():
-                nsector.apply_inplace_individual_nbody(coeff, daga, undaga,
-                                                       dagb, undagb)
-            if base is not None:
-                base += out
-                out = base
+            for key, nsector in nsectors.items():
+                nsector.apply_individual_nbody_accumulate(coeff, ssectors[key],
+                                                          daga, undaga,
+                                                          dagb, undagb)
         return out
 
     def _evolve_individual_nbody(self,
@@ -1162,7 +1159,8 @@ class Wavefunction:
         This routine assumes the Hamiltonian is normal ordered.
 
         Args:
-            hamil (SparseHamiltonian) - Sparse Hamiltonian using which the wavefunction is evolved
+            hamil (SparseHamiltonian) - Sparse Hamiltonian using which \
+                the wavefunction is evolved
 
         Returns:
             (Wavefunction) - resulting wavefunciton
@@ -1240,21 +1238,24 @@ class Wavefunction:
                 sector.evolve_inplace_individual_nbody_trivial(
                     time, coeff0, daga, dagb)
         else:
+            out = Wavefunction()
+            out._norb = self._norb
+            out._conserved = self._conserved
+            out._symmetry_map = self._symmetry_map
+
             if len(daga) == len(undaga) and len(dagb) == len(undagb):
-                out = Wavefunction()
-                out._norb = self._norb
-                out._conserved = self._conserved
-                out._symmetry_map = self._symmetry_map
                 for label, isec in self._civec.items():
                     osec = isec.evolve_individual_nbody_nontrivial(time, coeff0, daga, \
                                                                    undaga, dagb, undagb)
                     out._civec[label] = osec
             else:
-                out = self if inplace else copy.deepcopy(self)
-                nsectors = out._number_sectors()
-                for _, nsector in nsectors.items():
-                    nsector.evolve_inplace_individual_nbody(
-                        time, coeff0, daga, undaga, dagb, undagb)
+                nsectors = self._number_sectors()
+                osectors = out._number_sectors()
+                for key, nsector in nsectors.items():
+                    osector = nsector.evolve_individual_nbody(time, coeff0, daga, \
+                                                              undaga, dagb, undagb)
+                    for (nalpha, nbeta), osec in osector.sectors().items():
+                        out._civec[(nalpha+nbeta, nalpha-nbeta)] = osec
         return out
 
     def _apply_few_nbody(self, hamil: 'sparse_hamiltonian.SparseHamiltonian'

@@ -25,6 +25,7 @@ from typing import List, Tuple, Optional
 import copy
 
 import numpy
+import fqe.settings
 from fqe.lib.wick import _wickfill
 
 Mapping = Tuple[List[Tuple[str, str]], List[Tuple[str, bool, int]], float]
@@ -225,10 +226,10 @@ def wickfill(target: numpy.ndarray, source: Optional[numpy.ndarray],
     srank = len(source.shape) // 2 if source is not None else 0
     trank = len(target.shape) // 2
 
-    # TODO branching here
-    if True:
+    if fqe.settings.use_accelerated_code:
         return _wickfill(target, source, indices_flat, factor, delta_flat)
 
+    #else:
     assert srank * 2 == len(indices)
     if srank == 0 and trank == 1:
         assert len(delta) == 1

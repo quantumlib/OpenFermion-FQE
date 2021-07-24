@@ -166,42 +166,6 @@ def init_qubit_vacuum(nqubits: int) -> numpy.ndarray:
     return ground_state
 
 
-def ltlt_index_generator(dim: int
-                        ) -> Generator[Tuple[int, int, int, int], None, None]:
-    """Generate index sets into a lower triangle, lower triangle matrix
-
-    Args:
-        dim (int) - the dimension of the array
-
-    Returns:
-        (int, int, int, int) - unique pointers into the compressed matrix
-    """
-    lim = dim
-    for i in range(lim):
-        for j in range(i + 1):
-            for k in range(i + 1):
-                if k == i:
-                    _ull = j + 1
-                else:
-                    _ull = k + 1
-                for lst in range(_ull):
-                    yield i, j, k, lst
-
-
-def invert_bitstring_with_mask(string: int, masklen: int) -> int:
-    """Invert a bitstring with a mask.
-
-    Args:
-        string (bitstring) - the bitstring to invert
-        masklen (int) - the value to mask the inverted bitstring to
-
-    Returns:
-        (bitstring) - a bitstring inverted up to the masking length
-    """
-    mask = (1 << masklen) - 1
-    return ~string & mask
-
-
 def paritysort_int(arr: List[int]) -> Tuple[int, List[int]]:
     """Move all even numbers to the left and all odd numbers to the right
 
@@ -514,8 +478,8 @@ def dot(wfn1: 'wavefunction.Wavefunction',
     ipval = .0 + .0j
     for sector in keylist:
         ipval += numpy.dot(
-            wfn1.get_coeff(sector).flatten(),
-            wfn2.get_coeff(sector).flatten())
+            wfn1.get_coeff(sector).flat,
+            wfn2.get_coeff(sector).flat)
     return ipval
 
 
@@ -539,29 +503,7 @@ def vdot(wfn1: 'wavefunction.Wavefunction',
     ipval = .0 + .0j
     for config in keylist:
         ipval += numpy.vdot(
-            wfn1.get_coeff(config).flatten(),
-            wfn2.get_coeff(config).flatten())
+            wfn1.get_coeff(config).flat,
+            wfn2.get_coeff(config).flat)
     return ipval
 
-
-def zero_transform(string0: int, unocc: int, occ: int, norb: int) -> bool:
-    """Given a bitstring, determine if it satisfies the occupation and
-    nonoccupation conditions necessary to be non zero when a product of creation
-    and annihilation operators are applied.
-
-    Args:
-        string0 (bitstring) - the occupation representation being acted upon
-        unocc (bitstring) - orbitals which should be unoccupied in string0
-        occ (bitstring) - orbitals which should be occupied in string0
-        norb (int) - the number of spatial orbitals for masking the bitstrings
-
-    Returns:
-        (bool) - true if the transformation is non zero, false if the
-            transformation is zero
-    """
-    if check_conserved_bits(string0, occ):
-        if check_conserved_bits(invert_bitstring_with_mask(string0, norb),
-                                unocc):
-            return False
-
-    return True

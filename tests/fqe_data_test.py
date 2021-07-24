@@ -109,11 +109,11 @@ class FqeDataTest(unittest.TestCase):
         test.conj()
         self.assertTrue(numpy.allclose(test.coeff, numpy.conj(ref)))
 
-    def test_fqe_clone(self):
+    def test_fqe_empty_copy(self):
         test = fqe_data.FqeData(1, 1, 2)
         ref = numpy.random.rand(2, 2) + 1.j * numpy.random.rand(2, 2)
         test.set_wfn(strategy='from_data', raw_data=ref)
-        test2 = test.clone()
+        test2 = test.empty_copy()
         self.assertTrue(test.coeff.shape == test2.coeff.shape)
         self.assertTrue(not numpy.any(test2.coeff))
 
@@ -1018,7 +1018,7 @@ class FqeDataTest(unittest.TestCase):
             test_of_opdm[i, j] = cirq_wf.conj().T @ op @ cirq_wf
             assert numpy.isclose(test_of_opdm[i, j], of_opdm[i, j])
 
-    @pytest.mark.skipped(reason='Logic check. Not code check')
+    @pytest.mark.skip(reason='Logic check. Not code check')
     def test_lih_spin_block_three_rdm(self):
         """This test checks the logic of the 3-RDM code but not the code itself
         """

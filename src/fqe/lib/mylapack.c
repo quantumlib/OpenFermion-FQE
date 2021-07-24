@@ -1,3 +1,19 @@
+/*
+    Copyright 2021 Google LLC
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+        http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+*/
+
 #include <stdlib.h>
 
 #include "mylapack.h"
@@ -41,14 +57,13 @@ void zimatadd(const int nrows,
   }
 }
 
-
 void transpose(const int nrows,
                const int ncols,
                double complex *out,
                const double complex *in) {
   const int m = nrows;
   const int n = ncols;
-  // TODO when MKL is linked, this can be replaced by 
+  // TODO when MKL is linked, this can be replaced by
   // mkl_zomatcopy_("c", "t", &m, &n, &fac, in, &m, out, &n);
 
   const int mresidual = m % N_;

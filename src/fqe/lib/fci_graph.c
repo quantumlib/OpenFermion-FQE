@@ -1,11 +1,58 @@
+/*
+    Copyright 2021 Google LLC
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+        http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+*/
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdbool.h>
 #include <assert.h>
 
 #include "fci_graph.h"
-#include  "bitstring.h"
+#include "bitstring.h"
 #include "macros.h"
+#include "binom.h"
+
+void calculate_Z_matrix(int32_t *out,
+                        int norb,
+                        int nele) {
+#define NB_ 65
+  uint64_t* binom = safe_malloc(binom, NB_ * NB_); 
+  initialize_binom(binom); 
+
+#pragma omp parallel for schedule(static) collapse(2)
+  for (int km = 0; km < nele - 1; ++km) {
+    for (int llm = 0; llm < norb - nele + 1; ++llm) {
+      const int k = km + 1;
+      const int ll = llm + k;
+      int64_t tmp = 0;
+      for (int m = norb - ll + 1; m < norb - k + 1; ++m) {
+        tmp += binom[nele - k + NB_ * m] - binom[nele - k - 1 + NB_ * (m - 1)];
+      }
+      out[ll - 1 + norb * (k - 1)] = (int32_t)tmp;
+    }
+  }
+  {
+    int k = nele;
+    for (int ll = nele; ll < norb + 1; ++ll) {
+      out[ll - 1 + norb * (k - 1)] = ll - nele;
+    }
+  }
+  free(binom);
+#undef NB_
+}
+
 
 int map_deexc(int32_t *out,
               const int32_t *inp,
@@ -86,16 +133,17 @@ int string_to_index(uint64_t string,
   return id;
 }
 
-int calculate_string_address(const int32_t *zmat,
-                             const int nele,
-                             const int norb,
-                             const uint64_t occupation) {
-  int array[nele];
-  get_occupation(array, occupation, nele, norb);
-  int result = 0;
-  for (int i = 0; i < nele; ++i)
-    result += zmat[array[i] + i * norb];
-  return result;
+void calculate_string_address(uint64_t *out,
+                              const uint64_t *strings,
+                              const int length,
+                              const int32_t *Z_matrix,
+                              const int norb) {
+#pragma omp parallel for schedule(static)
+  for (int i = 0; i < length; ++i) {
+    const uint64_t string = strings[i];
+    const int address = string_to_index(string, Z_matrix, norb);
+    out[address] = string; 
+  }
 }
 
 void map_to_deexc_alpha_icol(const int32_t ** mappings,
@@ -111,6 +159,7 @@ void map_to_deexc_alpha_icol(const int32_t ** mappings,
                              const int ldiag) {
   int * alpha = safe_malloc(alpha, norb * nstrings);
   int * count = safe_calloc(count, norb);
+  int * counter = safe_calloc(counter, norb * exc0);
   for (int i = 0; i < norb * nstrings; ++i) alpha[i] = -1;
 
   const uint64_t filled_string = ((uint64_t) 1 << norb) - (uint64_t) 1;
@@ -132,11 +181,11 @@ void map_to_deexc_alpha_icol(const int32_t ** mappings,
 
 #pragma omp parallel for schedule(dynamic)
   for (int i = 0; i < norb; ++i) {
-    int * counter = safe_calloc(counter, exc0);
     int32_t * c_exc = &exc[i * exc0 * exc1 * 3];
     int32_t * c_diag = &diag[i * ldiag];
     int * c_alpha = &alpha[i * nstrings];
     int * ccount = &count[i];
+    int * counteri = &counter[i * exc0];
 
     for (int j = 0; j < norb; ++j) {
       const int32_t * mapping = mappings[i * norb + j];
@@ -149,7 +198,7 @@ void map_to_deexc_alpha_icol(const int32_t ** mappings,
 
           const int pos = c_alpha[target];
           assert(pos != -1);
-          int * c_counter = &counter[pos];
+          int * c_counter = &counteri[pos];
 
           int * cc_exc = &c_exc[(pos * exc1 + (*c_counter)) * 3];
           cc_exc[0] = source;
@@ -166,4 +215,51 @@ void map_to_deexc_alpha_icol(const int32_t ** mappings,
       }
     }
   }
+  free(alpha);
+  free(count);
+  free(counter);
 }
+
+int make_mapping_each(int64_t *out,
+                      const uint64_t *strings,
+                      const int length,
+                      const int32_t *dag,
+                      const int dag_length,
+                      const int32_t *undag,
+                      const int undag_length) {
+  uint64_t dag_mask = 0;
+  for (int i = 0; i != dag_length; ++i) {
+    dag_mask = SET_BIT(dag_mask, dag[i]);
+  }
+
+  uint64_t undag_mask = 0;
+  for (int i = 0; i != undag_length; ++i) {
+    undag_mask = SET_BIT(undag_mask, undag[i]);
+    dag_mask = UNSET_BIT(dag_mask, undag[i]);
+  }
+
+  int count = 0;
+  for (int i = 0; i < length; ++i) {
+    uint64_t current = strings[i];
+    const uint64_t dag_masked = current & dag_mask;
+    const uint64_t undag_masked = current & undag_mask;
+    const bool check = !dag_masked && !(undag_masked ^ undag_mask);
+    if (check) {
+      int parity = 0;
+      for (int j = undag_length-1; j >= 0; --j) {
+        parity += count_bits_above(current, undag[j]);
+        current = UNSET_BIT(current, undag[j]);
+      }
+      for (int j = dag_length-1; j >= 0; --j) {
+        parity += count_bits_above(current, dag[j]);
+        current = SET_BIT(current, dag[j]);
+      }
+      out[count * 3] = i;
+      out[count * 3 + 1] = current;
+      out[count * 3 + 2] = -(parity & 1) * 2 + 1;
+      ++count;
+    }
+  }
+  return count;
+}
+

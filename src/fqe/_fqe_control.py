@@ -21,6 +21,7 @@ from typing import List, Optional, TYPE_CHECKING, Union, Tuple
 
 import cirq
 import numpy
+import fqe.settings
 
 from openfermion.transforms.opconversions import jordan_wigner
 from openfermion.ops import FermionOperator, BinaryCode
@@ -245,13 +246,16 @@ def to_cirq(wfn: 'wavefunction.Wavefunction',
             used in a simulator object.
     """
 
-    nqubits = wfn.norb() * 2
-    wf = numpy.zeros(2**nqubits, dtype=numpy.complex128)
+    if fqe.settings.use_accelerated_code:
+      nqubits = wfn.norb() * 2
+      wf = numpy.zeros(2**nqubits, dtype=numpy.complex128)
 
-    for key in wfn.sectors():
-        csector = wfn._civec[(key[0], key[1])]
-        _to_cirq(csector, wf, binarycode)
-    return wf
+      for key in wfn.sectors():
+          csector = wfn._civec[(key[0], key[1])]
+          _to_cirq(csector, wf, binarycode)
+      return wf
+    else:
+      return to_cirq_old(wfn)
 
 
 def to_cirq_ncr(wfn: 'wavefunction.Wavefunction') -> numpy.ndarray:

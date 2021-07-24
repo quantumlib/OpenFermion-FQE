@@ -16,13 +16,14 @@ frequently used operations.
 """
 
 import numpy
+from numpy import ndarray as Nparray
 from scipy import special
 from typing import Generator, List
 
 from itertools import combinations
 
 from fqe.lib.bitstring import _lexicographic_bitstring_generator
-
+import fqe.settings
 
 def check_conserved_bits(str0: int, conserved: int) -> bool:
     """Check that str0 has bits set in the same place that conserved has bits
@@ -101,7 +102,7 @@ def reverse_integer_index(occ: List[int]) -> int:
     return out
 
 
-def lexicographic_bitstring_generator(nele: int, norb: int) -> List[int]:
+def lexicographic_bitstring_generator(nele: int, norb: int) -> 'Nparray':
     """
     Generate all bitstrings with a definite bit count starting from an initial
     state
@@ -118,10 +119,10 @@ def lexicographic_bitstring_generator(nele: int, norb: int) -> List[int]:
     """
     if nele > norb:
         raise ValueError("nele cannot be larger than norb")
-    #TODO
-    if True:
+
+    if fqe.settings.use_accelerated_code:
         out = numpy.zeros((int(special.comb(norb, nele)),), dtype=numpy.uint64)
-        _lexicographic_bitstring_generator(out, norb, nele) 
+        _lexicographic_bitstring_generator(out, norb, nele)
         return out
     else:
         out = []

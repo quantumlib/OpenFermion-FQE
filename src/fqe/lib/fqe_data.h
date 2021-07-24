@@ -1,4 +1,22 @@
-#pragma once
+/*
+    Copyright 2021 Google LLC
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+        http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+*/
+
+#ifndef FQE_DATA_H_
+#define FQE_DATA_H_
+
 #include <complex.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -122,8 +140,10 @@ void apply_individual_nbody1_accumulate(const double complex coeff,
                                         double complex *ocoeff,
                                         const double complex * icoeff,
                                         const int n,
-                                        const int na,
-                                        const int nb,
+                                        const int nao,
+                                        const int nbo,
+                                        const int nai,
+                                        const int nbi,
                                         const int nt,
                                         const int64_t *amap,
                                         const int64_t *btarget,
@@ -243,15 +263,43 @@ void sparse_scale(const long long *xi,
 
 void integer_index_accumulate_real(double *out,
                                    const double *data,
-                                   const int string,
-                                   const int nele,
-                                   const int norb);
+                                   uint64_t string);
 
 void integer_index_accumulate(double complex *out,
                               const double complex *data,
-                              const int string,
-                              const int nele,
-                              const int norb);
+                              uint64_t string);
+
+void apply_diagonal_inplace_real(double complex *data,
+                                 const double *aarray,
+                                 const double *barray,
+                                 const uint64_t *astrings,
+                                 const uint64_t *bstrings,
+                                 const int lena,
+                                 const int lenb);
+
+void apply_diagonal_inplace(double complex *data,
+                            const double complex *aarray,
+                            const double complex *barray,
+                            const uint64_t *astrings,
+                            const uint64_t *bstrings,
+                            const int lena,
+                            const int lenb);
+
+void evolve_diagonal_inplace_real(double complex *data,
+                                  const double *aarray,
+                                  const double *barray,
+                                  const uint64_t *astrings,
+                                  const uint64_t *bstrings,
+                                  const int lena,
+                                  const int lenb);
+
+void evolve_diagonal_inplace(double complex *data,
+                             const double complex *aarray,
+                             const double complex *barray,
+                             const uint64_t *astrings,
+                             const uint64_t *bstrings,
+                             const int lena,
+                             const int lenb);
 
 int evaluate_map_each(int64_t *out,
                       const uint64_t *strings,
@@ -259,19 +307,9 @@ int evaluate_map_each(int64_t *out,
                       const int pmask,
                       const int hmask);
 
-int make_mapping_each_opt(int64_t *out,
-                          const uint64_t *strings,
-                          const int length,
-                          const int32_t *dag,
-                          const int dag_length,
-                          const int32_t *undag,
-                          const int undag_length);
-
 void calculate_dvec1(const int32_t *aarray,
                      const int32_t *barray,
                      const int norb,
-                     const int i,
-                     const int j,
                      const int nalpha,
                      const int nbeta,
                      const int na,
@@ -288,8 +326,6 @@ void calculate_dvec1(const int32_t *aarray,
 void calculate_dvec2(const int32_t *aarray,
                      const int32_t *barray,
                      const int norb,
-                     const int i,
-                     const int j,
                      const int nalpha,
                      const int nbeta,
                      const int na,
@@ -342,7 +378,6 @@ void calculate_coeff2(const int32_t *aarray,
 void calculate_dvec1_j(const int32_t *aarray,
                        const int32_t *barray,
                        const int norb,
-                       const int i,
                        const int j,
                        const int nalpha,
                        const int nbeta,
@@ -359,7 +394,6 @@ void calculate_dvec1_j(const int32_t *aarray,
 void calculate_dvec2_j(const int32_t *aarray,
                        const int32_t *barray,
                        const int norb,
-                       const int i,
                        const int j,
                        const int nalpha,
                        const int nbeta,
@@ -372,3 +406,17 @@ void calculate_dvec2_j(const int32_t *aarray,
                        const int nd3,
                        const double complex *coeff,
                        double complex *dvec);
+
+void make_nh123_real(const int norb,
+                     const double *h4e,
+                     double *nh1e,
+                     double *nh2e,
+                     double *nh3e);
+
+void make_nh123(const int norb,
+                const double complex *h4e,
+                double complex *nh1e,
+                double complex *nh2e,
+                double complex *nh3e);
+
+#endif // FQE_DATA_H_

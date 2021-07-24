@@ -116,31 +116,6 @@ class UnitTest(unittest.TestCase):
                              util.configuration_key_intersection(
                                  configs0, configs1))
 
-    def test_invert_bitstring_with_mask(self):
-        """When inverting the occupation we want to maintain the number of orbitals
-        """
-        ref = 8
-        self.assertEqual(ref, util.invert_bitstring_with_mask(7, 4))
-        ref = 8 + 16 + 32 + 64 + 128
-        self.assertEqual(ref, util.invert_bitstring_with_mask(7, 8))
-
-    def test_ltlt_index_min(self):
-        """If we have a zero dimesnion tensor there should be no pointers to it
-        """
-        _gtest = util.ltlt_index_generator(0)
-        _test = [i for i in _gtest]
-        self.assertListEqual(_test, [])
-
-    def test_ltlt_index(self):
-        """Access unique elements of a lower triangular lower triangular
-        matrix
-        """
-        index_list = [(0, 0, 0, 0), (1, 0, 0, 0), (1, 0, 1, 0), (1, 1, 0, 0),
-                      (1, 1, 1, 0), (1, 1, 1, 1)]
-        _gtest = util.ltlt_index_generator(2)
-        _test = [i for i in _gtest]
-        self.assertListEqual(_test, index_list)
-
     def test_bitstring_groundstate(self):
         """The ground state bitstring has the n lowest bits flipped
         """
@@ -228,14 +203,6 @@ class UnitTest(unittest.TestCase):
         self.assertRaises(ValueError, util.validate_config, 1, -1, 2)
         self.assertIsNone(util.validate_config(0, 0, 0))
         self.assertIsNone(util.validate_config(0, 0, 1))
-
-    def test_zero_transform(self):
-        """Ensure that things that should transform do and those that shouldn't
-        dont
-        """
-        self.assertFalse(util.zero_transform(1 + 2 + 4, 8, 3, 6))
-        self.assertTrue(util.zero_transform(2 + 4, 8, 1, 6))
-        self.assertTrue(util.zero_transform(2 + 4, 4, 2, 6))
 
     def test_parity_sort_list(self):
         """Sort a list of lists according to the parity of the index in the

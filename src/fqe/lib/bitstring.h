@@ -1,4 +1,22 @@
-#pragma once
+/*
+    Copyright 2021 Google LLC
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+        http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+*/
+
+#ifndef FQE_LIB_BITSTRING_H_
+#define FQE_LIB_BITSTRING_H_
+
 #include <stdio.h>
 #include <stdint.h>
 
@@ -49,20 +67,18 @@ inline int count_bits_above(uint64_t cstring, const int i) {
   return count_bits(cstring);
 }
 
-inline int get_occupation(int *occ,
-                          uint64_t str,
-                          const int nel,
-                          const int norb) {
+inline void get_occupation(int *occ,
+                           uint64_t str,
+                           const int norb) {
   int id = -1;
   int count = 0;
-  while (gbit_index(&str, &id)) { occ[count++] = id; }
-  if (nel != count) {
-    fprintf(stderr, "Counted electrons is not same as passed electrons.\n");
-    return 1;
+  while (gbit_index(&str, &id)) {
+    occ[count++] = id;
   }
-  return 0;
 }
 
 void lexicographic_bitstring_generator(uint64_t *out,
                                        int norb,
                                        int nele);
+
+#endif  // FQE_LIB_BITSTRING_H_

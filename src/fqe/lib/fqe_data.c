@@ -1,13 +1,30 @@
+/*
+    Copyright 2021 Google LLC
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+        http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+*/
+
 #include "fqe_data.h"
 
-#include <complex.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <math.h>
 #ifdef _OPENMP
   #include <omp.h>
 #endif
+#include <complex.h>
 
 #include "bitstring.h"
 #include "macros.h"
@@ -182,7 +199,7 @@ void lm_apply_array1_old(const double complex *coeff,
 }
 
 // This doesn't provide any significant advantage
-//int lm_apply_array1_sparse(const double complex *coeff,
+// int lm_apply_array1_sparse(const double complex *coeff,
 //                           double complex *out,
 //                           const int *dexc,
 //                           const int astates,
@@ -241,7 +258,7 @@ void lm_apply_array1_old(const double complex *coeff,
 //  free(signs);
 //  free(coff);
 //  free(boff);
-//}
+// }
 
 void lm_apply_array1_sparse(const double complex *coeff,
                            double complex *out,
@@ -285,7 +302,7 @@ void lm_apply_array1_sparse(const double complex *coeff,
       if (orbkl == orbid) {
         signs[nsig] = dexc[3*(s1*ndexc + i) + 2];
         coff[nsig] = dexc[3*(s1*ndexc + i)];
-        //boff[nsig] = s1;
+        // boff[nsig] = s1;
         boff[nsig] = s1*inc1;
         ++nsig;
       }
@@ -300,7 +317,7 @@ void lm_apply_array1_sparse(const double complex *coeff,
     for (int isig = 0; isig < nsig; ++isig) {
       const int offset = coff[isig]*inc1;
       const double complex *cptr = coeff + offset;
-      //double complex *tptr = ctemp + isig;
+      // double complex *tptr = ctemp + isig;
       double complex *tptr = ctemp + isig*states2;
       double complex zsign = signs[isig] * h1e[orbid];
       blasfunc->zaxpy(&states2, &zsign, cptr, &inc2, tptr, &ONE);
@@ -313,7 +330,7 @@ void lm_apply_array1_sparse(const double complex *coeff,
       int * btemp = boff;
       int cidx = 0;
       for (int isig = 0; isig < nsig; ++isig, ++btemp, cidx += states2) {
-        //optr[*btemp] += cptr[isig*states2];
+        // optr[*btemp] += cptr[isig*states2];
         optr[*btemp] += cptr[cidx];
       }
     }
@@ -471,16 +488,17 @@ static int zdiagonal_coulomb_part(const int *occ,
                                   const int norbs) {
 #pragma omp parallel for schedule(static)
   for (int i = 0; i < states; ++i) {
-    double complex *p_adiag = &output[i];
+    double complex p_adiag = 1.0;
     const int *c_occ = &occ[i * nel];
 
     for (int el = 0; el < nel; ++el) {
-      *p_adiag += diag[c_occ[el]];
+      p_adiag *= diag[c_occ[el]];
       const double complex *c_array = array + norbs * c_occ[el];
       for (int el2 = 0; el2 < nel; ++el2) {
-        *p_adiag += c_array[c_occ[el2]];
+        p_adiag *= c_array[c_occ[el2]];
       }
     }
+    output[i] = p_adiag;
   }
   return 0;
 }
@@ -495,57 +513,71 @@ int zdiagonal_coulomb(const uint64_t *alpha_strings,
                       const int nalpha,
                       const int nbeta,
                       const int norbs) {
-  double complex *adiag = safe_calloc(adiag, alpha_states);
-  double complex *bdiag = safe_calloc(bdiag, beta_states);
+  double complex *adiag = safe_malloc(adiag, alpha_states);
+  double complex *bdiag = safe_malloc(bdiag, beta_states);
+
   int *aocc = safe_malloc(aocc, alpha_states * nalpha);
   int *bocc = safe_malloc(bocc, beta_states * nbeta);
 
 #pragma omp parallel for schedule(static)
   for (int as = 0; as < alpha_states; ++as) {
-    get_occupation(&aocc[as * nalpha], alpha_strings[as], nalpha, norbs);
+    get_occupation(&aocc[as * nalpha], alpha_strings[as], norbs);
   }
 #pragma omp parallel for schedule(static)
   for (int bs = 0; bs < beta_states; ++bs) {
-    get_occupation(&bocc[bs * nbeta], beta_strings[bs], nbeta, norbs);
+    get_occupation(&bocc[bs * nbeta], beta_strings[bs], norbs);
   }
 
-  zdiagonal_coulomb_part(aocc, diag, array, adiag, alpha_states, nalpha, norbs);
-  zdiagonal_coulomb_part(bocc, diag, array, bdiag, beta_states, nbeta, norbs);
+  double complex *diagexp = safe_malloc(diagexp, norbs);
+  double complex *arrayexp = safe_malloc(arrayexp, norbs * norbs);
+#pragma omp parallel for schedule(static)
+  for (int i = 0; i < norbs; ++i)
+    diagexp[i] = cexp(diag[i]);
+#pragma omp parallel for schedule(static)
+  for (int i = 0; i < norbs * norbs; ++i)
+    arrayexp[i] = cexp(array[i]);
 
-#pragma omp parallel shared(aocc, bocc, output, array, adiag, bdiag)
+  zdiagonal_coulomb_part(aocc, diagexp, arrayexp, adiag, alpha_states, nalpha, norbs);
+  zdiagonal_coulomb_part(bocc, diagexp, arrayexp, bdiag, beta_states, nbeta, norbs);
+
+#pragma omp parallel shared(aocc, bocc, output, arrayexp, adiag, bdiag)
   {
-    double complex *aarrays = safe_malloc(aarrays, norbs);
+    double complex aarrays[MAX_ORBS]; 
+    assert(norbs < MAX_ORBS);
 
 #pragma omp for schedule(static)
     for (int as = 0; as < alpha_states; ++as) {
       double complex *c_output = output + as * beta_states;
       const int *caocc = &aocc[as * nalpha];
 
-      for (int i = 0; i < norbs; ++i) { aarrays[i] = 0.0; }
+      for (int i = 0; i < norbs; ++i) {
+        aarrays[i] = 1.0;
+      }
+
       for (int ela = 0; ela < nalpha; ++ela) {
-        const double complex *carray = array + caocc[ela] * norbs;
+        const double complex *carray = arrayexp + caocc[ela] * norbs;
         for (int i = 0; i < norbs; ++i) {
-          aarrays[i] += carray[i];
+          aarrays[i] *= carray[i];
         }
       }
 
       for (int bs = 0; bs < beta_states; ++bs) {
-        double complex diag_ele = 0.0;
+        double complex diag_ele = 1.0;
         const int *cbocc = &bocc[bs * nbeta];
         for (int elb = 0; elb < nbeta; ++elb) {
-          diag_ele += aarrays[cbocc[elb]];
+          diag_ele *= aarrays[cbocc[elb]];
         }
-        diag_ele = diag_ele * 2.0 + adiag[as] + bdiag[bs];
-        c_output[bs] *= cexp(diag_ele);
+        c_output[bs] *= diag_ele * diag_ele * bdiag[bs] * adiag[as];
       }
     }
-    free(aarrays);
   }
 
   free(adiag);
   free(bdiag);
   free(aocc);
   free(bocc);
+  free(diagexp);
+  free(arrayexp);
   return 0;
 }
 
@@ -601,7 +633,7 @@ void make_coeff_part(const int states1_full,
   const int ONE = 1;
   const int totstates = states1_part_num * states2_part_num;
   // These maps should be ordered as to be as continous for output
-//#pragma omp parallel for schedule(static)
+// #pragma omp parallel for schedule(static)
   for (const int (*map)[4] = maps; map < &maps[nmaps]; ++map) {
     const int ijshift = (*map)[0] * totstates;
     const int target_state1 = (*map)[1];
@@ -658,15 +690,15 @@ void lm_apply_array12_same_spin_opt(const double complex *coeff,
         const int parity = cdexc2[2] * parity1;
         const double complex pref = parity * (h2etmp + klshift)[0];
         temp[target] += pref;
-        //zaxpy_(&states2, &pref, ccoeff, &inc2, cout, &inc2);
+        // zaxpy_(&states2, &pref, ccoeff, &inc2, cout, &inc2);
       }
     }
     const double complex *xptr = coeff;
     for (int ii = 0; ii < states1; ii++) {
       const double complex ttt = temp[ii];
-      //for (int jj = 0; jj < states2; jj++) {
-      //    cout[jj] += temp[ii]*xptr[jj];
-      //}
+      // for (int jj = 0; jj < states2; jj++) {
+      //     cout[jj] += temp[ii]*xptr[jj];
+      // }
       blasfunc->zaxpy(&states2, &ttt, xptr, &inc2, cout, &inc2);
       xptr += inc1;
     }
@@ -728,10 +760,10 @@ static void lm_apply_array12_diff_spin_opt2(const double complex *coeff,
       double complex *tptr = ctemp + isig;
       double complex zsign = signs[isig];
       blasfunc->zaxpy(&alpha_states, &zsign, cptr, &beta_states, tptr, &nsig);
-      //gather_kernel(alpha_states, zsign, cptr, beta_states, tptr, nsig);
-      //for (int s2 = 0; s2 < alpha_states; ++s2) {
-      //  tptr[s2*nsig] = zsign * cptr[s2*beta_states];
-      //}
+      // gather_kernel(alpha_states, zsign, cptr, beta_states, tptr, nsig);
+      // for (int s2 = 0; s2 < alpha_states; ++s2) {
+      //   tptr[s2*nsig] = zsign * cptr[s2*beta_states];
+      // }
     }
 
     // contract and scatter
@@ -742,13 +774,13 @@ static void lm_apply_array12_diff_spin_opt2(const double complex *coeff,
         int idx2 = adexc[3*(s1*nadexc + j)];
         const int parity = adexc[3*(s1*nadexc + j) + 2];
         const int orbij = adexc[3*(s1*nadexc + j) + 1];
-        //const double complex ttt = parity * h2e[orbid * norbs2 + orbij];
+        // const double complex ttt = parity * h2e[orbid * norbs2 + orbij];
         const double complex ttt = parity * tmperi[orbij];
         const double complex *cctmp = ctemp + idx2 * nsig;
         blasfunc->zaxpy(&nsig, &ttt, cctmp, &one, vtemp, &one);
-        //for (int isig = 0; isig < nsig; ++isig) {
-        //        vtemp[isig] += ttt * cctmp[isig];
-        //}
+        // for (int isig = 0; isig < nsig; ++isig) {
+        //         vtemp[isig] += ttt * cctmp[isig];
+        // }
       }
 
       double complex *tmpout = out + s1*beta_states;
@@ -816,12 +848,12 @@ static void lm_apply_array12_diff_spin_opt1(const double complex *coeff,
       const double complex *cptr = coeff + offset*beta_states;
       double complex *tptr = ctemp + isig;
       double complex zsign = signs[isig];
-      //zaxpy_(&alpha_states, &zsign, cptr, &beta_states, tptr, &nsig);
+      // zaxpy_(&alpha_states, &zsign, cptr, &beta_states, tptr, &nsig);
       blasfunc->zaxpy(&beta_states, &zsign, cptr, &one, tptr, &nsig);
-      //gather_kernel(alpha_states, zsign, cptr, beta_states, tptr, nsig);
-      //for (int s2 = 0; s2 < alpha_states; ++s2) {
-      //  tptr[s2*nsig] = zsign * cptr[s2*beta_states];
-      //}
+      // gather_kernel(alpha_states, zsign, cptr, beta_states, tptr, nsig);
+      // for (int s2 = 0; s2 < alpha_states; ++s2) {
+      //   tptr[s2*nsig] = zsign * cptr[s2*beta_states];
+      // }
     }
 
     // contract and scatter
@@ -832,13 +864,13 @@ static void lm_apply_array12_diff_spin_opt1(const double complex *coeff,
         int idx2 = bdexc[3*(s2*nbdexc + j)];
         const int parity = bdexc[3*(s2*nbdexc + j) + 2];
         const int orbkl = bdexc[3*(s2*nbdexc + j) + 1];
-        //const double complex ttt = parity * h2e[orbid * norbs2 + orbij];
+        // const double complex ttt = parity * h2e[orbid * norbs2 + orbij];
         const double complex ttt = parity * tmperi[orbkl];
         const double complex * cctmp = ctemp + idx2 * nsig;
         blasfunc->zaxpy(&nsig, &ttt, cctmp, &one, vtemp, &one);
-        //for (int isig = 0; isig < nsig; ++isig) {
-        //  vtemp[isig] += ttt * cctmp[isig];
-        //}
+        // for (int isig = 0; isig < nsig; ++isig) {
+        //   vtemp[isig] += ttt * cctmp[isig];
+        // }
       }
 
       double complex *tmpout = out + s2;
@@ -917,16 +949,16 @@ void lm_apply_array12_diff_spin_omp1(const double complex *coeff,
       double complex *tptr = ctemp + isig;
       double complex zsign = signs[isig];
       blasfunc->zaxpy(&beta_states, &zsign, cptr, &one, tptr, &nsig);
-      //for (int s2 = 0; s2 < alpha_states; ++s2) {
-      //  tptr[s2*nsig] = zsign * cptr[s2*beta_states];
-      //}
+      // for (int s2 = 0; s2 < alpha_states; ++s2) {
+      //   tptr[s2*nsig] = zsign * cptr[s2*beta_states];
+      // }
     }
 
     // contract and scatter
     const complex double *tmperi = h2e + orbid*norbs2;
 #pragma omp for schedule(static)
     for (int s2 = 0; s2 < beta_states; ++s2) {
-      //for (int kk = 0; kk < nsig; kk++) vtemp[kk] = 0.0;
+      // for (int kk = 0; kk < nsig; kk++) vtemp[kk] = 0.0;
 #ifdef _OPENMP
       const int ithrd = omp_get_thread_num();
 #else
@@ -941,14 +973,14 @@ void lm_apply_array12_diff_spin_omp1(const double complex *coeff,
         const double complex ttt = parity * tmperi[orbkl];
         const double complex * cctmp = ctemp + idx2 * nsig;
         blasfunc->zaxpy(&nsig, &ttt, cctmp, &one, vpt, &one);
-        //for (int isig = 0; isig < nsig; ++isig) {
-        //        vtemp[isig] += ttt * cctmp[isig];
-        //}
+        // for (int isig = 0; isig < nsig; ++isig) {
+        //         vtemp[isig] += ttt * cctmp[isig];
+        // }
       }
 
       double complex *tmpout = out + s2;
       for (int isig = 0; isig < nsig; ++isig) {
-        //tmpout[beta_states*boff[isig]] += vtemp[isig];
+        // tmpout[beta_states*boff[isig]] += vtemp[isig];
         tmpout[beta_states*boff[isig]] += vpt[isig];
       }
     }
@@ -974,7 +1006,7 @@ void lm_apply_array12_diff_spin_opt(const double complex *coeff,
                                    const double complex *h2e,
                                    const int norbs,
                                    const struct blasfunctions * blasfunc) {
-  //return lm_apply_array12_diff_spin_opt1(
+  // lm_apply_array12_diff_spin_opt1(
   lm_apply_array12_diff_spin_omp1(
     coeff,
     out,
@@ -1002,7 +1034,6 @@ void apply_array12_lowfillingab(const double complex *coeff,
                                const int nib,
                                const int norb,
                                double complex *intermediate) {
-
   const int tpar = nalpha % 2 == 0 ? -1 : 1;
 #pragma omp parallel for schedule(dynamic) collapse(2)
   for (int i = 0; i < norb; ++i)
@@ -1039,11 +1070,10 @@ void apply_array12_lowfillingab2(const double complex *intermediate,
                                 const int nob,
                                 const int norb,
                                 double complex *out) {
-
   const int tpar = nalpha % 2 == 0 ? 1 : -1;
   for (int i = 0; i < norb; ++i) {
     for (int j = 0; j < norb; ++j) {
-      //int offset = i*norb*nia*nib + j*nia*nib;
+      // int offset = i*norb*nia*nib + j*nia*nib;
       const double complex *iptr = intermediate + i*norb*nia*nib + j*nia*nib;
       const int *aptr = alpha_array + i*na1*3;
       const int *bptr = beta_array + j*nb1*3;
@@ -1137,7 +1167,6 @@ void make_Hcomp(const int norb,
                 const int nlt,
                 const double complex *h2e,
                 double complex *h2ecomp) {
-
   for (int i = 0; i < norb; ++i)
   for (int j = i + 1; j < norb; ++j) {
     int ijn = i + j*(j + 1)/2;
@@ -1157,8 +1186,10 @@ void apply_individual_nbody1_accumulate(const double complex coeff,
                                         double complex *ocoeff,
                                         const double complex *icoeff,
                                         const int n,
-                                        const int na,
-                                        const int nb,
+                                        const int nao,
+                                        const int nbo,
+                                        const int nai,
+                                        const int nbi,
                                         const int nt,
                                         const int64_t *amap,
                                         const int64_t *btarget,
@@ -1169,8 +1200,8 @@ void apply_individual_nbody1_accumulate(const double complex coeff,
     const int64_t sourcea = amap[i*3 + 0];
     const int64_t targeta = amap[i*3 + 1];
     const int64_t paritya = amap[i*3 + 2];
-    double complex *optr = ocoeff + targeta*nb;
-    const double complex *iptr = icoeff + sourcea*nb;
+    double complex *optr = ocoeff + targeta*nbo;
+    const double complex *iptr = icoeff + sourcea*nbi;
     const double complex pref = coeff*paritya;
     for (int j = 0; j < nt; ++j) {
       optr[btarget[j]] += pref * iptr[bsource[j]] * bparity[j];
@@ -1191,9 +1222,7 @@ static void _from_to_cirq(double complex * const cirq_wfn,
                           const int norbs,
                           void (*fill_func)(double complex * cirq_el,
                                             double complex * fqe_el,
-                                            double parity)
-                         )
-{
+                                            double parity) ) {
   const int nqubits = norbs * 2;
 #pragma omp parallel for schedule(static)
   for (int beta_id = 0; beta_id < beta_states; ++beta_id) {
@@ -1220,15 +1249,13 @@ static void _from_to_cirq(double complex * const cirq_wfn,
 
 static void fill_to_cirq(double complex * cirq_el,
                          double complex * fqe_el,
-                         double parity)
-{
+                         double parity) {
   *cirq_el = parity * (*fqe_el);
 }
 
 static void fill_from_cirq(double complex * cirq_el,
                            double complex * fqe_el,
-                           double parity)
-{
+                           double parity) {
   *fqe_el = parity * (*cirq_el);
 }
 
@@ -1242,9 +1269,7 @@ void to_cirq(double complex * const cirq_wfn,
              const int * const alpha_swaps,
              const int * const beta_occs,
              const int nbeta,
-             const int norbs
-            )
-{
+             const int norbs) {
   _from_to_cirq(cirq_wfn, fqe_wfn, alpha_states, beta_states, cirq_alpha_id,
                 cirq_beta_id, alpha_swaps, beta_occs, nbeta, norbs,
                 &fill_to_cirq);
@@ -1260,9 +1285,7 @@ void from_cirq(double complex * const cirq_wfn,
                const int * const alpha_swaps,
                const int * const beta_occs,
                const int nbeta,
-               const int norbs
-              )
-{
+               const int norbs) {
   _from_to_cirq(cirq_wfn, fqe_wfn, alpha_states, beta_states, cirq_alpha_id,
                 cirq_beta_id, alpha_swaps, beta_occs, nbeta, norbs,
                 &fill_from_cirq);
@@ -1275,7 +1298,6 @@ void sparse_scale(const long long *xi,
                   const int nd1,
                   const int nd2,
                   double complex *data) {
-
 #pragma omp parallel for schedule(static)
   for (int i = 0; i < ni; ++i) {
       const long long ixx = xi[i];
@@ -1285,29 +1307,139 @@ void sparse_scale(const long long *xi,
 }
 
 void integer_index_accumulate_real(double *result,
-                                   const double*data,
-                                   const int occupation,
-                                   const int nele,
-                                   const int norb) {
-  assert(nele < 128);
-  int array[128];
-  get_occupation(array, occupation, nele, norb);
+                                   const double *data,
+                                   uint64_t occupation) {
+  int id = -1;
   *result = 0.0;
-  for (int i = 0; i < nele; ++i)
-    *result += data[array[i]];
+  while (gbit_index(&occupation, &id)) { *result += data[id]; }
 }
 
 void integer_index_accumulate(double complex *result,
                               const double complex *data,
-                              const int occupation,
-                              const int nele,
-                              const int norb) {
-  assert(nele < 128);
-  int array[128];
-  get_occupation(array, occupation, nele, norb);
+                              uint64_t occupation) {
+  int id = -1;
   *result = 0.0;
-  for (int i = 0; i < nele; ++i)
-    *result += data[array[i]];
+  while (gbit_index(&occupation, &id)) { *result += data[id]; }
+}
+
+
+void apply_diagonal_inplace(double complex *data,
+                            const double complex *aarray,
+                            const double complex *barray,
+                            const uint64_t *astrings,
+                            const uint64_t *bstrings,
+                            const int lena,
+                            const int lenb) {
+  double complex *alpha = safe_malloc(alpha, lena);
+  double complex *beta = safe_malloc(beta, lenb);
+
+#pragma omp parallel for schedule(static)
+  for (int i = 0; i < lena; ++i) {
+    integer_index_accumulate(alpha + i, aarray, astrings[i]);
+  }
+#pragma omp parallel for schedule(static)
+  for (int i = 0; i < lenb; ++i) {
+    integer_index_accumulate(beta + i, barray, bstrings[i]);
+  }
+#pragma omp parallel for schedule(static) collapse(2)
+  for (int i = 0; i < lena; ++i) {
+    for (int j = 0; j < lenb; ++j) {
+      data[j + lenb * i] *= alpha[i] + beta[j];
+    }
+  }
+  free(alpha);
+  free(beta);
+}
+
+
+void apply_diagonal_inplace_real(double complex *data,
+                                 const double *aarray,
+                                 const double *barray,
+                                 const uint64_t *astrings,
+                                 const uint64_t *bstrings,
+                                 const int lena,
+                                 const int lenb) {
+  double *alpha = safe_malloc(alpha, lena);
+  double *beta = safe_malloc(beta, lenb);
+
+#pragma omp parallel for schedule(static)
+  for (int i = 0; i < lena; ++i) {
+    integer_index_accumulate_real(alpha + i, aarray, astrings[i]);
+  }
+#pragma omp parallel for schedule(static)
+  for (int i = 0; i < lenb; ++i) {
+    integer_index_accumulate_real(beta + i, barray, bstrings[i]);
+  }
+#pragma omp parallel for schedule(static) collapse(2)
+  for (int i = 0; i < lena; ++i) {
+    for (int j = 0; j < lenb; ++j) {
+      data[j + lenb * i] *= alpha[i] + beta[j];
+    }
+  }
+  free(alpha);
+  free(beta);
+}
+
+
+void evolve_diagonal_inplace(double complex *data,
+                             const double complex *aarray,
+                             const double complex *barray,
+                             const uint64_t *astrings,
+                             const uint64_t *bstrings,
+                             const int lena,
+                             const int lenb) {
+  double complex *alpha = safe_malloc(alpha, lena);
+  double complex *beta = safe_malloc(beta, lenb);
+
+#pragma omp parallel for schedule(static)
+  for (int i = 0; i < lena; ++i) {
+    integer_index_accumulate(alpha + i, aarray, astrings[i]);
+    alpha[i] = cexp(alpha[i]);
+  }
+#pragma omp parallel for schedule(static)
+  for (int i = 0; i < lenb; ++i) {
+    integer_index_accumulate(beta + i, barray, bstrings[i]);
+    beta[i] = cexp(beta[i]);
+  }
+#pragma omp parallel for schedule(static) collapse(2)
+  for (int i = 0; i < lena; ++i) {
+    for (int j = 0; j < lenb; ++j) {
+      data[j + lenb * i] *= alpha[i] * beta[j];
+    }
+  }
+  free(alpha);
+  free(beta);
+}
+
+
+void evolve_diagonal_inplace_real(double complex *data,
+                                  const double *aarray,
+                                  const double *barray,
+                                  const uint64_t *astrings,
+                                  const uint64_t *bstrings,
+                                  const int lena,
+                                  const int lenb) {
+  double *alpha = safe_malloc(alpha, lena);
+  double *beta = safe_malloc(beta, lenb);
+
+#pragma omp parallel for schedule(static)
+  for (int i = 0; i < lena; ++i) {
+    integer_index_accumulate_real(alpha + i, aarray, astrings[i]);
+    alpha[i] = exp(alpha[i]);
+  }
+#pragma omp parallel for schedule(static)
+  for (int i = 0; i < lenb; ++i) {
+    integer_index_accumulate_real(beta + i, barray, bstrings[i]);
+    beta[i] = exp(beta[i]);
+  }
+#pragma omp parallel for schedule(static) collapse(2)
+  for (int i = 0; i < lena; ++i) {
+    for (int j = 0; j < lenb; ++j) {
+      data[j + lenb * i] *= alpha[i] * beta[j];
+    }
+  }
+  free(alpha);
+  free(beta);
 }
 
 
@@ -1330,60 +1462,9 @@ int evaluate_map_each(int64_t *out,
 }
 
 
-int make_mapping_each_opt(int64_t *out,
-                          const uint64_t *strings,
-                          const int length,
-                          const int32_t *dag,
-                          const int dag_length,
-                          const int32_t *undag,
-                          const int undag_length) {
-    uint64_t dag_mask = 0;
-    for (int i = 0; i != dag_length; ++i) {
-      bool found = false;
-      for (int j = 0; j != undag_length; ++j) {
-        if (undag[j] == dag[i]) {
-          found = true;
-          break;
-        }
-      }
-      if (!found)
-        dag_mask = SET_BIT(dag_mask, dag[i]);
-    }
-
-    uint64_t undag_mask = 0;
-    for (int i = 0; i != undag_length; ++i)
-      undag_mask = SET_BIT(undag_mask, undag[i]);
-
-    int count = 0;
-    for (int i = 0; i < length; ++i) {
-      uint64_t current = strings[i];
-      const uint64_t dag_masked = current & dag_mask;
-      const uint64_t undag_masked = current & undag_mask;
-      const bool check = !dag_masked && !(undag_masked ^ undag_mask);
-      if (check) {
-        int parity = 0;
-        for (int j = undag_length-1; j >= 0; --j) {
-          parity += count_bits_above(current, undag[j]);
-          current = UNSET_BIT(current, undag[j]);
-        }
-        for (int j = dag_length-1; j >= 0; --j) {
-          parity += count_bits_above(current, dag[j]);
-          current = SET_BIT(current, dag[j]);
-        }
-        out[count * 3] = i;
-        out[count * 3 + 1] = current;
-        out[count * 3 + 2] = -(parity & 1) * 2 + 1;
-        ++count;
-      }
-    }
-    return count;
-}
-
 void calculate_dvec1(const int32_t *aarray,
                      const int32_t *barray,
                      const int norb,
-                     const int i,
-                     const int j,
                      const int nalpha,
                      const int nbeta,
                      const int na,
@@ -1396,20 +1477,24 @@ void calculate_dvec1(const int32_t *aarray,
                      const int nd4,
                      const double complex *coeff,
                      double complex *dvec) {
-  double complex *dptr = dvec + i*nd2*nd3*nd4 + (j + norb)*nd3*nd4;
-  const int32_t *aptr = aarray + i*na*3;
-  const int32_t *bptr = barray + j*nb*3;
-  for (int k = 0; k < na; ++k) {
-    const int sourcea = aptr[k*3];
-    const int targeta = aptr[k*3 + 1];
-    int paritya = aptr[k*3 + 2];
-    paritya *= (nalpha % 2 == 0 ? 1 : -1);
-    for (int l = 0; l < nb; ++l) {
-      const int sourceb = bptr[l*3];
-      const int targetb = bptr[l*3 + 1];
-      const int parityb = bptr[l*3 + 2];
-      const double complex work = coeff[sourcea*nc2 + sourceb];
-      dptr[targeta*nd4 + targetb] += work * paritya * parityb;
+#pragma omp parallel for schedule(dynamic) collapse(2)
+  for (int i = 0; i < norb; ++i)
+  for (int j = 0; j < norb; ++j) {
+    double complex *dptr = dvec + i*nd2*nd3*nd4 + (j + norb)*nd3*nd4;
+    const int32_t *aptr = aarray + i*na*3;
+    const int32_t *bptr = barray + j*nb*3;
+    for (int k = 0; k < na; ++k) {
+      const int sourcea = aptr[k*3];
+      const int targeta = aptr[k*3 + 1];
+      int paritya = aptr[k*3 + 2];
+      paritya *= (nalpha % 2 == 0 ? 1 : -1);
+      for (int l = 0; l < nb; ++l) {
+        const int sourceb = bptr[l*3];
+        const int targetb = bptr[l*3 + 1];
+        const int parityb = bptr[l*3 + 2];
+        const double complex work = coeff[sourcea*nc2 + sourceb];
+        dptr[targeta*nd4 + targetb] += work * paritya * parityb;
+      }
     }
   }
 }
@@ -1417,8 +1502,6 @@ void calculate_dvec1(const int32_t *aarray,
 void calculate_dvec2(const int32_t *aarray,
                      const int32_t *barray,
                      const int norb,
-                     const int i,
-                     const int j,
                      const int nalpha,
                      const int nbeta,
                      const int na,
@@ -1431,20 +1514,24 @@ void calculate_dvec2(const int32_t *aarray,
                      const int nd4,
                      const double complex *coeff,
                      double complex *dvec) {
-  double complex *dptr = dvec + (i + norb)*nd2*nd3*nd4 + j*nd3*nd4;
-  const int32_t *aptr = aarray + j*na*3;
-  const int32_t *bptr = barray + i*nb*3;
-  for (int k = 0; k < na; ++k) {
-    const int sourcea = aptr[k*3];
-    const int targeta = aptr[k*3 + 1];
-    int paritya = aptr[k*3 + 2];
-    paritya *= (nalpha % 2 == 0 ? -1 : 1);
-    for (int l = 0; l < nb; ++l) {
-      const int sourceb = bptr[l*3];
-      const int targetb = bptr[l*3 + 1];
-      const int parityb = bptr[l*3 + 2];
-      const double complex work = coeff[sourcea*nc2 + sourceb];
-      dptr[targeta*nd4 + targetb] += work * paritya * parityb;
+#pragma omp parallel for schedule(dynamic) collapse(2)
+  for (int i = 0; i < norb; ++i)
+  for (int j = 0; j < norb; ++j) {
+    double complex *dptr = dvec + (i + norb)*nd2*nd3*nd4 + j*nd3*nd4;
+    const int32_t *aptr = aarray + j*na*3;
+    const int32_t *bptr = barray + i*nb*3;
+    for (int k = 0; k < na; ++k) {
+      const int sourcea = aptr[k*3];
+      const int targeta = aptr[k*3 + 1];
+      int paritya = aptr[k*3 + 2];
+      paritya *= (nalpha % 2 == 0 ? -1 : 1);
+      for (int l = 0; l < nb; ++l) {
+        const int sourceb = bptr[l*3];
+        const int targetb = bptr[l*3 + 1];
+        const int parityb = bptr[l*3 + 2];
+        const double complex work = coeff[sourcea*nc2 + sourceb];
+        dptr[targeta*nd4 + targetb] += work * paritya * parityb;
+      }
     }
   }
 }
@@ -1523,7 +1610,6 @@ void calculate_coeff2(const int32_t *aarray,
 void calculate_dvec1_j(const int32_t *aarray,
                        const int32_t *barray,
                        const int norb,
-                       const int i,
                        const int j,
                        const int nalpha,
                        const int nbeta,
@@ -1536,20 +1622,23 @@ void calculate_dvec1_j(const int32_t *aarray,
                        const int nd3,
                        const double complex *coeff,
                        double complex *dvec) {
-  double complex *dptr = dvec + (i + norb)*nd2*nd3;
-  const int32_t *aptr = aarray + j*na*3;
-  const int32_t *bptr = barray + i*nb*3;
-  for (int k = 0; k < na; ++k) {
-    const int sourcea = aptr[k*3];
-    const int targeta = aptr[k*3 + 1];
-    int paritya = aptr[k*3 + 2];
-    paritya *= (nalpha % 2 == 0 ? -1 : 1);
-    for (int l = 0; l < nb; ++l) {
-      const int sourceb = bptr[l*3];
-      const int targetb = bptr[l*3 + 1];
-      const int parityb = bptr[l*3 + 2];
-      const double complex work = coeff[sourcea*nc2 + sourceb];
-      dptr[targeta*nd3 + targetb] += work * paritya * parityb;
+#pragma omp parallel for schedule(dynamic)
+  for (int i = 0; i < norb; ++i) {
+    double complex *dptr = dvec + (i + norb)*nd2*nd3;
+    const int32_t *aptr = aarray + j*na*3;
+    const int32_t *bptr = barray + i*nb*3;
+    for (int k = 0; k < na; ++k) {
+      const int sourcea = aptr[k*3];
+      const int targeta = aptr[k*3 + 1];
+      int paritya = aptr[k*3 + 2];
+      paritya *= (nalpha % 2 == 0 ? -1 : 1);
+      for (int l = 0; l < nb; ++l) {
+        const int sourceb = bptr[l*3];
+        const int targetb = bptr[l*3 + 1];
+        const int parityb = bptr[l*3 + 2];
+        const double complex work = coeff[sourcea*nc2 + sourceb];
+        dptr[targeta*nd3 + targetb] += work * paritya * parityb;
+      }
     }
   }
 }
@@ -1557,7 +1646,6 @@ void calculate_dvec1_j(const int32_t *aarray,
 void calculate_dvec2_j(const int32_t *aarray,
                        const int32_t *barray,
                        const int norb,
-                       const int i,
                        const int j,
                        const int nalpha,
                        const int nbeta,
@@ -1570,20 +1658,175 @@ void calculate_dvec2_j(const int32_t *aarray,
                        const int nd3,
                        const double complex *coeff,
                        double complex *dvec) {
-  double complex *dptr = dvec + i*nd2*nd3;
-  const int32_t *aptr = aarray + i*na*3;
-  const int32_t *bptr = barray + (j - norb)*nb*3;
-  for (int k = 0; k < na; ++k) {
-    const int sourcea = aptr[k*3];
-    const int targeta = aptr[k*3 + 1];
-    int paritya = aptr[k*3 + 2];
-    paritya *= (nalpha % 2 == 0 ? 1 : -1);
-    for (int l = 0; l < nb; ++l) {
-      const int sourceb = bptr[l*3];
-      const int targetb = bptr[l*3 + 1];
-      const int parityb = bptr[l*3 + 2];
-      const double complex work = coeff[sourcea*nc2 + sourceb];
-      dptr[targeta*nd3 + targetb] += work * paritya * parityb;
+#pragma omp parallel for schedule(dynamic)
+  for (int i = 0; i < norb; ++i) {
+    double complex *dptr = dvec + i*nd2*nd3;
+    const int32_t *aptr = aarray + i*na*3;
+    const int32_t *bptr = barray + (j - norb)*nb*3;
+    for (int k = 0; k < na; ++k) {
+      const int sourcea = aptr[k*3];
+      const int targeta = aptr[k*3 + 1];
+      int paritya = aptr[k*3 + 2];
+      paritya *= (nalpha % 2 == 0 ? 1 : -1);
+      for (int l = 0; l < nb; ++l) {
+        const int sourceb = bptr[l*3];
+        const int targetb = bptr[l*3 + 1];
+        const int parityb = bptr[l*3 + 2];
+        const double complex work = coeff[sourcea*nc2 + sourceb];
+        dptr[targeta*nd3 + targetb] += work * paritya * parityb;
+      }
+    }
+  }
+}
+
+void make_nh123_real(const int norb,
+                     const double *h4e,
+                     double *nh1e,
+                     double *nh2e,
+                     double *nh3e) {
+  const int twon = 2 * norb;
+  const int s2 = twon * twon;
+  const int s3 = s2 * twon;
+  const int s4 = s3 * twon;
+  const int s5 = s4 * twon;
+  const int s6 = s5 * twon;
+  const int s7 = s6 * twon;
+  for (int i = 0; i < twon; ++i)
+  for (int j = 0; j < twon; ++j)
+  for (int k = 0; k < twon; ++k) {
+    for (int xx = 0; xx < twon; ++xx)
+    for (int yy = 0; yy < twon; ++yy) {
+      nh1e[xx*twon + yy] -= h4e[
+        xx*s7 + j*s6 + i*s5 + k*s4 + j*s3 + i*s2 + k*twon + yy];
+    }
+  }
+
+#pragma omp parallel for schedule(static) collapse(2)
+  for (int i = 0; i < twon; ++i)
+  for (int j = 0; j < twon; ++j)
+  for (int k = 0; k < twon; ++k) {
+    double *temp2 = nh2e + i*s3 + j*s2;
+    double *temp3 = nh3e + i*s5 + j*s4 + k*s3;
+    for (int l = 0; l < twon; ++l) {
+      const double *h4jlik = h4e + j*s7 + l*s6 + i*s5 + k*s4;
+      const double *h4ijlk = h4e + i*s7 + j*s6 + l*s5 + k*s4;
+      const double *h4ilkj = h4e + i*s7 + l*s6 + k*s5 + j*s4;
+      const double *h4ikjl = h4e + i*s7 + k*s6 + j*s5 + l*s4;
+      const double *h4jikl = h4e + j*s7 + i*s6 + k*s5 + l*s4;
+      const double *h4ijkl = h4e + i*s7 + j*s6 + k*s5 + l*s4;
+      for (int xx = 0; xx < twon; ++xx)
+      for (int yy = 0; yy < twon; ++yy) {
+        double temp;
+        const int o1 = l*s3 + k*s2 + xx*twon + yy;
+        temp = h4jlik[o1];
+        temp += h4ijlk[o1];
+        temp += h4ilkj[o1];
+        temp += h4jikl[o1];
+
+        const int o2 = k*s3 + xx*s2 + l*twon + yy;
+        temp += h4ikjl[o2];
+        temp += h4jikl[o2];
+
+        const int o3 = xx*s3 + k*s2 + l*twon + yy;
+        temp += h4ijkl[o3];
+        temp2[xx*twon + yy] += temp;
+      }
+      const double *h4kijl = h4e + k*s7 + i*s6 + j*s5 + l*s4;
+      const double *h4jilk = h4e + j*s7 + i*s6 + l*s5 + k*s4;
+      const double *h4iljk = h4e + i*s7 + l*s6 + j*s5 + k*s4;
+      for (int xx = 0; xx < twon; ++xx)
+      for (int yy = 0; yy < twon; ++yy)
+      for (int zz = 0; zz < twon; ++zz) {
+        const int o1 = l*s3 + xx*s2 + yy*twon + zz;
+        double temp;
+        temp = h4kijl[o1];
+        temp += h4jilk[o1];
+        temp += h4iljk[o1];
+
+        const int o2 = xx*s3 + l*s2 + yy*twon + zz;
+        temp += h4ikjl[o2];
+        temp += h4ijlk[o2];
+
+        const int o3 = xx*s3 + yy*s2 + l*twon + zz;
+        temp += h4ijkl[o3];
+        temp3[xx*s2 + yy*twon + zz] += temp;
+      }
+    }
+  }
+}
+
+void make_nh123(const int norb,
+                const double complex *h4e,
+                double complex *nh1e,
+                double complex *nh2e,
+                double complex *nh3e) {
+  const int twon = 2 * norb;
+  const int s2 = twon * twon;
+  const int s3 = s2 * twon;
+  const int s4 = s3 * twon;
+  const int s5 = s4 * twon;
+  const int s6 = s5 * twon;
+  const int s7 = s6 * twon;
+  for (int i = 0; i < twon; ++i)
+  for (int j = 0; j < twon; ++j)
+  for (int k = 0; k < twon; ++k) {
+    for (int xx = 0; xx < twon; ++xx)
+    for (int yy = 0; yy < twon; ++yy) {
+      nh1e[xx*twon + yy] -= h4e[
+        xx*s7 + j*s6 + i*s5 + k*s4 + j*s3 + i*s2 + k*twon + yy];
+    }
+  }
+
+#pragma omp parallel for schedule(static) collapse(2)
+  for (int i = 0; i < twon; ++i)
+  for (int j = 0; j < twon; ++j)
+  for (int k = 0; k < twon; ++k) {
+    double complex *temp2 = nh2e + i*s3 + j*s2;
+    double complex *temp3 = nh3e + i*s5 + j*s4 + k*s3;
+    for (int l = 0; l < twon; ++l) {
+      const double complex *h4jlik = h4e + j*s7 + l*s6 + i*s5 + k*s4;
+      const double complex *h4ijlk = h4e + i*s7 + j*s6 + l*s5 + k*s4;
+      const double complex *h4ilkj = h4e + i*s7 + l*s6 + k*s5 + j*s4;
+      const double complex *h4ikjl = h4e + i*s7 + k*s6 + j*s5 + l*s4;
+      const double complex *h4jikl = h4e + j*s7 + i*s6 + k*s5 + l*s4;
+      const double complex *h4ijkl = h4e + i*s7 + j*s6 + k*s5 + l*s4;
+      for (int xx = 0; xx < twon; ++xx)
+      for (int yy = 0; yy < twon; ++yy) {
+        double complex temp;
+        const int o1 = l*s3 + k*s2 + xx*twon + yy;
+        temp = h4jlik[o1];
+        temp += h4ijlk[o1];
+        temp += h4ilkj[o1];
+        temp += h4jikl[o1];
+
+        const int o2 = k*s3 + xx*s2 + l*twon + yy;
+        temp += h4ikjl[o2];
+        temp += h4jikl[o2];
+
+        const int o3 = xx*s3 + k*s2 + l*twon + yy;
+        temp += h4ijkl[o3];
+        temp2[xx*twon + yy] += temp;
+      }
+      const double complex *h4kijl = h4e + k*s7 + i*s6 + j*s5 + l*s4;
+      const double complex *h4jilk = h4e + j*s7 + i*s6 + l*s5 + k*s4;
+      const double complex *h4iljk = h4e + i*s7 + l*s6 + j*s5 + k*s4;
+      for (int xx = 0; xx < twon; ++xx)
+      for (int yy = 0; yy < twon; ++yy)
+      for (int zz = 0; zz < twon; ++zz) {
+        const int o1 = l*s3 + xx*s2 + yy*twon + zz;
+        double complex temp;
+        temp = h4kijl[o1];
+        temp += h4jilk[o1];
+        temp += h4iljk[o1];
+
+        const int o2 = xx*s3 + l*s2 + yy*twon + zz;
+        temp += h4ikjl[o2];
+        temp += h4ijlk[o2];
+
+        const int o3 = xx*s3 + yy*s2 + l*twon + zz;
+        temp += h4ijkl[o3];
+        temp3[xx*s2 + yy*twon + zz] += temp;
+      }
     }
   }
 }

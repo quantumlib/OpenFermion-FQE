@@ -25,6 +25,19 @@ from fqe.lib import lib_fqe
 if TYPE_CHECKING:
     from numpy import ndarray as Nparray
 
+def _calculate_Z_matrix(out, norb, nele):
+    func = lib_fqe.calculate_Z_matrix
+    func.argtypes = [
+        ndpointer(
+            shape=(nele, norb),
+            dtype=numpy.int32,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        c_int,
+        c_int
+    ]
+    func(out, norb, nele)
+
 
 def _map_deexc(out, inp, index, idx):
     func = lib_fqe.map_deexc
@@ -117,19 +130,31 @@ def _build_mapping_strings(strings, zmat, nele: int, norb: int):
     return out
 
 
-def _calculate_string_address(zmat, nele: int, norb: int, string: int):
+def _calculate_string_address(zmat, nele: int, norb: int, strings: 'Nparray'):
+    length = strings.size
+    out = numpy.zeros((length, ), dtype=numpy.uint64)
     func = lib_fqe.calculate_string_address
     func.argtypes = [
+        ndpointer(
+            shape=(length, ),
+            dtype=numpy.uint64,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        ndpointer(
+            shape=(length, ),
+            dtype=numpy.uint64,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        c_int,
         ndpointer(
             shape=(nele, norb),
             dtype=numpy.int32,
             flags=('C_CONTIGUOUS', 'ALIGNED')
         ),
-        c_int,
-        c_int,
-        c_ulonglong
+        c_int
     ]
-    return func(zmat, nele, norb, c_ulonglong(string))
+    func(out, strings, length, zmat, norb)
+    return out
 
 
 def _c_map_to_deexc_alpha_icol(exc: 'Nparray', diag: 'Nparray',
@@ -183,3 +208,32 @@ def _c_map_to_deexc_alpha_icol(exc: 'Nparray', diag: 'Nparray',
             *[mp.ctypes.data_as(c_ptr_map) for mp in list_map]),
         numpy.array([len(x) for x in list_map], dtype=numpy.int32),
         strings, len(strings), exc, diag, index, norb, exc0, exc1, ldiag)
+
+def _make_mapping_each(out: 'Nparray', strings: 'Nparray',
+                       length: int, dag: 'Nparray', undag: 'Nparray'):
+    func = lib_fqe.make_mapping_each
+    func.argtypes = [
+        ndpointer(
+            shape=(length, 3),
+            dtype=numpy.int64,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        ndpointer(
+            shape=(length,),
+            dtype=numpy.uint64,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        c_int,
+        ndpointer(
+            dtype=numpy.int32,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        c_int,
+        ndpointer(
+            dtype=numpy.int32,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        c_int
+    ]
+    return func(out, strings, length,
+                dag, dag.size, undag, undag.size)

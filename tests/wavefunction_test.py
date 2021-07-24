@@ -86,12 +86,12 @@ class WavefunctionTest(unittest.TestCase):
         ref = numpy.zeros((4, 4), dtype=numpy.complex128)
         self.assertTrue(numpy.allclose(ref, work._civec[(2, 0)].coeff))
 
-    def test_clone(self):
-        """Test clone function
+    def test_empty_copy(self):
+        """Test empty_copy function
         """
         test = Wavefunction(param=[[2, 0, 4]])
         test.set_wfn(strategy='ones')
-        test1 = test.clone()
+        test1 = test.empty_copy()
         self.assertTrue(test1._norb == test._norb)
         self.assertTrue(len(test1._civec) == len(test._civec))
         self.assertTrue((2, 0) in test1._civec.keys())
@@ -99,8 +99,8 @@ class WavefunctionTest(unittest.TestCase):
 
     def test_apply_number(self):
         norb = 4
-        test = numpy.random.rand(norb, norb)
         diag = numpy.random.rand(norb * 2)
+        test = numpy.random.rand(norb, norb).astype(numpy.complex128)
         diag2 = copy.deepcopy(diag)
         e_0 = 0
         for i in range(norb):
@@ -223,7 +223,7 @@ class WavefunctionTest(unittest.TestCase):
 
     def test_save_read(self):
         """Check that the wavefunction can be properly archived and
-        retieved
+        retrieved
         """
         numpy.random.seed(seed=409)
         wfn = get_number_conserving_wavefunction(3, 3)

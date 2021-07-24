@@ -22,9 +22,13 @@ from scipy.special import binom
 import numpy
 from numpy import ndarray as Nparray
 
-from fqe.bitstring import integer_index, lexicographic_bitstring_generator
+from fqe.bitstring import integer_index, lexicographic_bitstring_generator, \
+    get_bit, set_bit, unset_bit, count_bits_above, count_bits_between
 from fqe.lib.fci_graph import _build_mapping_strings, _map_deexc, \
-                              _calculate_string_address, _c_map_to_deexc_alpha_icol
+                              _calculate_string_address, \
+                              _c_map_to_deexc_alpha_icol, \
+                              _make_mapping_each, _calculate_Z_matrix
+import fqe.settings
 
 Spinmap = Dict[Tuple[int, ...], Nparray]
 
@@ -32,16 +36,14 @@ Spinmap = Dict[Tuple[int, ...], Nparray]
 def map_to_deexc(mappings, states, norbs, nele):
     lk = nele * (norbs - nele + 1)
     dexc = numpy.zeros((states, lk, 3), dtype=numpy.int32)
-    index = numpy.zeros((states,), dtype=numpy.uint32) 
+    index = numpy.zeros((states,), dtype=numpy.uint32)
     for (i, j), values in mappings.items():
         idx = i * norbs + j
-        if True:
+        if fqe.settings.use_accelerated_code:
             _map_deexc(dexc, values, index, idx)
         else:
             for state, target, parity in values:
-                dexc[target, index[target], 0] = state
-                dexc[target, index[target], 1] = idx
-                dexc[target, index[target], 2] = parity
+                dexc[target, index[target], :] = state, idx, parity
                 index[target] += 1
     return dexc
 
@@ -61,18 +63,21 @@ def _get_Z_matrix(norb: int, nele: int) -> Nparray:
             Z (Nparray) - The Z matrix for building addresses.
     """
     Z = numpy.zeros((nele, norb), dtype=numpy.int32)
-    # If nele or norb == 0
+
     if Z.size == 0:
         return Z
 
-    for k in range(1, nele):
-        for ll in range(k, norb - nele + k + 1):
-            Z[k - 1, ll - 1] = sum(
-                binom(m, nele-k) - binom(m-1, nele-k-1)
-                for m in range(norb - ll + 1, norb - k + 1))
-    k = nele
-    for ll in range(nele, norb + 1):
-        Z[k - 1, ll - 1] = ll - nele
+    if fqe.settings.use_accelerated_code:
+        _calculate_Z_matrix(Z, norb, nele)
+    else:
+        for k in range(1, nele):
+            for ll in range(k, norb - nele + k + 1):
+                Z[k - 1, ll - 1] = sum(
+                    binom(m, nele-k) - binom(m-1, nele-k-1)
+                    for m in range(norb - ll + 1, norb - k + 1))
+        k = nele
+        for ll in range(nele, norb + 1):
+            Z[k - 1, ll - 1] = ll - nele
     return Z
 
 
@@ -95,7 +100,7 @@ class FciGraph:
             norb (int) - The number of spatial orbitals such that the total number
                 of orbitals is ntot = 2*norb.
 
-            _alpha_map and _beta_map are  Dict[Tuple[int,int], List[Tuple[int,int,int]]]
+            _alpha_map and _beta_map are  Dict[Tuple[int,int], Nparray]
         """
         self._norb = norb
         self._nalpha = nalpha
@@ -108,8 +113,10 @@ class FciGraph:
         self._bind: Dict[int, int] = {}  # map string-binary to matrix index
         self._astr, self._aind = self._build_strings(self._nalpha, self._lena)
         self._bstr, self._bind = self._build_strings(self._nbeta, self._lenb)
-        self._alpha_map: Spinmap = self._build_mapping(self._astr, self._nalpha)
-        self._beta_map: Spinmap = self._build_mapping(self._bstr, self._nbeta)
+        self._alpha_map: Spinmap = self._build_mapping(self._astr, self._nalpha,
+                                                       self._aind)
+        self._beta_map: Spinmap = self._build_mapping(self._bstr, self._nbeta,
+                                                      self._bind)
         self._dexca = map_to_deexc(self._alpha_map, self._lena, self._norb,
                                    self._nalpha)
         self._dexcb = map_to_deexc(self._beta_map, self._lenb, self._norb,
@@ -159,23 +166,49 @@ class FciGraph:
         assert (dna, dnb) in self._fci_map
         return self._fci_map[(dna, dnb)]
 
-    def _build_mapping(self, strings: Nparray, nele: int) -> Spinmap:
+    def _build_mapping(self, strings: Nparray, nele: int, index: Dict[int, int]
+                       ) -> Spinmap:
         """Construct the mapping of alpha string and beta string excitations
-        for :math:`a^\\dagger_i a_j` from the bitstrings contained in the fci_graph.
+        for :math:`a^\\dagger_i a_j` from the bitstrings contained in the
+        fci_graph.
 
         Args:
-            strings (List[int]) - list of the determinant bitstrings
+            strings (Nparray) - list of the determinant bitstrings
+
+            nele (int) - number of electrons in the the determinants
 
             index (Dict[int,int])) - list of the indices corresponding to the \
                 determinant bitstrings
         """
         norb = self._norb
-        return _build_mapping_strings(
-            strings,
-            _get_Z_matrix(norb, nele),
-            nele,
-            norb
-        )
+
+        if fqe.settings.use_accelerated_code:
+            return _build_mapping_strings(
+                strings,
+                _get_Z_matrix(norb, nele),
+                nele,
+                norb
+            )
+        else:
+            out = {}
+            for iorb in range(norb):  # excitation
+                for jorb in range(norb):  # deexcitation
+                    value = []
+                    for string in strings:
+                        if get_bit(string, jorb) and not get_bit(string, iorb):
+                            parity = count_bits_between(string, iorb, jorb)
+                            sign = 1 if parity % 2 == 0 else -1
+                            value.append((
+                                index[string],
+                                index[unset_bit(set_bit(string, iorb), jorb)],
+                                sign))
+                        elif iorb == jorb and get_bit(string, iorb):
+                            value.append((index[string], index[string], 1))
+                    out[(iorb, jorb)] = value
+
+            # cast to numpy arrays
+            return {k: numpy.asarray(v, dtype=numpy.int32)
+                    for k, v in out.items()}
 
     def alpha_map(self, iorb: int, jorb: int) -> List[Tuple[int, int, int]]:
         """
@@ -247,23 +280,26 @@ class FciGraph:
         Returns:
             An initialized string array for accessing configurations in the FCI
         """
-        blist = lexicographic_bitstring_generator(nele, self._norb)
-        string_list = [0 for _ in range(length)
-                      ]  # strings in lexicographic order
-        index_list = {}  # map bitsting to its lexicographic address
-        for i in range(length):
-            wbit = blist[i]  # integer that is the spin-bitstring
-            # get the lexicographic address of the bitstring
-            #TODO
-            if True:
-                address = self._build_string_address_opt(nele, self._norb, wbit)
-            else:
+
+        norb = self._norb
+        blist = lexicographic_bitstring_generator(nele, norb)
+
+        if fqe.settings.use_accelerated_code:
+            Z = _get_Z_matrix(norb, nele)
+            string_list = _calculate_string_address(Z, nele, norb, blist)
+        else:
+            string_list = numpy.zeros((length, ), dtype=numpy.uint64)
+            for i in range(length):
+                wbit = blist[i]
                 occ = integer_index(int(wbit))
-                address = self._build_string_address(nele, self._norb, occ)
-            string_list[address] = wbit
+                address = self._build_string_address(nele, norb, occ)
+                string_list[address] = wbit
+
+        index_list = {}
+        for address, wbit in enumerate(string_list):
             index_list[wbit] = address
 
-        return numpy.array(string_list, dtype=numpy.uint64), index_list
+        return string_list, index_list
 
     def string_alpha(self, address: int) -> int:
         """Retrieve the alpha bitstring reprsentation stored at the address
@@ -351,26 +387,6 @@ class FciGraph:
         Z = _get_Z_matrix(norb, nele)
         return sum(Z[i, occupation[i]] for i in range(nele))
 
-    def _build_string_address_opt(self, nele: int, norb: int,
-                                  occupation: int) -> int:
-        """Given a list of occupied orbitals in ascending order generate the
-        index into the CI matrix.
-
-        Args:
-            nele (int) - the number of electrons for a single spin case
-
-            norb (int) - the number of spatial orbitals
-
-            occupation (int) - a string indicating the occupation
-
-        Returns:
-            address (int) - A pointer into a spin a block of the CI addressing
-                system
-        """
-        Z = _get_Z_matrix(norb, nele)
-        #return sum(Z[i, occupation[i]] for i in range(nele))
-        return _calculate_string_address(Z, nele, norb, occupation)
-
     def _get_block_mappings(self, max_states=100, jorb=None):
         from itertools import product
 
@@ -420,8 +436,7 @@ class FciGraph:
         diag = numpy.zeros((norb, length,), dtype=numpy.int32)
         index = numpy.zeros((norb, length2,), dtype=numpy.int32)
         astrings = self.string_alpha_all()
-        # TODO: Python switch
-        if True:
+        if fqe.settings.use_accelerated_code:
             _c_map_to_deexc_alpha_icol(
                 exc, diag, index, astrings, norb, self._alpha_map
             )
@@ -456,6 +471,47 @@ class FciGraph:
 
         return index, exc, diag
 
+    def make_mapping_each(self, result: 'Nparray', alpha: bool,
+                          dag: List[int], undag: List[int]) -> int:
+        if alpha:
+            strings = self.string_alpha_all()
+            length = self.lena()
+        else:
+            strings = self.string_beta_all()
+            length = self.lenb()
+
+        if fqe.settings.use_accelerated_code:
+            count = _make_mapping_each(result, strings, length,
+                                       numpy.array(dag, dtype=numpy.int32),
+                                       numpy.array(undag, dtype=numpy.int32))
+        else:
+            dag_mask = 0
+            for i in dag:
+                if i not in undag:
+                    dag_mask = set_bit(dag_mask, i)
+            undag_mask = 0
+            for i in undag:
+                undag_mask = set_bit(undag_mask, i)
+
+            count = 0
+            for index in range(length):
+                current = int(strings[index])
+
+                check = (current & dag_mask) == 0 and \
+                        (current & undag_mask ^ undag_mask) == 0
+                if check:
+                    parity = 0
+                    for i in reversed(undag):
+                        parity += count_bits_above(current, i)
+                        current = unset_bit(current, i)
+                    for i in reversed(dag):
+                        parity += count_bits_above(current, i)
+                        current = set_bit(current, i)
+                    result[count, 0] = index
+                    result[count, 1] = current
+                    result[count, 2] = (-1)**parity
+                    count += 1
+        return count
 
 
 if __name__ == "__main__":

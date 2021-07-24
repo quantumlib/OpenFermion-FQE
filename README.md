@@ -6,9 +6,11 @@ evolutions under fermionic generators.
 ![Python package](https://github.com/quantumlib/OpenFermion-FQE/workflows/Python%20package/badge.svg?branch=master)
 
 ## Getting Started
-Installing FQE can be done via `pip install fqe`.
+Installing FQE requires pip. Make sure that you are using an up-to-date version of it. 
+For information about getting started beyond what is provided below please see our 
+tutorial in the examples folder as well as our detailed code documentation.
 
-For information about getting started, please see the [OpenFermion-FQE Guide & Tutorials](https://quantumai.google/openfermion/fqe).
+To build the docs navigate the the `docs` folder in the command line and type `make html`.
 
 ## How to contribute
 We'd love to accept your contributions and patches to OpenFermion-FQE. 
@@ -29,18 +31,34 @@ Code should always come with documentation, which is generated automatically and
 We use Github issues for tracking requests and bugs. 
 Please post questions to the Quantum Computing Stack Exchange with an 'openfermion-fqe' tag.
 
+## Authors
+__Google Quantum AI__:\
+Nicholas C. Rubin, Ryan Babbush
+
+__QSimulate__:\
+Klaas Gunst, Alec White, Leon Freitag, Kyle Throssell, Toru Shiozaki
+
+__Caltech__:\
+Garnet Chan
+
+The initial version of OpenFermion-FQE has been developed in collaboration between
+[QSimulate](https://qsimulate.com/)
+and [Google Quantum AI](https://quantumai.google/).
+
 ## How to cite
 When using OpenFermion-FQE for research projects, please cite:
 
 ```
-@article{fqe2021,
-  title={The Fermionic Quantum Emulator},
-  author={Rubin, Nicholas C and Shiozaki, Toru and Throssell, Kyle and Chan, Garnet Kin-Lic and Babbush, Ryan},
-  journal={arXiv preprint arXiv:2104.13944},
-  year={2021},
-  url= {https://github.com/quantumlib/OpenFermion-FQE} 
-}
+@misc{fqe_2021,
+    author       = {Nicholas C. Rubin, Klaas Gunst, Alec White, Leon Freitag,
+                    Kyle Throssell, Toru Shiozaki, Garnet Chan, Ryan Babbush},
+    title        = {The Fermionic Quantum Emulator, version 0.2.0},
+    month        = {July},
+    year         = {2021},
+    url          = {https://github.com/quantumlib/OpenFermion-FQE} 
+    }
 ```
 
+
 ## Disclaimer
-Copyright 2020 Google LLC. This is not an official Google product.
+Copyright 2020-2021 Google LLC. This is not an official Google product.
