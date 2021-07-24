@@ -44,7 +44,7 @@ class CustomBuildOptions(build_ext):
           'clang-linux': ["-O3", "-fopenmp", "-march=native", "-fPIC"], \
           'icc-linux': ["-O3", "-xHost", "-fPIC", "-qopenmp" ], \
           'clang-darwin': ["-O3", "-fPIC"], \
-          'msvc-win32': ['/openmp', '/Ox','/favor:INTEL64','/Og'] \
+          'msvc-win32': ['/openmp', '/Ox', '/favor:INTEL64', '/Og'] \
           }
         self.link_flags = { 'gcc-linux': ["-fopenmp"], \
                             'clang-linux': ["-lomp"], \
@@ -70,6 +70,10 @@ class CustomBuildOptions(build_ext):
         # filled from these
         compile_flags = os.getenv("CFLAGS")
         link_flags = os.getenv("LDFLAGS")
+        if compile_flags is not None:
+            compile_flags = list(os.getenv("CFLAGS").split())
+        if link_flags is not None:
+            link_flags = list(os.getenv("LDFLAGS").split())
 
         if not compile_flags and not link_flags:
             compiler = "unknown"
@@ -104,6 +108,7 @@ class CustomBuildOptions(build_ext):
                 link_flags = self.link_flags[compiler_arch_key]
             else:
                 link_flags = self.link_flags["gcc-linux"]
+
 
         self.__add_compile_flags(compile_flags, link_flags)
         super().build_extensions()
@@ -152,6 +157,7 @@ def main() -> None:
         "cirq_utils.c",
         "wick.c",
         "bitstring.c",
+        "binom.c",
     ]
     srcs = [os.path.join(libdir, cf) for cf in cfiles]
     libraries = []

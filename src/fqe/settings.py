@@ -11,5 +11,24 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
-"""Define version number here and read it from setup.py automatically"""
-__version__ = "0.2.0"
+"""
+Global settings for FQE.
+"""
+from enum import Flag
+class CodePath(Flag):
+    """
+    Enum for available code paths.
+    """
+    C = True
+    PYTHON = False
+
+available_code_paths = [ CodePath.PYTHON, CodePath.C ]
+"""
+List providing information about the availability of the
+C and Python codepaths.
+"""
+
+use_accelerated_code = CodePath.C in available_code_paths
+"""
+A switch to check if accelerated code is used. Default is true if accelerated code is available
+"""

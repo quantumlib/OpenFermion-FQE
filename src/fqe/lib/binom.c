@@ -14,20 +14,6 @@
     limitations under the License.
 */
 
-#ifndef SRC_FQE_LIB_CIRQ_UTILS_H_
-#define SRC_FQE_LIB_CIRQ_UTILS_H_
+#include "binom.h"
 
-#include <complex.h>
-
-void detect_cirq_sectors(double complex * cirq_wfn,
-                         double thresh,
-                         int * paramarray,
-                         const int norb,
-                         const int alpha_states,
-                         const int beta_states,
-                         const long long * cirq_aids,
-                         const long long * cirq_bids,
-                         const int * anumb,
-                         const int * bnumb);
-
-#endif  // SRC_FQE_LIB_CIRQ_UTILS_H_
+void initialize_binom(uint64_t *binom);

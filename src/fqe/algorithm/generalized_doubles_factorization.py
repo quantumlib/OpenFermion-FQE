@@ -61,7 +61,7 @@ def doubles_factorization_svd(generator_tensor: np.ndarray, eig_cutoff=None):
         generator_mat[row_gem, col_gem] = generator_tensor[p, q, r, s]
     test_generator_mat = np.reshape(
         np.transpose(generator_tensor, [0, 3, 1, 2]),
-        (nso**2, nso**2)).astype(np.float)
+        (nso**2, nso**2)).astype(np.float64)
 
     assert np.allclose(test_generator_mat, generator_mat)
 

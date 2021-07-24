@@ -14,7 +14,7 @@
 """This file implements wrappers to some of the functions in fqe.fqe_data
 """
 
-from ctypes import c_int, c_bool, c_double, POINTER, c_int64, byref
+from ctypes import c_int, c_bool, c_double, POINTER, c_int64, byref, c_uint64
 from typing import List, Optional, Tuple, TYPE_CHECKING
 
 import numpy
@@ -81,7 +81,7 @@ def _lm_apply_array1(coeff, h1e, dexc, lena, lenb, norb, alpha=True, out=None):
         coeff = numpy.asarray(coeff, dtype=dtype).copy()
 
     cdef blasfunctions blas_functions
-    blas_functions.zaxpy = zaxpy
+    blas_functions.zaxpy = <zaxpy_func>zaxpy
     cdef object pointer = <uintptr_t>&blas_functions
 
     func(coeff, out, dexc, lena, lenb, ndexc, h1e, norb, alpha, pointer)
@@ -131,8 +131,8 @@ def _lm_apply_array1_alpha_column(coeff, h1e, index, exc, exc2, lena, lenb, icol
         h1e = numpy.asarray(h1e, dtype=dtype).copy()
 
     cdef blasfunctions blas_functions
-    blas_functions.zaxpy = zaxpy
-    blas_functions.zscal = zscal
+    blas_functions.zaxpy = <zaxpy_func>zaxpy
+    blas_functions.zscal = <zscal_func>zscal
     cdef object pointer = <uintptr_t>&blas_functions
 
     func(coeff, index, exc, exc2, lena, lenb, nexc0, nexc1, nexc2, h1e, icol, pointer)
@@ -186,7 +186,7 @@ def _sparse_apply_array1(coeff, h1e, dexc, lena, lenb, norb, jorb, alpha=True, o
         coeff = numpy.asarray(coeff, dtype=dtype).copy()
 
     cdef blasfunctions blas_functions
-    blas_functions.zaxpy = zaxpy
+    blas_functions.zaxpy = <zaxpy_func>zaxpy
     cdef object pointer = <uintptr_t>&blas_functions
 
     func(coeff, out, dexc, lena, lenb, ndexc, h1e, norb, jorb, alpha, pointer)
@@ -240,7 +240,7 @@ def _lm_apply_array12_same_spin(coeff, h2e, dexc, len1, len2, norb, alpha=True,
         coeff = numpy.asarray(coeff, dtype=dtype).copy()
 
     cdef blasfunctions blas_functions
-    blas_functions.zaxpy = zaxpy
+    blas_functions.zaxpy = <zaxpy_func>zaxpy
     cdef object pointer = <uintptr_t>&blas_functions
 
     func(coeff, out, dexc, len1, len2, ndexc, h2e, norb, alpha, pointer)
@@ -345,7 +345,7 @@ def _make_dvec_part(coeff, maps, arange, brange, norb, lena, lenb, is_alpha,
         maps = numpy.asarray(maps, dtype=numpy.int32).copy()
 
     cdef blasfunctions blas_functions
-    blas_functions.zaxpy = zaxpy
+    blas_functions.zaxpy = <zaxpy_func>zaxpy
     cdef object pointer = <uintptr_t>&blas_functions
 
     func(lena, lenb, arange.start, brange.start, anum, bnum,
@@ -395,7 +395,7 @@ def _make_coeff_part(out, coeff, maps, range_1, range_2):
         maps = numpy.asarray(maps, dtype=numpy.int32).copy()
 
     cdef blasfunctions blas_functions
-    blas_functions.zaxpy = zaxpy
+    blas_functions.zaxpy = <zaxpy_func>zaxpy
     cdef object pointer = <uintptr_t>&blas_functions
 
     func(out.shape[0], out.shape[1], range_1.start, range_2.start,
@@ -436,7 +436,7 @@ def _make_dvec(dvec: 'Nparray', coeff: 'Nparray', mappings: List[Nparray],
     ]
 
     cdef blasfunctions blas_functions
-    blas_functions.zaxpy = zaxpy
+    blas_functions.zaxpy = <zaxpy_func>zaxpy
     cdef object pointer = <uintptr_t>&blas_functions
     func(
         (c_ptr_map * len(mappings))(
@@ -486,7 +486,7 @@ def _make_coeff(dvec: 'Nparray', coeff: 'Nparray', mappings: List[Nparray],
     ]
 
     cdef blasfunctions blas_functions
-    blas_functions.zaxpy = zaxpy
+    blas_functions.zaxpy = <zaxpy_func>zaxpy
     cdef object pointer = <uintptr_t>&blas_functions
     func(
         (c_ptr_map * len(mappings))(
@@ -576,6 +576,7 @@ def _lm_apply_array12_same_spin_opt(coeff, h1e, h2e, dexc, len1, len2, norb,
     func = lib_fqe.lm_apply_array12_same_spin_opt
     ndexc = dexc.shape[1]
     outshape = (len1, len2)
+    lend = len1 if alpha else len2
 
     func.argtypes = [
         ndpointer(
@@ -589,7 +590,7 @@ def _lm_apply_array12_same_spin_opt(coeff, h1e, h2e, dexc, len1, len2, norb,
             flags=('C_CONTIGUOUS', 'ALIGNED')
         ),
         ndpointer(
-            shape=(len1, ndexc, 3),
+            shape=(lend, ndexc, 3),
             dtype=numpy.int32,
             flags=('C_CONTIGUOUS', 'ALIGNED')
         ),
@@ -626,7 +627,7 @@ def _lm_apply_array12_same_spin_opt(coeff, h1e, h2e, dexc, len1, len2, norb,
         coeff = numpy.asarray(coeff, dtype=dtype).copy()
 
     cdef blasfunctions blas_functions
-    blas_functions.zaxpy = zaxpy
+    blas_functions.zaxpy = <zaxpy_func>zaxpy
     cdef object pointer = <uintptr_t>&blas_functions
 
     func(coeff, out, dexc, len1, len2, ndexc, h1e, h2e, norb, alpha, pointer)
@@ -704,7 +705,7 @@ def _lm_apply_array12_diff_spin_opt(coeff, h2e, adexc, bdexc, lena, lenb, norb,
         coeff = numpy.asarray(coeff, dtype=dtype).copy()
 
     cdef blasfunctions blas_functions
-    blas_functions.zaxpy = zaxpy
+    blas_functions.zaxpy = <zaxpy_func>zaxpy
     cdef object pointer = <uintptr_t>&blas_functions
     func(coeff, out, adexc, bdexc, lena, lenb, nadexc, nbdexc, h2e, norb,
          pointer)
@@ -921,10 +922,12 @@ def _apply_individual_nbody1_accumulate(coeff, ocoeff, icoeff, amap,
     dtype = numpy.complex128
     assert(ocoeff.dtype == dtype)
     n = amap.shape[0]
-    na = ocoeff.shape[0]
-    nb = ocoeff.shape[1]
+    nao = ocoeff.shape[0]
+    nbo = ocoeff.shape[1]
+    nai = icoeff.shape[0]
+    nbi = icoeff.shape[1]
     nt = btarget.shape[0]
-    assert(nb == ocoeff.shape[1])
+    #assert(nb == ocoeff.shape[1])
 
     func = lib_fqe.apply_individual_nbody1_accumulate
     func.argtypes = [
@@ -939,6 +942,8 @@ def _apply_individual_nbody1_accumulate(coeff, ocoeff, icoeff, amap,
             dtype=numpy.complex128,
             flags=('C_CONTIGUOUS', 'ALIGNED')
         ),
+        c_int,
+        c_int,
         c_int,
         c_int,
         c_int,
@@ -965,7 +970,7 @@ def _apply_individual_nbody1_accumulate(coeff, ocoeff, icoeff, amap,
         ),
     ]
     cc = c_double_complex(coeff.real, coeff.imag)
-    func(cc, ocoeff, icoeff, n, na, nb, nt, amap, btarget, bsource, bparity)
+    func(cc, ocoeff, icoeff, n, nao, nbo, nai, nbi, nt, amap, btarget, bsource, bparity)
 
 
 def _prepare_cirq_from_to_metadata(fqedata: 'FqeData',
@@ -1207,46 +1212,153 @@ def _sparse_scale(xi, yi, factor, data):
     ]
     cfac = c_double_complex(fac.real, fac.imag)
     func(xi, yi, cfac, ni, nd1, nd2, data)
-    #data[xi, yi] *= factor
-    #for i in range(xi.shape[0]):
-    #    for j in range(xi.shape[1]):
-    #        data[xi[i,j], yi[i,j]] *= factor
 
-def _integer_index_accumulate(out, occupation, nele, norb):
-    func1 = lib_fqe.integer_index_accumulate_real
+
+def _apply_diagonal_inplace(data, aarray, barray, astrings, bstrings):
+    norb = aarray.size
+    lena = astrings.size
+    lenb = bstrings.size
+    func1 = lib_fqe.apply_diagonal_inplace_real
     func1.argtypes = [
-        POINTER(c_double),
         ndpointer(
-            dtype=numpy.float64,
-            flags=('C_CONTIGUOUS', 'ALIGNED')
-        ),
-        c_int,
-        c_int,
-        c_int
-    ]
-    func2 = lib_fqe.integer_index_accumulate
-    func2.argtypes = [
-        POINTER(c_double_complex),
-        ndpointer(
+            shape=(lena, lenb),
             dtype=numpy.complex128,
             flags=('C_CONTIGUOUS', 'ALIGNED')
         ),
-        c_int,
+        ndpointer(
+            shape=(norb,),
+            dtype=numpy.float64,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        ndpointer(
+            shape=(norb,),
+            dtype=numpy.float64,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        ndpointer(
+            shape=(lena,),
+            dtype=numpy.uint64,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        ndpointer(
+            shape=(lenb,),
+            dtype=numpy.uint64,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
         c_int,
         c_int
     ]
-    if out.dtype == numpy.float64:
-        result = c_double(0.0)
-        func1(byref(result), out, occupation, nele, norb)
-        return result.value
-    elif out.dtype == numpy.complex128:
-        result = c_double_complex(0.0)
-        func2(byref(result), out, occupation, nele, norb)
-        return result.value
+    func2 = lib_fqe.apply_diagonal_inplace
+    func2.argtypes = [
+        ndpointer(
+            shape=(lena, lenb),
+            dtype=numpy.complex128,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        ndpointer(
+            shape=(norb,),
+            dtype=numpy.complex128,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        ndpointer(
+            shape=(norb,),
+            dtype=numpy.complex128,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        ndpointer(
+            shape=(lena,),
+            dtype=numpy.uint64,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        ndpointer(
+            shape=(lenb,),
+            dtype=numpy.uint64,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        c_int,
+        c_int
+    ]
+    if aarray.dtype == numpy.float64:
+        assert barray.dtype == numpy.float64
+        func1(data, aarray, barray, astrings, bstrings, lena, lenb)
+    else:
+        func2(data, aarray, barray, astrings, bstrings, lena, lenb)
+
+
+def _evolve_diagonal_inplace(data, aarray, barray, astrings, bstrings):
+    norb = aarray.size
+    lena = astrings.size
+    lenb = bstrings.size
+    func1 = lib_fqe.evolve_diagonal_inplace_real
+    func1.argtypes = [
+        ndpointer(
+            shape=(lena, lenb),
+            dtype=numpy.complex128,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        ndpointer(
+            shape=(norb,),
+            dtype=numpy.float64,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        ndpointer(
+            shape=(norb,),
+            dtype=numpy.float64,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        ndpointer(
+            shape=(lena,),
+            dtype=numpy.uint64,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        ndpointer(
+            shape=(lenb,),
+            dtype=numpy.uint64,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        c_int,
+        c_int
+    ]
+    func2 = lib_fqe.evolve_diagonal_inplace
+    func2.argtypes = [
+        ndpointer(
+            shape=(lena, lenb),
+            dtype=numpy.complex128,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        ndpointer(
+            shape=(norb,),
+            dtype=numpy.complex128,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        ndpointer(
+            shape=(norb,),
+            dtype=numpy.complex128,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        ndpointer(
+            shape=(lena,),
+            dtype=numpy.uint64,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        ndpointer(
+            shape=(lenb,),
+            dtype=numpy.uint64,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        c_int,
+        c_int
+    ]
+    if data.dtype == numpy.float64:
+        func1(data, aarray, barray, astrings, bstrings, lena, lenb)
+    else:
+        assert data.dtype == numpy.complex128
+        func2(data, aarray, barray, astrings, bstrings, lena, lenb)
+
 
 def _evaluate_map_each(out: Nparray, strings: Nparray,
-                       length: int, pmask :int, hmask: int): 
-    
+                       length: int, pmask :int, hmask: int):
+
     func = lib_fqe.evaluate_map_each
     func.argtypes = [
         ndpointer(
@@ -1266,41 +1378,9 @@ def _evaluate_map_each(out: Nparray, strings: Nparray,
     return func(out, strings, length, pmask, hmask)
 
 
-def _make_mapping_each(out: Nparray, strings: Nparray,
-                       length: int, dag: Nparray, undag: Nparray):
-    func = lib_fqe.make_mapping_each_opt
-    func.argtypes = [
-        ndpointer(
-            shape=(length, 3),
-            dtype=numpy.int64,
-            flags=('C_CONTIGUOUS', 'ALIGNED')
-        ),
-        ndpointer(
-            shape=(length,),
-            dtype=numpy.uint64,
-            flags=('C_CONTIGUOUS', 'ALIGNED')
-        ),
-        c_int,
-        ndpointer(
-            dtype=numpy.int32,
-            flags=('C_CONTIGUOUS', 'ALIGNED')
-        ),
-        c_int,
-        ndpointer(
-            dtype=numpy.int32,
-            flags=('C_CONTIGUOUS', 'ALIGNED')
-        ),
-        c_int
-    ]
-    return func(out, strings, length,
-                dag, dag.size, undag, undag.size)
-
-
 def _calculate_dvec1(alpha_array: Nparray,
                      beta_array: Nparray,
                      norb: int,
-                     i: int,
-                     j: int,
                      nalpha: int,
                      nbeta: int,
                      coeff: Nparray,
@@ -1328,8 +1408,6 @@ def _calculate_dvec1(alpha_array: Nparray,
         c_int,
         c_int,
         c_int,
-        c_int,
-        c_int,
         ndpointer(
             shape=coeff.shape,
             dtype=numpy.complex128,
@@ -1345,15 +1423,13 @@ def _calculate_dvec1(alpha_array: Nparray,
     nb = beta_array.shape[1]
     nc1, nc2 = coeff.shape
     nd1, nd2, nd3, nd4 = dvec.shape
-    func(alpha_array, beta_array, norb, i, j, nalpha, nbeta,
+    func(alpha_array, beta_array, norb, nalpha, nbeta,
          na, nb, nc1, nc2, nd1, nd2, nd3, nd4, coeff, dvec)
 
 
 def _calculate_dvec2(alpha_array: Nparray,
                      beta_array: Nparray,
                      norb: int,
-                     i: int,
-                     j: int,
                      nalpha: int,
                      nbeta: int,
                      coeff: Nparray,
@@ -1381,8 +1457,6 @@ def _calculate_dvec2(alpha_array: Nparray,
         c_int,
         c_int,
         c_int,
-        c_int,
-        c_int,
         ndpointer(
             shape=coeff.shape,
             dtype=numpy.complex128,
@@ -1398,7 +1472,7 @@ def _calculate_dvec2(alpha_array: Nparray,
     nb = beta_array.shape[1]
     nc1, nc2 = coeff.shape
     nd1, nd2, nd3, nd4 = dvec.shape
-    func(alpha_array, beta_array, norb, i, j, nalpha, nbeta,
+    func(alpha_array, beta_array, norb, nalpha, nbeta,
          na, nb, nc1, nc2, nd1, nd2, nd3, nd4, coeff, dvec)
 
 
@@ -1533,7 +1607,6 @@ def _calculate_coeff2(alpha_array: Nparray,
 def _calculate_dvec1_j(alpha_array: Nparray,
                        beta_array: Nparray,
                        norb: int,
-                       i: int,
                        j: int,
                        nalpha: int,
                        nbeta: int,
@@ -1562,7 +1635,6 @@ def _calculate_dvec1_j(alpha_array: Nparray,
         c_int,
         c_int,
         c_int,
-        c_int,
         ndpointer(
             shape=coeff.shape,
             dtype=numpy.complex128,
@@ -1578,7 +1650,7 @@ def _calculate_dvec1_j(alpha_array: Nparray,
     nb = beta_array.shape[1]
     nc1, nc2 = coeff.shape
     nd1, nd2, nd3 = dvec.shape
-    func(alpha_array, beta_array, norb, i, j, nalpha, nbeta,
+    func(alpha_array, beta_array, norb, j, nalpha, nbeta,
          na, nb, nc1, nc2, nd1, nd2, nd3, coeff, dvec)
     #for k in range(alpha_array.shape[1]):
     #    sourcea = alpha_array[j, k, 0]
@@ -1597,7 +1669,6 @@ def _calculate_dvec1_j(alpha_array: Nparray,
 def _calculate_dvec2_j(alpha_array: Nparray,
                        beta_array: Nparray,
                        norb: int,
-                       i: int,
                        j: int,
                        nalpha: int,
                        nbeta: int,
@@ -1626,7 +1697,6 @@ def _calculate_dvec2_j(alpha_array: Nparray,
         c_int,
         c_int,
         c_int,
-        c_int,
         ndpointer(
             shape=coeff.shape,
             dtype=numpy.complex128,
@@ -1642,7 +1712,7 @@ def _calculate_dvec2_j(alpha_array: Nparray,
     nb = beta_array.shape[1]
     nc1, nc2 = coeff.shape
     nd1, nd2, nd3 = dvec.shape
-    func(alpha_array, beta_array, norb, i, j, nalpha, nbeta,
+    func(alpha_array, beta_array, norb, j, nalpha, nbeta,
          na, nb, nc1, nc2, nd1, nd2, nd3, coeff, dvec)
     #for k in range(alpha_array.shape[1]):
     #    sourcea = alpha_array[i, k, 0]
@@ -1656,3 +1726,63 @@ def _calculate_dvec2_j(alpha_array: Nparray,
     #        work = coeff[sourcea, sourceb]
     #        dvec[i, targeta,
     #              targetb] += work * paritya * parityb
+
+def _make_nh123(norb: int,
+                h4e: Nparray,
+                nh1e: Nparray,
+                nh2e: Nparray,
+                nh3e: Nparray):
+
+    dtype = h4e.dtype
+    if dtype == numpy.float64:
+        func = lib_fqe.make_nh123_real
+        func.argtypes = [
+            c_int,
+            ndpointer(
+                shape=h4e.shape,
+                dtype=numpy.float64,
+                flags=('C_CONTIGUOUS', 'ALIGNED')
+            ),
+            ndpointer(
+                shape=nh1e.shape,
+                dtype=numpy.float64,
+                flags=('C_CONTIGUOUS', 'ALIGNED')
+            ),
+            ndpointer(
+                shape=nh2e.shape,
+                dtype=numpy.float64,
+                flags=('C_CONTIGUOUS', 'ALIGNED')
+            ),
+            ndpointer(
+                shape=nh3e.shape,
+                dtype=numpy.float64,
+                flags=('C_CONTIGUOUS', 'ALIGNED')
+            )
+        ]
+        func(norb, h4e, nh1e, nh2e, nh3e)
+    else:
+        func = lib_fqe.make_nh123
+        func.argtypes = [
+            c_int,
+            ndpointer(
+                shape=h4e.shape,
+                dtype=numpy.complex128,
+                flags=('C_CONTIGUOUS', 'ALIGNED')
+            ),
+            ndpointer(
+                shape=nh1e.shape,
+                dtype=numpy.complex128,
+                flags=('C_CONTIGUOUS', 'ALIGNED')
+            ),
+            ndpointer(
+                shape=nh2e.shape,
+                dtype=numpy.complex128,
+                flags=('C_CONTIGUOUS', 'ALIGNED')
+            ),
+            ndpointer(
+                shape=nh3e.shape,
+                dtype=numpy.complex128,
+                flags=('C_CONTIGUOUS', 'ALIGNED')
+            )
+        ]
+        func(norb, h4e, nh1e, nh2e, nh3e)

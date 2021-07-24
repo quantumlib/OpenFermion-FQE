@@ -120,14 +120,14 @@ class FciGraphTest(unittest.TestCase):
         }
         alist = numpy.array([3, 5, 9, 6, 10, 12], dtype=numpy.uint64)
         blist = numpy.array([1, 2, 4, 8], dtype=numpy.uint64)
-        # aind = {3: 0, 5: 1, 6: 3, 9: 2, 10: 4, 12: 5}
-        # bind = {1: 0, 2: 1, 4: 2, 8: 3}
+        aind = {3: 0, 5: 1, 6: 3, 9: 2, 10: 4, 12: 5}
+        bind = {1: 0, 2: 1, 4: 2, 8: 3}
         norb = 4
         nalpha = 2
         nbeta = 1
         testgraph = fci_graph.FciGraph(nalpha, nbeta, norb)
-        alpha_map = testgraph._build_mapping(alist, nalpha)
-        beta_map = testgraph._build_mapping(blist, nbeta)
+        alpha_map = testgraph._build_mapping(alist, nalpha, aind)
+        beta_map = testgraph._build_mapping(blist, nbeta, bind)
 
         assert alpha_map.keys() == ref_alpha_map.keys()
         for ak in alpha_map:

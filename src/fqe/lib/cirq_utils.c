@@ -1,3 +1,19 @@
+/*
+    Copyright 2021 Google LLC
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+        http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+*/
+
 #include "cirq_utils.h"
 
 #include <complex.h>
@@ -21,9 +37,7 @@ void detect_cirq_sectors(double complex * cirq_wfn,
                          const long long * cirq_aids,
                          const long long * cirq_bids,
                          const int * anumb,
-                         const int * bnumb
-                         )
-{
+                         const int * bnumb) {
   const int param_leading_dim = 2 * norb + 1;
 #pragma omp parallel for schedule(static)
   for (int alpha_id = 0; alpha_id < alpha_states; ++alpha_id) {

@@ -20,15 +20,14 @@
 #pylint: disable=protected-access
 #pylint: disable=invalid-sequence-index
 
-import unittest
-
 import numpy
+import pytest
 
+from .base import *
 from fqe import wick
 from fqe.wavefunction import Wavefunction
 
-
-class TestWick(unittest.TestCase):
+class TestWick(FQETestCase):
     """Wick's test class
     """
 
@@ -36,39 +35,40 @@ class TestWick(unittest.TestCase):
         """Check that wick performs the proper restructuring of the
         density matrix given a string of indexes.
         """
-        norb = 4
-        nele = 4
-        s_z = 0
-        wfn = Wavefunction([[nele, s_z, norb]])
-        numpy.random.seed(seed=1)
-        wfn.set_wfn(strategy='random')
-        wfn.normalize()
-        rdms = wfn._compute_rdm(4)
-        out1 = wick.wick('k j^', list(rdms), True)
-        two = numpy.eye(norb, dtype=out1.dtype) * 2.0
-        self.assertRaises(ValueError, wick.wick, 'k0 j', list(rdms))
-        self.assertTrue(numpy.allclose(two - out1.T, rdms[0]))
+        for _ in self.accelerated_code_values:
+            norb = 4
+            nele = 4
+            s_z = 0
+            wfn = Wavefunction([[nele, s_z, norb]])
+            numpy.random.seed(seed=1)
+            wfn.set_wfn(strategy='random')
+            wfn.normalize()
+            rdms = wfn._compute_rdm(4)
+            out1 = wick.wick('k j^', list(rdms), True)
+            two = numpy.eye(norb, dtype=out1.dtype) * 2.0
+            self.assertRaises(ValueError, wick.wick, 'k0 j', list(rdms))
+            self.assertTrue(numpy.allclose(two - out1.T, rdms[0]))
 
-        self.assertRaises(ValueError, wick.wick, 'k^ l i^ j', list(rdms), True)
-        out2 = wick.wick('k l i^ j^', list(rdms), True)
+            self.assertRaises(ValueError, wick.wick, 'k^ l i^ j', list(rdms), True)
+            out2 = wick.wick('k l i^ j^', list(rdms), True)
 
-        h_1 = numpy.zeros_like(out1)
-        for i in range(norb):
-            h_1[:, :] += out2[:, i, :, i] / (norb * 2 - nele - 1)
-        self.assertAlmostEqual(numpy.std(out1 + h_1), 0.)
+            h_1 = numpy.zeros_like(out1)
+            for i in range(norb):
+                h_1[:, :] += out2[:, i, :, i] / (norb * 2 - nele - 1)
+            self.assertAlmostEqual(numpy.std(out1 + h_1), 0.)
 
-        out2a = wick.wick('k l^ i^ j', list(rdms), True)
-        self.assertAlmostEqual(out2a[2, 3, 0, 1], -rdms[1][0, 3, 2, 1])
+            out2a = wick.wick('k l^ i^ j', list(rdms), True)
+            self.assertAlmostEqual(out2a[2, 3, 0, 1], -rdms[1][0, 3, 2, 1])
 
-        out3 = wick.wick('k l m i^ j^ n^', list(rdms), True)
-        h_2 = numpy.zeros_like(out2)
-        for i in range(norb):
-            h_2[:, :, :, :] += out3[:, i, :, :, i, :] / (norb * 2 - nele - 2)
-        self.assertAlmostEqual(numpy.std(out2 - h_2), 0.)
+            out3 = wick.wick('k l m i^ j^ n^', list(rdms), True)
+            h_2 = numpy.zeros_like(out2)
+            for i in range(norb):
+                h_2[:, :, :, :] += out3[:, i, :, :, i, :] / (norb * 2 - nele - 2)
+            self.assertAlmostEqual(numpy.std(out2 - h_2), 0.)
 
-        out4 = wick.wick('k l m x i^ j^ n^ y^', list(rdms), True)
-        h_3 = numpy.zeros_like(out3)
-        for i in range(norb):
-            h_3[:, :, :, :, :, :] += out4[:, i, :, :, :, i, :, :] / (norb * 2 -
-                                                                     nele - 3)
-        self.assertAlmostEqual(numpy.std(out3 + h_3), 0.)
+            out4 = wick.wick('k l m x i^ j^ n^ y^', list(rdms), True)
+            h_3 = numpy.zeros_like(out3)
+            for i in range(norb):
+                h_3[:, :, :, :, :, :] += out4[:, i, :, :, :, i, :, :] / (norb * 2 -
+                                                                        nele - 3)
+            self.assertAlmostEqual(numpy.std(out3 + h_3), 0.)

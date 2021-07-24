@@ -1,3 +1,19 @@
+/*
+    Copyright 2021 Google LLC
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+        http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+*/
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -6,39 +22,16 @@
 
 #define MY_STRING_LEN 1024
 
-static void print_status(void) {
-#ifndef NDEBUG
-  /* /proc/[pid]/status contains all human readible status, if i want to
-   * get the memory later on and am only interested in that (e.g. to
-   * write to a file every x seconds), it is better to read from
-   * /proc/[pid]/statm (easier to parse) */
-  FILE *status;
-  char line[MY_STRING_LEN];
-  if ((status = fopen("/proc/self/status", "r")) == NULL) {
-    fprintf(stderr, "Error in openeing /proc/self/status\n");
-    return;
-  }
-  while (fgets(line, sizeof line, status)) {
-    fprintf(stderr, "%s", line);
-  }
-  fclose(status);
-#endif
-}
-
 /* ========================================================================== */
 
 void *safe_malloc_helper(long long s, size_t t, const char *typ,
                           const char *file, int line, const char *func) {
   void *pn = malloc(s * t);
   if (pn == NULL || s < 0) {
-    const char * slashchar = strrchr(file, '/');
-    const char * filname = slashchar == NULL ? file : slashchar + 1;
-
-    fprintf(stderr, "%s:%d @%s :: Failed to allocate %s array of size %lld (%llu bytes)!\n"
+    fprintf(stderr,
+      "%s:%d @%s :: Failed to allocate %s array of size %lld (%llu bytes)!\n"
       "Maximal size of size_t : %lu\n",
-      filname == NULL ? file : filname, line, func,
-      typ, s, s*t, SIZE_MAX);
-    print_status();
+      file, line, func, typ, s, s*t, SIZE_MAX);
     exit(EXIT_FAILURE);
   }
   return pn;
@@ -48,12 +41,10 @@ void *safe_calloc_helper(long long s, size_t t, const char *typ,
                          const char *file, int line, const char *func) {
   void *pn = calloc(s, t);
   if (pn == NULL || s < 0) {
-    const char *filname = strrchr(file, '/') + 1;
-    fprintf(stderr, "%s:%d @%s :: Failed to reallocate %s array of size %lld (%llu bytes)!\n"
+    fprintf(stderr,
+      "%s:%d @%s :: Failed to reallocate %s array of size %lld (%llu bytes)!\n"
       "Maximal size of size_t : %lu\n",
-      filname == NULL ? file : filname, line, func,
-      typ, s, s*t, SIZE_MAX);
-    print_status();
+      file, line, func, typ, s, s*t, SIZE_MAX);
     exit(EXIT_FAILURE);
   }
   return pn;

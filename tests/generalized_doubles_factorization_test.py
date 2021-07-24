@@ -59,7 +59,7 @@ def test_generalized_doubles():
         doubles_factorization_svd(generator)
 
     generator_mat = np.reshape(np.transpose(generator, [0, 3, 1, 2]),
-                               (nso**2, nso**2)).astype(np.float)
+                               (nso**2, nso**2)).astype(np.float64)
     one_body_residual_test = -np.einsum('pqrq->pr', generator)
     assert np.allclose(generator_mat, generator_mat.T)
     assert np.allclose(one_body_residual, one_body_residual_test)
@@ -178,7 +178,7 @@ def test_random_evolution():
             assert np.isclose(generator[p, q, r, s], -generator[q, p, r, s])
 
     generator_mat = np.reshape(np.transpose(generator, [0, 3, 1, 2]),
-                               (nso**2, nso**2)).astype(np.float)
+                               (nso**2, nso**2)).astype(np.float64)
     _, sigma, _ = np.linalg.svd(generator_mat)
 
     ul, vl, _, ul_ops, vl_ops, _ = \
@@ -264,7 +264,7 @@ def test_normal_op_tensor_reconstruction():
             assert np.isclose(generator[p, q, r, s], -generator[q, p, r, s])
 
     generator_mat = np.reshape(np.transpose(generator, [0, 3, 1, 2]),
-                               (nso**2, nso**2)).astype(np.float)
+                               (nso**2, nso**2)).astype(np.float64)
     _, sigma, _ = np.linalg.svd(generator_mat)
 
     ul, vl, _, _, _, _ = \

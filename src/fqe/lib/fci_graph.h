@@ -1,6 +1,27 @@
-#pragma once
+/*
+    Copyright 2021 Google LLC
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+        http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+*/
+
+#ifndef SRC_FQE_LIB_FCI_GRAPH_H_
+#define SRC_FQE_LIB_FCI_GRAPH_H_
 #include <stdint.h>
 #include <stdbool.h>
+
+void calculate_Z_matrix(int32_t *out,
+                        int norb,
+                        int nele);
 
 int map_deexc(int32_t *out,
               const int32_t *inp,
@@ -23,10 +44,11 @@ int string_to_index(uint64_t string,
                     const int32_t *Z_matrix,
                     const int norb);
 
-int calculate_string_address(const int32_t *zmat,
-                             const int nele,
-                             const int norb,
-                             const uint64_t occupation); 
+void calculate_string_address(uint64_t *out,
+                              const uint64_t *strings,
+                              const int length,
+                              const int32_t *Z_matrix,
+                              const int norb);
 
 void map_to_deexc_alpha_icol(const int32_t ** mappings,
                              const int32_t * mapl,
@@ -39,3 +61,12 @@ void map_to_deexc_alpha_icol(const int32_t ** mappings,
                              const int exc0,
                              const int exc1,
                              const int ldiag);
+int make_mapping_each(int64_t *out,
+                      const uint64_t *strings,
+                      const int length,
+                      const int32_t *dag,
+                      const int dag_length,
+                      const int32_t *undag,
+                      const int undag_length);
+
+#endif  // SRC_FQE_LIB_FCI_GRAPH_H_
