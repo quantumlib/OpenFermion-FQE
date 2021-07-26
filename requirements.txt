@@ -1,4 +1,5 @@
-openfermion @ git+git://github.com/quantumlib/openfermion@086073666d275de736861b41ed535a9fe75e63ac
+openfermion>=1.1.0
+cirq~=0.11.0
 jupyter
 numpy>=1.14
 scipy
