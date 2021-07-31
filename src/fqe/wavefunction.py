@@ -38,7 +38,8 @@ from fqe.util import map_broken_symmetry
 from fqe.util import sort_configuration_keys
 from fqe.util import vdot
 from fqe.hamiltonians import hamiltonian, sparse_hamiltonian, \
-                             diagonal_hamiltonian, diagonal_coulomb
+                             diagonal_hamiltonian, diagonal_coulomb, \
+                             restricted_hamiltonian
 from fqe.bitstring import count_bits
 from fqe.fqe_ops import fqe_operator, fqe_ops_utils
 from fqe.wick import wick

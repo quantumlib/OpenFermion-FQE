@@ -37,6 +37,7 @@ from fqe.hamiltonians import sso_hamiltonian
 from fqe.hamiltonians import sparse_hamiltonian
 from fqe.hamiltonians import diagonal_hamiltonian
 from fqe.hamiltonians import diagonal_coulomb
+from fqe.hamiltonians import restricted_hamiltonian
 from fqe.hamiltonians import hamiltonian_utils
 from fqe import get_restricted_hamiltonian
 from fqe import NumberOperator
@@ -160,12 +161,23 @@ def test_apply_type_error():
     with pytest.raises(TypeError):
         wfn.time_evolve(0.1, hamil)
 
+def test_apply_value_error():
+    data = numpy.zeros((2, 2), dtype=numpy.complex128)
+    wfn = Wavefunction([[2, 0, 2]])
+    hamil = general_hamiltonian.General((data,))
+    with pytest.raises(ValueError):
+        wfn.apply(hamil)
+
+    data2 = numpy.zeros((3, 3), dtype=numpy.complex128)
+    hamil2 = restricted_hamiltonian.RestrictedHamiltonian((data2,))
+    with pytest.raises(ValueError):
+        wfn.apply(hamil2)
+
     wfn = Wavefunction([[2, 0, 2]])
     data2 = numpy.zeros((2, 2, 2, 2), dtype=numpy.complex128)
     hamil = get_restricted_hamiltonian((data, data2))
     with pytest.raises(ValueError):
         wfn.time_evolve(0.1, hamil, True)
-
 
 def test_apply_individual_nbody_error():
     fop = FermionOperator('1^ 0')
