@@ -1,7 +1,14 @@
-fqe.ops
+fqe_ops
 *******
 
 .. automodule:: fqe.fqe_ops
+   :members:
+
+
+fqe_ops.fqe_ops
+===============
+
+.. automodule:: fqe.fqe_ops.fqe_ops
    :members:
 
 fqe_operator

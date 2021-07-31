@@ -27,8 +27,12 @@ def _zimatadd(outp: 'Nparray', inp: 'Nparray', alpha: complex):
 
     Performs `outp += alpha * inp.T`
 
-    Returns:
-        nothing: Inplace adding in outp
+    Args:
+        outp (Nparray): output array
+
+        inp (Nparray): input array
+
+        alpha (complex): scalar coefficient to be multiplied to input
     """
     func = lib_fqe.zimatadd
     if outp.ndim != 2:
@@ -61,8 +65,10 @@ def _transpose(outp: 'Nparray', inp: 'Nparray'):
 
     Performs `outp = inp.T`
 
-    Returns:
-        nothing: Inplace adding in outp
+    Args:
+        outp (Nparray): output array
+
+        inp (Nparray): input array
     """
     func = lib_fqe.transpose
     if outp.ndim != 2:

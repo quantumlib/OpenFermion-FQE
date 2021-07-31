@@ -13,37 +13,31 @@
 #   limitations under the License.
 """Tests for FqeOperator."""
 
-import unittest
 from fqe.fqe_ops import fqe_operator
 from fqe import wavefunction
 
+def test_operator():
+    """Testing abstract FqeOperator class using a dummy class"""
+    # pylint: disable=useless-super-delegation
+    class TestFQEOperator(fqe_operator.FqeOperator):
+        """
+        This class is just to make sure the abstract FqeOperator class is tested.
+        """
+        def contract(
+                self,
+                brastate: "wavefunction.Wavefunction",
+                ketstate: "wavefunction.Wavefunction",
+        ) -> complex:
+            return super().contract(brastate, ketstate)
 
-class TestFqeOperator(unittest.TestCase):
-    """Test class for the base FqeOperator"""
+        def representation(self) -> str:
+            return super().representation()
 
-    def test_operator(self):
-        """Testing base FqeOperator using a dummy class"""
+        def rank(self) -> int:
+            return super().rank()
 
-        # The Test class is just to make sure the Hamiltonian class is tested.
-        # pylint: disable=useless-super-delegation
-        class Test(fqe_operator.FqeOperator):
-            """A testing dummy class."""
-
-            def contract(
-                    self,
-                    brastate: "wavefunction.Wavefunction",
-                    ketstate: "wavefunction.Wavefunction",
-            ) -> complex:
-                return super().contract(brastate, ketstate)
-
-            def representation(self) -> str:
-                return super().representation()
-
-            def rank(self) -> int:
-                return super().rank()
-
-        test = Test()
-        wfn = wavefunction.Wavefunction([[1, 0, 1]])
-        self.assertAlmostEqual(0.0 + 0.0j, test.contract(wfn, wfn))
-        self.assertEqual("fqe-operator", test.representation())
-        self.assertEqual(0, test.rank())
+    test = TestFQEOperator()
+    wfn = wavefunction.Wavefunction([[1, 1, 1]])
+    assert round(abs(0.0 + 0.0j-test.contract(wfn, wfn)), 7) == 0
+    assert "fqe-operator" == test.representation()
+    assert 0 == test.rank()

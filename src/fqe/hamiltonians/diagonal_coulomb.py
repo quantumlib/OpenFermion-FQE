@@ -12,12 +12,12 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 """Defines the DiagonalCoulomb Hamiltonian class."""
-from typing import Dict
+from typing import Dict, Tuple
 
-import numpy as np
+import numpy
 
 from fqe.hamiltonians import hamiltonian
-
+from fqe.util import tensors_equal
 
 class DiagonalCoulomb(hamiltonian.Hamiltonian):
     """The diagonal coulomb Hamiltonian is characterized as being a two-body
@@ -37,22 +37,22 @@ class DiagonalCoulomb(hamiltonian.Hamiltonian):
     where p is an appropriate factor.
     """
 
-    def __init__(self, h2e: np.ndarray, e_0: complex = 0.0 + 0.0j) -> None:
+    def __init__(self, h2e: numpy.ndarray, e_0: complex = 0.0 + 0.0j) -> None:
         """Initialize a DiagonalCoulomb Hamiltonian.
 
         Args:
-            h2e: either (1) a dense rank-2 array that contains the diagonal
-                 elements :math:`|v_{rs}|` above, or (2) a dense rank-4 array
-                 in the format used for two-body operator in the dense
-                 Hamiltonian code.
+            h2e (numpy.ndarray): either (1) a dense rank-2 array that contains \
+                the diagonal elements :math:`|v_{rs}|` above, or (2) a dense \
+                rank-4 array in the format used for two-body operator \
+                in the dense Hamiltonian code.
 
-            e_0: Scalar potential associated with the Hamiltonian.
+            e_0 (complex): Scalar potential associated with the Hamiltonian.
         """
 
         super().__init__(e_0=e_0)
-        diag = np.zeros(h2e.shape[0], dtype=h2e.dtype)
+        diag = numpy.zeros(h2e.shape[0], dtype=h2e.dtype)
         self._dim = h2e.shape[0]
-        self._tensor: Dict[int, np.ndarray] = {}
+        self._tensor: Dict[int, numpy.ndarray] = {}
 
         if h2e.ndim == 2:
             self._tensor[1] = diag
@@ -62,7 +62,7 @@ class DiagonalCoulomb(hamiltonian.Hamiltonian):
             for k in range(self._dim):
                 diag[k] += h2e[k, k, k, k]
 
-            vij = np.zeros((self._dim, self._dim), dtype=h2e.dtype)
+            vij = numpy.zeros((self._dim, self._dim), dtype=h2e.dtype)
             for i in range(self._dim):
                 for j in range(self._dim):
                     vij[i, j] -= h2e[i, j, i, j]
@@ -70,23 +70,50 @@ class DiagonalCoulomb(hamiltonian.Hamiltonian):
             self._tensor[1] = diag
             self._tensor[2] = vij
 
+    def __eq__(self, other: object) -> bool:
+        """ Comparison operator
+        Args:
+            other (object): DiagonalCoulomb to be compared against
+
+        Returns:
+            (bool): True if equal, otherwise False
+        """
+        if not isinstance(other, DiagonalCoulomb):
+            return NotImplemented
+        else:
+            return self.e_0() == other.e_0() \
+                and tensors_equal(self._tensor, other._tensor)
+
     def dim(self) -> int:
-        """Returns is the orbital dimension of the Hamiltonian arrays."""
+        """
+        Returns:
+            (int): the orbital dimension of the Hamiltonian arrays.
+        """
         return self._dim
 
     def diagonal_coulomb(self) -> bool:
-        """Returns whether or not the Hamiltonian is diagonal_coulomb."""
+        """
+        Returns:
+            (bool): whether the Hamiltonian is DiagonalCoulomb. Always True
+        """
         return True
 
     def rank(self) -> int:
-        """Returns the rank of the largest tensor."""
+        """
+        Returns:
+            (int): the rank of the largest tensor. Always 4
+        """
         return 4
 
-    def iht(self, time: float):
+    def iht(self, time: float) -> Tuple[numpy.ndarray, ...]:
         """Returns the matrices of the Hamiltonian prepared for time evolution.
 
         Args:
             time: The time step.
+
+        Returns:
+            Tuple[numpy.ndarray, ...]: tuple of arrays to be used in time \
+                propagation
         """
         iht_mat = []
         for rank in range(len(self._tensor)):

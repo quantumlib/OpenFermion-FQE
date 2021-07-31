@@ -45,7 +45,6 @@ void detect_cirq_sectors(double complex * cirq_wfn,
     const int alpha_num = anumb[alpha_id];
 
     for (int beta_id = 0; beta_id < beta_states; ++beta_id) {
-      // For a linear encoder (mod 2) this should work.
       const long long cirq_id = cirq_aid ^ cirq_bids[beta_id];
       if (cabs(cirq_wfn[cirq_id]) < thresh) { continue; }
 
@@ -53,7 +52,6 @@ void detect_cirq_sectors(double complex * cirq_wfn,
       const int pnum = alpha_num + beta_num;
       const int sz_shift = alpha_num - beta_num + norb;
 
-      // Not entirely sure if race condition is OK here.
       paramarray[pnum * param_leading_dim + sz_shift] = 1;
     }
   }

@@ -63,8 +63,6 @@ void transpose(const int nrows,
                const double complex *in) {
   const int m = nrows;
   const int n = ncols;
-  // TODO when MKL is linked, this can be replaced by
-  // mkl_zomatcopy_("c", "t", &m, &n, &fac, in, &m, out, &n);
 
   const int mresidual = m % N_;
   const int nresidual = n % N_;

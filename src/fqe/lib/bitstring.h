@@ -67,14 +67,14 @@ inline int count_bits_above(uint64_t cstring, const int i) {
   return count_bits(cstring);
 }
 
-inline void get_occupation(int *occ,
-                           uint64_t str,
-                           const int norb) {
+inline int get_occupation(int *occ,
+                          uint64_t str) {
   int id = -1;
   int count = 0;
   while (gbit_index(&str, &id)) {
     occ[count++] = id;
   }
+  return count;
 }
 
 void lexicographic_bitstring_generator(uint64_t *out,

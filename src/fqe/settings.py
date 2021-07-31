@@ -22,10 +22,13 @@ class CodePath(Flag):
     C = True
     PYTHON = False
 
-available_code_paths = [ CodePath.PYTHON, CodePath.C ]
+available_code_paths = ( CodePath.PYTHON, CodePath.C )
 """
-List providing information about the availability of the
-C and Python codepaths.
+Tuple providing information about the availability of the
+C and Python codepaths, depending on the setup/compilation
+options. For now, it provides both paths but when conditional
+compilation of the code is enabled, this tuple should reflect
+the available code paths.
 """
 
 use_accelerated_code = CodePath.C in available_code_paths

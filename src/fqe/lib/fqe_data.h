@@ -100,6 +100,17 @@ int zcoeff_make(const int (**map)[3],
                 const bool is_alpha,
                 const struct blasfunctions * blasfunc);
 
+void zdiagonal_coulomb_apply(const uint64_t *alpha_strings,
+                            const uint64_t *beta_strings,
+                            const double complex *diag,
+                            const double complex *array,
+                            double complex *output,
+                            const int alpha_states,
+                            const int beta_states,
+                            const int nalpha,
+                            const int nbeta,
+                            const int norbs);
+
 int zdiagonal_coulomb(const uint64_t *alpha_strings,
                       const uint64_t *beta_strings,
                       const double complex *diag,

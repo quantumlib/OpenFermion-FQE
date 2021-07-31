@@ -21,7 +21,7 @@
 #pylint: disable=invalid-name
 #pylint: disable=too-many-nested-blocks
 
-from typing import List, Tuple, Optional
+from typing import List, Tuple, Optional, TYPE_CHECKING
 import copy
 
 import numpy
@@ -30,10 +30,12 @@ from fqe.lib.wick import _wickfill
 
 Mapping = Tuple[List[Tuple[str, str]], List[Tuple[str, bool, int]], float]
 
+if TYPE_CHECKING:
+    from numpy import ndarray as Nparray
 
 def wick(target: str,
-         data: List[numpy.ndarray],
-         spinfree: Optional[bool] = True) -> numpy.ndarray:
+         data: List['Nparray'],
+         spinfree: Optional[bool] = True) -> 'Nparray':
     """
     Original and target are written in a similar notation to OpenFermion
     operators.
@@ -51,19 +53,25 @@ def wick(target: str,
     correspond to n-body strings
 
     Args:
-        target (string) - specifies the operator list
+        target (string): specifies the operator list
 
-        data (List[numpy.ndarray]) - a list of particle RDMs
+        data (List['Nparray']): a list of particle RDMs
 
-        spinfree (bool) - whether the RDMs are spinfree
+        spinfree (bool): whether the RDMs are spinfree
 
     Returns:
-        (numpy.ndarray) - RDM after performing Wick's theorem
+        ('Nparray'): RDM after performing Wick's theorem
     """
 
     def process_string(inp: str) -> List[Tuple[str, bool, int]]:
-        """ input is the string. Returns a list of indices described by index
-        label, dagger (or not), and spin numbers
+        """Return a list of indices described by index label, dagger (or not),
+        and spin numbers
+
+        Args:
+            inp (str): input string
+
+        Retunrs:
+            list: List of indices
         """
         out: List[Tuple[str, bool, int]] = []
         used: List[str] = []
@@ -190,9 +198,9 @@ def wick(target: str,
     return out
 
 
-def wickfill(target: numpy.ndarray, source: Optional[numpy.ndarray],
+def wickfill(target: 'Nparray', source: Optional['Nparray'],
              indices: List[int], factor: float, delta: List[Tuple[int, int]]
-             ) -> numpy.ndarray:
+             ) -> 'Nparray':
     """
     This function is an internal utility that fills in custom RDMs using
     particle RDMs. The result of Wick's theorem is passed as lists (indices
@@ -200,18 +208,18 @@ def wickfill(target: numpy.ndarray, source: Optional[numpy.ndarray],
     target.
 
     Args:
-        target (numpy.ndarray) - output array that stores reordered RDMs
+        target ('Nparray'): output array that stores reordered RDMs
 
-        source (numpy.ndarray) - input array that stores one of the particle RDMs
+        source ('Nparray'): input array that stores one of the particle RDMs
 
-        indices (List[int]) - index mapping
+        indices (List[int]): index mapping
 
-        factor (float) - factor associated with this contribution
+        factor (float): factor associated with this contribution
 
-        delta (List[Tuple[int, int]]) - Kronecker delta's due to Wick's theorem
+        delta (List[Tuple[int, int]]): Kronecker delta's due to Wick's theorem
 
     Returns:
-        target (numpy.ndarray) - Returns the output array. If target in the \
+        target ('Nparray'): Returns the output array. If target in the \
             input Args was not C-contigious, this can be a new numpy object.
     """
     delta_flat = None
@@ -235,7 +243,7 @@ def wickfill(target: numpy.ndarray, source: Optional[numpy.ndarray],
         assert len(delta) == 1
         for i in range(norb):
             target[i, i] += factor
-    elif srank == 1 and trank == 1:
+    elif srank == 1 and trank == 1 and source is not None:
         assert not delta
         mat = {}
         for i in range(norb):
@@ -258,7 +266,7 @@ def wickfill(target: numpy.ndarray, source: Optional[numpy.ndarray],
                         if mat[delta[0][0]] == mat[delta[0][1]] and \
                             mat[delta[1][0]] == mat[delta[1][1]]:
                             target[i, j, k, l] += factor
-    elif srank == 1 and trank == 2:
+    elif srank == 1 and trank == 2 and source is not None:
         assert len(delta) == 1
         mat = {}
         for i in range(norb):
@@ -272,7 +280,7 @@ def wickfill(target: numpy.ndarray, source: Optional[numpy.ndarray],
                         if mat[delta[0][0]] == mat[delta[0][1]]:
                             target[i, j, k, l] += \
                                 factor * source[mat[indices[0]], mat[indices[1]]]
-    elif srank == 2 and trank == 2:
+    elif srank == 2 and trank == 2 and source is not None:
         assert not delta
         mat = {}
         for i in range(norb):
@@ -307,7 +315,7 @@ def wickfill(target: numpy.ndarray, source: Optional[numpy.ndarray],
                                     mat[delta[1][0]] == mat[delta[1][1]] and \
                                     mat[delta[2][0]] == mat[delta[2][1]]:
                                     target[i, j, k, l, o, p] += factor
-    elif srank == 1 and trank == 3:
+    elif srank == 1 and trank == 3 and source is not None:
         assert len(delta) == 2
         mat = {}
         for i in range(norb):
@@ -327,7 +335,7 @@ def wickfill(target: numpy.ndarray, source: Optional[numpy.ndarray],
                                     target[i, j, k, l, o, p] += \
                                         factor * source[mat[indices[0]],
                                                         mat[indices[1]]]
-    elif srank == 2 and trank == 3:
+    elif srank == 2 and trank == 3 and source is not None:
         assert len(delta) == 1
         mat = {}
         for i in range(norb):
@@ -348,7 +356,7 @@ def wickfill(target: numpy.ndarray, source: Optional[numpy.ndarray],
                                                         mat[indices[1]],
                                                         mat[indices[2]],
                                                         mat[indices[3]]]
-    elif srank == 3 and trank == 3:
+    elif srank == 3 and trank == 3 and source is not None:
         assert not delta
         mat = {}
         for i in range(norb):
@@ -395,7 +403,7 @@ def wickfill(target: numpy.ndarray, source: Optional[numpy.ndarray],
                                         and mat[delta[3][0]] == mat[delta[3][1]]:
                                             target[i, j, k, l, o, p, q, r] += \
                                                 factor
-    elif srank == 1 and trank == 4:
+    elif srank == 1 and trank == 4 and source is not None:
         assert len(delta) == 3
         mat = {}
         for i in range(norb):
@@ -420,7 +428,7 @@ def wickfill(target: numpy.ndarray, source: Optional[numpy.ndarray],
                                             target[i, j, k, l, o, p, q, r] += \
                                                 factor * source[mat[indices[0]],
                                                                 mat[indices[1]]]
-    elif srank == 2 and trank == 4:
+    elif srank == 2 and trank == 4 and source is not None:
         assert len(delta) == 2
         mat = {}
         for i in range(norb):
@@ -446,7 +454,7 @@ def wickfill(target: numpy.ndarray, source: Optional[numpy.ndarray],
                                                                 mat[indices[1]],
                                                                 mat[indices[2]],
                                                                 mat[indices[3]]]
-    elif srank == 3 and trank == 4:
+    elif srank == 3 and trank == 4 and source is not None:
         assert len(delta) == 1
         mat = {}
         for i in range(norb):
@@ -473,7 +481,7 @@ def wickfill(target: numpy.ndarray, source: Optional[numpy.ndarray],
                                                                 mat[indices[3]],
                                                                 mat[indices[4]],
                                                                 mat[indices[5]]]
-    elif srank == 4 and trank == 4:
+    elif srank == 4 and trank == 4 and source is not None:
         assert not delta
         mat = {}
         for i in range(norb):

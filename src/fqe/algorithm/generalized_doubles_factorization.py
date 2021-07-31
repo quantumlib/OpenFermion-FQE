@@ -131,7 +131,7 @@ def takagi(N, tol=1e-13, rounding=13):
 
     Returns:
         tuple[array, array]: (rl, U), where rl are the (rounded) singular values,
-            and U is the Takagi unitary, such that :math:`N = U \diag(rl) U^T`.
+            and U is the Takagi unitary, such that :math:`N = U \mathrm{diag}(rl) U^T`.
     """
     (n, m) = N.shape
     if n != m:

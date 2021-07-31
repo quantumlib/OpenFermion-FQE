@@ -65,50 +65,49 @@ class CustomBuildOptions(build_ext):
             ext.extra_link_args = link_flags
 
     def build_extensions(self):
-        # First, check CFLAGS and LDFLAGS environment variables
-        # If either CFLAGS or LDFLAGS is set, the autodetection is ignored and the flags are
-        # filled from these
-        compile_flags = os.getenv("CFLAGS")
-        link_flags = os.getenv("LDFLAGS")
-        if compile_flags is not None:
-            compile_flags = list(os.getenv("CFLAGS").split())
-        if link_flags is not None:
-            link_flags = list(os.getenv("LDFLAGS").split())
 
-        if not compile_flags and not link_flags:
-            compiler = "unknown"
-            compiler_type = self.compiler.compiler_type
-            if compiler_type == "unix":
-                # Check the CC environment variable. We need to check for a substring match,
-                # since the actual executable name may have additional characters
-                # "e.g. gcc-4, mpi-gcc or clang-11"
-                env = os.getenv("CC")
-                if env:
-                    supported_compilers = ["gcc", "clang", "icc"]
-                    for comp in supported_compilers:
-                        if comp in env:
-                            compiler = comp
-                else:
-                    # try to select a reasonable default based on whether we have Linux or Mac OS
-                    # This might be incorrect if custom gcc is involved on Mac
-                    compiler = "clang" if sys.platform == "darwin" else "gcc"
-
-            elif compiler_type == "msvc":
-                compiler = "msvc"
-
-            compiler_arch_key = "%s-%s" % (compiler, sys.platform)
-
-            if compiler_arch_key in self.compile_flags.keys():
-                compile_flags = self.compile_flags[compiler_arch_key]
+        compiler = "unknown"
+        compiler_type = self.compiler.compiler_type
+        if compiler_type == "unix":
+            # Check the CC environment variable. We need to check for a substring match,
+            # since the actual executable name may have additional characters
+            # "e.g. gcc-4, mpi-gcc or clang-11"
+            env = os.getenv("CC")
+            if env:
+                supported_compilers = ["gcc", "clang", "icc"]
+                for comp in supported_compilers:
+                    if comp in env:
+                        compiler = comp
             else:
-                # fall back to gcc if no specific configuration is found
-                compile_flags = self.compile_flags["gcc-linux"]
+                # try to select a reasonable default based on whether we
+                # have Linux or Mac OS
+                # This might be incorrect if custom gcc is involved on Mac
+                compiler = "clang" if sys.platform == "darwin" else "gcc"
 
-            if compiler_arch_key in self.link_flags.keys():
-                link_flags = self.link_flags[compiler_arch_key]
-            else:
-                link_flags = self.link_flags["gcc-linux"]
+        elif compiler_type == "msvc":
+            compiler = "msvc"
 
+        compiler_arch_key = "%s-%s" % (compiler, sys.platform)
+
+        if compiler_arch_key in self.compile_flags.keys():
+            compile_flags = self.compile_flags[compiler_arch_key]
+        else:
+            # fall back to gcc if no specific configuration is found
+            compile_flags = self.compile_flags["gcc-linux"]
+
+        if compiler_arch_key in self.link_flags.keys():
+            link_flags = self.link_flags[compiler_arch_key]
+        else:
+            link_flags = self.link_flags["gcc-linux"]
+
+        # CFLAGS and LDFLAGS from the environment should be appended
+        # to the current flags
+        compile_flags_env = os.getenv("CFLAGS")
+        link_flags_env = os.getenv("LDFLAGS")
+        if compile_flags_env is not None:
+            compile_flags += list(compile_flags_env.split())
+        if link_flags_env is not None:
+            link_flags += list(link_flags_env.split())
 
         self.__add_compile_flags(compile_flags, link_flags)
         super().build_extensions()

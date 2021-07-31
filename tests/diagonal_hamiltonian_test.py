@@ -15,17 +15,41 @@
 
 import pytest
 
-import numpy as np
+import numpy
 
 from fqe.hamiltonians import diagonal_hamiltonian
 
 
 def test_diagonal():
     """Test some of the functions in Diagonal."""
-    bad_diag = np.zeros((5, 5), dtype=np.complex128)
+    bad_diag = numpy.zeros((5, 5), dtype=numpy.complex128)
     with pytest.raises(ValueError):
         diagonal_hamiltonian.Diagonal(bad_diag)
-    diag = np.zeros((5,), dtype=np.complex128)
+
+    diag = numpy.zeros((5,), dtype=numpy.complex128)
     test = diagonal_hamiltonian.Diagonal(diag)
     assert test.dim() == 5
     assert test.rank() == 2
+
+    assert test.diagonal()
+    assert test.quadratic()
+    assert numpy.allclose(diag, test.diag_values()) 
+
+    time = 2.1
+    iht = test.iht(time)
+    assert isinstance(iht, diagonal_hamiltonian.Diagonal)
+    assert numpy.allclose(iht.diag_values(), diag * (-1j) * time)
+
+def test_equality():
+    """ Test the equality operator """
+    diag = numpy.zeros((5, ), dtype=numpy.complex128)
+    e_0 = -4.2
+    test = diagonal_hamiltonian.Diagonal(diag, e_0)
+    test2 = diagonal_hamiltonian.Diagonal(diag, e_0)
+    assert test == test2
+    assert not (test == 1)
+
+    e_0 = -4.3
+    test2 = diagonal_hamiltonian.Diagonal(diag, e_0)
+    assert test != test2
+

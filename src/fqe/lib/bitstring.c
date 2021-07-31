@@ -24,7 +24,7 @@ int count_bits_between(uint64_t cstring, const int i, const int j);
 
 int count_bits_above(uint64_t cstring, const int i);
 
-void get_occupation(int *occ, uint64_t str, const int norb);
+int get_occupation(int *occ, uint64_t str);
 
 void lexicographic_bitstring_generator(uint64_t *out,
                                        int norb,

@@ -12,7 +12,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 """Infrastructure for ADAPT VQE algorithm"""
-from typing import List, Tuple, Union, Dict
+from typing import List, Tuple, Union
 import copy
 
 from itertools import product
@@ -27,7 +27,6 @@ from openfermion import (
 )
 from openfermion.chem.molecular_data import spinorb_from_spatial
 
-import fqe
 from fqe.wavefunction import Wavefunction
 from fqe.hamiltonians.restricted_hamiltonian import RestrictedHamiltonian
 from fqe.hamiltonians.hamiltonian import Hamiltonian as ABCHamiltonian
@@ -35,32 +34,13 @@ from fqe.fqe_decorators import build_hamiltonian
 from fqe.algorithm.brillouin_calculator import (
     get_fermion_op,
     two_rdo_commutator_symm,
-    one_rdo_commutator_symm,
 )
 from fqe.algorithm.generalized_doubles_factorization import \
     doubles_factorization_svd, doubles_factorization_takagi
 
 from fqe.algorithm.low_rank import evolve_fqe_charge_charge_unrestricted, \
     evolve_fqe_givens_unrestricted
-
-
-def valdemaro_reconstruction_functional(tpdm, n_electrons, true_opdm=None):
-    """
-    d3 approx = D ^ D ^ D + 3 (2C) ^ D
-
-    tpdm has normalization (n choose 2) where n is the number of electrons
-
-    :param tpdm: four-tensor representing the two-RDM
-    :return: six-tensor reprsenting the three-RDM
-    """
-    opdm = (2 / (n_electrons - 1)) * np.einsum('ijjk', tpdm)
-    if true_opdm is not None:
-        assert np.allclose(opdm, true_opdm)
-
-    unconnected_tpdm = of.wedge(opdm, opdm, (1, 1), (1, 1))
-    unconnected_d3 = of.wedge(opdm, unconnected_tpdm, (1, 1), (2, 2))
-    return 3 * of.wedge(tpdm, opdm, (2, 2), (1, 1)) - 2 * unconnected_d3
-
+from fqe.algorithm.algorithm_util import valdemaro_reconstruction
 
 class SumOfSquaresOperator:
 
@@ -106,13 +86,18 @@ class VBC:
         """
         Args:
             oei: one electron integrals in the spatial basis
-            tei: two-electron integrals in the spatial basis
-            n_alpha: Number of alpha-electrons
-            n_beta: Number of beta-electrons
-            iter_max: Maximum ADAPT-VQE steps to take
-            verbose: Print the iteration information
-            stopping_epsilon: define the <[G, H]> value that triggers stopping
 
+            tei: two-electron integrals in the spatial basis
+
+            n_alpha: Number of alpha-electrons
+
+            n_beta: Number of beta-electrons
+
+            iter_max: Maximum ADAPT-VQE steps to take
+
+            verbose: Print the iteration information
+
+            stopping_epsilon: define the <[G, H]> value that triggers stopping
         """
         elec_hamil = RestrictedHamiltonian((oei, np.einsum("ijlk", -0.5 * tei)))
         soei, stei = spinorb_from_spatial(oei, tei)
@@ -247,16 +232,21 @@ class VBC:
 
         Solve for the 2-body residual and then variationally determine
         the step size.  This exact simulation cannot be implemented without
-        Trotterization.  A proxy for the approximate evolution is the update_
-        rank pameter which limites the rank of the residual.
+        Trotterization.  A proxy for the approximate evolution is the
+        update_rank pameter which limites the rank of the residual.
 
         Args:
             initial_wf: initial wavefunction
+
             opt_method: scipy optimizer name
+
             num_opt_var: Number of optimization variables to consider
+
             v_reconstruct: use valdemoro reconstruction of 3-RDM to calculate
                            the residual
+
             generator_decomp: None, takagi, or svd
+
             generator_rank: number of generator terms to take
         """
         if opt_options is None:
@@ -294,7 +284,7 @@ class VBC:
             # calculate rdms for grad
             _, tpdm = wf.sector((self.nele, self.sz)).get_openfermion_rdms()
             if v_reconstruct:
-                d3 = 6 * valdemaro_reconstruction_functional(
+                d3 = 6 * valdemaro_reconstruction(
                     tpdm / 2, self.nele)
             else:
                 d3 = wf.sector((self.nele, self.sz)).get_three_pdm()
@@ -305,14 +295,14 @@ class VBC:
 
             if generator_decomp is None:
                 fop = get_fermion_op(acse_residual)
-            elif generator_decomp is 'svd':
+            elif generator_decomp == 'svd':
                 new_residual = np.zeros_like(acse_residual)
                 for p, q, r, s in product(range(nso), repeat=4):
                     new_residual[p, q, r, s] = (acse_residual[p, q, r, s] -
                                                 acse_residual[s, r, q, p]) / 2
 
                 fop = self.get_svd_tensor_decomp(new_residual, generator_rank)
-            elif generator_decomp is 'takagi':
+            elif generator_decomp == 'takagi':
                 fop = self.get_takagi_tensor_decomp(acse_residual,
                                                     generator_rank)
             else:
@@ -395,8 +385,11 @@ class VBC:
 
         Args:
             pool: generators of rotation
+
             existing_params: parameters for the generators
+
             initial_wf: initial wavefunction
+
             opt_method: Scpy.optimize method
         """
         if opt_options is None:
@@ -421,7 +414,7 @@ class VBC:
                                                         op.one_body_rotation)
                 else:
                     raise ValueError("Can't evolve operator type {}".format(
-                        type(fqe_op)))
+                        type(op)))
 
             # compute gradients
             grad_vec = np.zeros(len(params), dtype=np.complex128)

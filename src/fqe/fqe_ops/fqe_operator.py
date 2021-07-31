@@ -11,7 +11,7 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
-"""Base class for fqe operators."""
+"""Base class for FQE operators."""
 
 from abc import ABC, abstractmethod
 from typing import Optional, TYPE_CHECKING
@@ -30,17 +30,24 @@ class FqeOperator(ABC):
         operator according to its representation.
 
         Args:
-            brastate: Wavefunction on the bra side.
-            ketstate: Wavefunction on the ket side.
+            brastate (Wavefunction): Wavefunction on the bra side.
+
+            ketstate (Wavefunction): Wavefunction on the ket side.
         """
         return 0.0 + 0.0j
 
     @abstractmethod
     def representation(self) -> str:
-        """Return the representation of the operator."""
+        """
+        Returns:
+            (str): the representation of the operator.
+        """
         return "fqe-operator"
 
     @abstractmethod
     def rank(self) -> int:
-        """Return the rank of this operator."""
+        """
+        Returns:
+            (int): the rank of this operator.
+        """
         return 0

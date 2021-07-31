@@ -19,9 +19,8 @@ import time
 
 import numpy as np
 
-import openfermion as of
 import fqe
-from fqe.unittest_data.build_lih_data import build_lih_data
+from fqe import util
 from fqe.hamiltonians.hamiltonian import Hamiltonian
 
 
@@ -71,7 +70,7 @@ def davidsonliu(
                     subspace_mat[i, j] = val
                 else:
                     subspace_mat[i, j] = val[0, 0]
-                subspace_mat[j, i] = subspace_mat[i, j]
+                subspace_mat[j, i] = subspace_mat[i, j].conj()
         if verbose:
             print("subspace mat problem formation ", time.time() - start_time)
 
@@ -79,7 +78,7 @@ def davidsonliu(
         start_time = time.time()
         w, v = np.linalg.eigh(subspace_mat)
         if verbose:
-            print("subsapce eig problem time: ", time.time() - start_time)
+            print("subspace eig problem time: ", time.time() - start_time)
 
         # if converged return
         if verbose:
@@ -125,7 +124,7 @@ def davidsonliu(
             start_time = time.time()
             overlaps = []
             for idx in range(len(guess_vecs)):
-                overlaps.append(guess_vecs[idx].T @ preconditioned_residual)
+                overlaps.append(guess_vecs[idx].conj().T @ preconditioned_residual)
             for idx in range(len(guess_vecs)):
                 preconditioned_residual -= overlaps[idx] * guess_vecs[idx]
             if verbose:
@@ -180,6 +179,27 @@ def davidsonliu_fqe(
                              hmat).real
 
     old_thetas = np.array([np.infty] * nroots)
+
+    # Orthogonalize guess_vecs
+    unortho_guess_vecs = guess_vecs
+    guess_vecs = []
+    for f_k in unortho_guess_vecs:
+        # orthogonalize preconditioned_residual
+        overlaps = []
+        for idx in range(len(guess_vecs)):
+            overlaps.append(
+                np.sum(
+                    np.multiply(
+                        guess_vecs[idx].get_coeff(gv_sector),
+                        f_k.get_coeff(gv_sector),
+                    )))
+
+        for idx in range(len(guess_vecs)):
+            f_k.sector(gv_sector).coeff -= \
+                overlaps[idx] * guess_vecs[idx].sector(gv_sector).coeff
+        f_k.normalize()
+        guess_vecs.append(f_k)
+
     while len(guess_vecs) <= graph.lena() * graph.lenb() / 2:
         if verbose:
             print()
@@ -189,9 +209,10 @@ def davidsonliu_fqe(
                                 dtype=np.complex128)
         for i, j in product(range(len(guess_vecs)), repeat=2):
             if i >= j:
+                assert abs(guess_vecs[j].norm() - 1.) < 1e-8
                 subspace_mat[i, j] = guess_vecs[j].expectationValue(
                     hmat, brawfn=guess_vecs[i])
-            subspace_mat[j, i] = subspace_mat[i, j]
+                subspace_mat[j, i] = subspace_mat[i, j].conj()
         if verbose:
             print("subspace mat problem formation ", time.time() - start_time)
 
@@ -199,7 +220,7 @@ def davidsonliu_fqe(
         start_time = time.time()
         w, v = np.linalg.eigh(subspace_mat)
         if verbose:
-            print("subsapce eig problem time: ", time.time() - start_time)
+            print("subspace eig problem time: ", time.time() - start_time)
 
         # if converged return
         if verbose:
@@ -260,22 +281,14 @@ def davidsonliu_fqe(
             f_k.set_wfn(strategy="from_data", raw_data={gv_sector: f_k_coeffs})
 
             # orthogonalize preconditioned_residual
-            overlaps = []
-            # print(len(guess_vecs))
+            overlaps = [util.vdot(v, f_k) for v in guess_vecs]
+
             for idx in range(len(guess_vecs)):
-                overlaps.append(
-                    np.sum(
-                        np.multiply(
-                            guess_vecs[idx].get_coeff(gv_sector),
-                            f_k.get_coeff(gv_sector),
-                        )))
+                f_k.sector(gv_sector).coeff -= \
+                    overlaps[idx] * guess_vecs[idx].sector(gv_sector).coeff
 
-    for idx in range(len(guess_vecs)):
-        f_k.sector(gv_sector).coeff -= (overlaps[idx] *
-                                        guess_vecs[idx].sector(gv_sector).coeff)
-
-    f_k.normalize()
-    guess_vecs.append(f_k)
+            f_k.normalize()
+            guess_vecs.append(f_k)
 
     eigenvectors = []
     for i in range(nroots):
@@ -292,8 +305,6 @@ def davidsonliu_fqe(
 
     return w[:nroots], eigfuncs
 
-    # raise ConvergenceError("Maximal number of steps exceeded")
-
 
 def davidson_diagonalization(
         hamiltonian: fqe.restricted_hamiltonian.RestrictedHamiltonian,
@@ -309,8 +320,10 @@ def davidson_diagonalization(
 
     # Generate Guess Vecs for Davidson-Liu
     if guess_vecs is None:
-        guess_vec1_coeffs = np.zeros((graph.lena(), graph.lenb()))
-        guess_vec2_coeffs = np.zeros((graph.lena(), graph.lenb()))
+        guess_vec1_coeffs = np.zeros((graph.lena(), graph.lenb()),
+                                     dtype=np.complex128)
+        guess_vec2_coeffs = np.zeros((graph.lena(), graph.lenb()),
+                                     dtype=np.complex128)
         alpha_hf = fqe.util.init_bitstring_groundstate(n_alpha)
         beta_hf = fqe.util.init_bitstring_groundstate(n_beta)
         guess_vec1_coeffs[graph.index_alpha(alpha_hf),
@@ -330,104 +343,12 @@ def davidson_diagonalization(
         )
         fqe_random = fqe.Wavefunction([[nele, sz, norb]])
         fqe_random.set_wfn(strategy='random')
-        fqe_random.sector((nele, sz)).coeff.imag = 0
         fqe_random.normalize()
+        # Bad convergence this way
         guess_vecs = [guess_wfn1, guess_wfn2, fqe_random]
+        # guess_vecs = [guess_wfn1, guess_wfn2]
 
     # run FQE-DL
-    dl_w, dl_v = davidsonliu_fqe(hamiltonian,
-                                 nroots,
-                                 guess_vecs,
-                                 nele=nele,
-                                 sz=sz,
-                                 norb=norb)
+    dl_w, dl_v = davidsonliu_fqe(hamiltonian, nroots, guess_vecs,
+                                 nele=nele, sz=sz, norb=norb)
     return dl_w, dl_v
-
-
-# TODO: Make this a unit test?
-if __name__ == "__main__":
-    eref = -8.877719570384043
-    norb = 6
-    nalpha = 2
-    nbeta = 2
-    sz = nalpha - nbeta
-    nele = nalpha + nbeta
-    h1e, h2e, lih_ground = build_lih_data("energy")
-    h2e_zeros = np.zeros_like(h2e)
-    elec_hamil = fqe.restricted_hamiltonian.RestrictedHamiltonian((h1e, h2e))
-    wfn = fqe.Wavefunction([[nele, nalpha - nbeta, norb]])
-    wfn.set_wfn(strategy="from_data",
-                raw_data={(nele, nalpha - nbeta): lih_ground})
-    graph = wfn.sector((4, 0)).get_fcigraph()
-    ecalc = wfn.expectationValue(elec_hamil)
-
-    # Generate Guess Vecs for Davidson-Liu
-    guess_vec1_coeffs = np.zeros((graph.lena(), graph.lenb()))
-    guess_vec2_coeffs = np.zeros((graph.lena(), graph.lenb()))
-    alpha_hf = fqe.util.init_bitstring_groundstate(2)
-    beta_hf = fqe.util.init_bitstring_groundstate(2)
-    alpha_hf_idx = fqe.util.init_bitstring_groundstate(2)
-    beta_hf_idx = fqe.util.init_bitstring_groundstate(2)
-    guess_vec1_coeffs[graph.index_alpha(alpha_hf),
-                      graph.index_beta(beta_hf)] = 1.0
-    guess_vec2_coeffs[graph.index_alpha(alpha_hf << 1),
-                      graph.index_beta(beta_hf << 1)] = 1.0
-
-    guess_wfn1 = copy.deepcopy(wfn)
-    guess_wfn2 = copy.deepcopy(wfn)
-    guess_wfn1.set_wfn(
-        strategy="from_data",
-        raw_data={(nele, nalpha - nbeta): guess_vec1_coeffs},
-    )
-    guess_wfn2.set_wfn(
-        strategy="from_data",
-        raw_data={(nele, nalpha - nbeta): guess_vec2_coeffs},
-    )
-    guess_vecs = [guess_wfn1, guess_wfn2]
-    dl_w, dl_v = davidsonliu_fqe(elec_hamil,
-                                 1,
-                                 guess_vecs,
-                                 nele=nele,
-                                 sz=sz,
-                                 norb=norb)
-
-    # dummy geometry
-    geometry = [["Li", [0, 0, 0], ["H", [0, 0, 1.4]]]]
-    charge = 0
-    multiplicity = 1
-    molecule = of.MolecularData(
-        geometry=geometry,
-        basis="sto-3g",
-        charge=charge,
-        multiplicity=multiplicity,
-    )
-    molecule.one_body_integrals = h1e
-    molecule.two_body_integrals = np.einsum("ijlk", -2 * h2e)
-    molecular_hamiltonian = molecule.get_molecular_hamiltonian()
-    molecular_hamiltonian.constant = 0
-    ham_fop = of.get_fermion_operator(molecular_hamiltonian)
-    ham_mat = of.get_sparse_operator(of.jordan_wigner(ham_fop)).toarray()
-
-    cirq_ci = fqe.to_cirq(wfn)
-    cirq_ci = cirq_ci.reshape((2**12, 1))
-    assert np.isclose(cirq_ci.conj().T @ ham_mat @ cirq_ci, ecalc)
-
-    hf_idx = int("111100000000", 2)
-    hf_idx2 = int("111001000000", 2)
-    hf_vec = np.zeros((2**12, 1))
-    hf_vec2 = np.zeros((2**12, 1))
-    hf_vec[hf_idx, 0] = 1.0
-    hf_vec2[hf_idx2, 0] = 1.0
-
-    # scale diagonal so vacuum has non-zero energy
-    ww, vv = davidsonliu(ham_mat + np.eye(ham_mat.shape[0]),
-                         1,
-                         guess_vecs=[hf_vec, hf_vec2])
-    print("full mat DL ", ww.real - 1)
-    print("GS Energy ", ecalc.real)
-    print("DL-FQE ", dl_w.real)
-
-    dl_w, dl_v = davidson_diagonalization(hamiltonian=elec_hamil,
-                                          n_alpha=nalpha,
-                                          n_beta=nbeta)
-    print("API : ", dl_w.real)

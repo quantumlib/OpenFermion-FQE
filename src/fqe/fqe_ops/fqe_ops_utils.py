@@ -20,10 +20,10 @@ def validate_rdm_string(ops: str) -> str:
     """Check that a string for rdms are valid.
 
     Args:
-        ops: String expression to be computed.
+        ops (str): String expression to be computed.
 
     Returns
-        Either 'element' or 'tensor'.
+        (str): Either 'element' or 'tensor'.
     """
 
     qftops = ops.split()
@@ -75,10 +75,10 @@ def switch_broken_symmetry(string: str) -> str:
     """Convert the string passed in to the desired symmetry.
 
     Args:
-        string: Input string in the original expression.
+        string (str): Input string in the original expression.
 
     Returns:
-        Output string in the converted format.
+        (str): Output string in the converted format.
     """
     new = ""
     if any(char.isdigit() for char in string):
@@ -103,3 +103,4 @@ def switch_broken_symmetry(string: str) -> str:
         new = string
 
     return new.rstrip()
+
