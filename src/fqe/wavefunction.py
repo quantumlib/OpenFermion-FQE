@@ -343,6 +343,16 @@ class Wavefunction:
             elif isinstance(hamil, diagonal_coulomb.DiagonalCoulomb):
                 transformed = out._apply_diagonal_coulomb(hamil)
             else:
+                if isinstance(hamil,
+                              restricted_hamiltonian.RestrictedHamiltonian):
+                    expected = self._norb
+                else:
+                    expected = self._norb * 2
+                if hamil.dim() != expected:
+                    raise ValueError('Hamiltonian has incorrect size:' \
+                                     + ' expected {}'.format(expected) \
+                                     + ' provided {}'.format(hamil.dim()))
+
                 transformed = out._apply_array(hamil.tensors(), hamil.e_0())
 
             if self._conserve_spin and not self._conserve_number:
