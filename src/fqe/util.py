@@ -15,15 +15,14 @@
 """
 
 from operator import itemgetter
-from typing import Any, Generator, KeysView, List, Set, Tuple, TYPE_CHECKING
+from typing import Any, Dict, KeysView, List, Set, Tuple, TYPE_CHECKING
 
 import numpy
 
 from fqe.bitstring import lexicographic_bitstring_generator
-from fqe.bitstring import check_conserved_bits, count_bits
+from fqe.bitstring import count_bits
 
 if TYPE_CHECKING:
-    #Avoid circular imports and only import for type-checking
     from fqe import wavefunction
 
 
@@ -32,32 +31,36 @@ def alpha_beta_electrons(nele: int, m_s: int) -> Tuple[int, int]:
     the number of alpha and beta electrons in the system.
 
     Args:
-        nele (int) - number of electrons
-        m_s (int) - spin angular momentum on the z-axis
+        nele (int): number of electrons
+
+        m_s (int): spin angular momentum on the z-axis
 
     Return:
-        number of alpha electrons (int), number of beta electrons (int)
+        Tuple[int, int]: number of alpha and beta electrons
     """
     if nele < 0:
         raise ValueError('Cannot have negative electrons')
     if nele < abs(m_s):
         raise ValueError('Spin quantum number exceeds physical limits')
+    if (nele + m_s) % 2 != 0:
+        raise ValueError('Parity of spin quantum number and number of '
+                         'electrons is incompatible')
     nalpha = int(nele + m_s) // 2
     nbeta = nele - nalpha
     return nalpha, nbeta
 
 
-def reverse_bubble_list(arr: List[Any]) -> int:
-    """Bubble Sort algorithm to arrange a list so that the lowest value is
-    stored in 0 and the highest value is stored in len(arr)-1.  It is included
+def reverse_bubble_list(arr: List[List[Any]]) -> int:
+    """Bubble Sort algorithm to arrange a list so that the highest value is
+    stored in 0 and the lowest value is stored in len(arr)-1. It is included
     here in order to access the swap count.
 
     Args:
-        arr (list) - object to be sorted
+        arr (list): List of objects to be sorted. The objects are sorted with \
+            respect to the value of object[0]. The data are sorted inplace.
 
     Returns:
-        arr (list) - sorted
-        swap_count (int) - number of permutations to achieve the sort
+        (int): number of permutations to achieve the sort
     """
     larr = len(arr)
     swap_count = 0
@@ -81,11 +84,10 @@ def bubblesort(arr: List[Any]) -> int:
     here in order to access the swap count.
 
     Args:
-        arr (list) - object to be sorted
+        arr (list): object to be sorted in place.
 
     Returns:
-        arr (list) - sorted
-        swap_count (int) - number of permutations to achieve the sort
+        (int): number of permutations to achieve the sort
     """
     larr = len(arr)
     swap_count = 0
@@ -102,15 +104,16 @@ def bubblesort(arr: List[Any]) -> int:
 
 
 def configuration_key_union(*argv: KeysView[Tuple[int, int]]
-                           ) -> List[Tuple[int, int]]:
+                            ) -> List[Tuple[int, int]]:
     """Given a list of configuration keys, build a list which is the union of
     all configuration keys in the list
 
     Args:
-        *args (list[(int, int)]) - any number of configuration key lists to be joined
+        *args (list[(int, int)]): any number of configuration key lists to be \
+            joined
 
     Returns:
-        list[(int, int)] - a list of unique configuration keys found among all
+        list[(int, int)]: a list of unique configuration keys found among all \
             the passed arguments
     """
     keyunion: Set[Tuple[int, int]] = set()
@@ -120,34 +123,31 @@ def configuration_key_union(*argv: KeysView[Tuple[int, int]]
 
 
 def configuration_key_intersection(*argv: List[Tuple[int, int]]
-                                  ) -> List[Tuple[int, int]]:
+                                   ) -> List[Tuple[int, int]]:
     """Return the intersection of the passed configuration key lists.
 
     Args:
-        *args (list[(int, int)]) - any number of configuration key lists to be joined
+        *args (list[(int, int)]): any number of configuration key lists to be \
+            intersected
 
     Returns:
-        list [(int, int)] - a list of configuration keys found in every
+        list[(int, int)]: a list of configuration keys found in every \
             configuration passed.
     """
-    keyinter = argv[0]
-    ref = []
+    ref = set(argv[0])
     for config in argv[1:]:
-        for key in config:
-            if key in keyinter:
-                ref.append(key)
-        keyinter = ref
-    return keyinter
+        ref = ref.intersection(config)
+    return list(ref)
 
 
 def init_bitstring_groundstate(occ_num: int) -> int:
     """Occupy the n lowest orbitals of a state in the bitstring representation
 
     Args:
-        occ_num (integer) - number of orbitals to occupy
+        occ_num (integer): number of orbitals to occupy
 
     Returns:
-        (integer) - bitstring representation of the ground state
+        (integer): bitstring representation of the ground state
     """
     return (1 << occ_num) - 1
 
@@ -156,10 +156,11 @@ def init_qubit_vacuum(nqubits: int) -> numpy.ndarray:
     """Build the ground state wavefunction for an nqubit system.
 
     Args:
-        nqubits (integer) - The number of qubits in the qpu
+        nqubits (integer): The number of qubits in the qpu
 
     Returns:
-        numpy.array(dtype=numpy.complex64)
+        numpy.array(dtype=numpy.complex128): ground state in the qubit \
+            representation
     """
     ground_state = numpy.zeros(2**nqubits, dtype=numpy.complex128)
     ground_state[0] = 1.0 + 0.0j
@@ -170,11 +171,10 @@ def paritysort_int(arr: List[int]) -> Tuple[int, List[int]]:
     """Move all even numbers to the left and all odd numbers to the right
 
     Args:
-        arr list[int] - a list of integers to be sorted
+        arr (list[int]): a list of integers to be sorted in place.
 
     Returns:
-        arr [list] - mutated in place
-        swap_count (int) - number of exchanges needed to complete the sorting
+        (int): number of exchanges needed to complete the sorting
     """
     larr = len(arr)
     parr = [[i % 2, i] for i in arr]
@@ -200,11 +200,10 @@ def paritysort_list(arr):
     """Move all even numbers to the left and all odd numbers to the right
 
     Args:
-        arr list[int] - a list of integers to be sorted
+        arr (list[int]): a list of integers to be sorted in place
 
     Returns:
-        arr [list] - mutated in place
-        swap_count (int) - number of exchanges needed to complete the sorting
+        (int): number of exchanges needed to complete the sorting
     """
     larr = len(arr)
     parr = [[i[0] % 2, i] for i in arr]
@@ -232,11 +231,12 @@ def qubit_particle_number_sector(nqubits: int,
     which have a definite particle number.
 
     Args:
-        nqubits (int) - the number of qubits in the qpu
-        pnum (int) - the number of particles to build vectors into
+        nqubits (int): the number of qubits in the qpu
+
+        pnum (int): the number of particles to build vectors into
 
     Returns:
-        list[numpy.array(dtype=numpy.complex64)]
+        list[numpy.array(dtype=numpy.complex128)]
     """
     occ = numpy.array([0, 1], dtype=numpy.int32)
     uno = numpy.array([1, 0], dtype=numpy.int32)
@@ -265,12 +265,14 @@ def qubit_config_sector(nqubits: int, pnum: int,
     which have a definite particle number and spin.
 
     Args:
-        nqubits (int) - the number of qubits in the qpu
-        pnum (int) - the number of particles to build vectors into
-        m_s (int) - the s_z spin quantum number
+        nqubits (int): the number of qubits in the qpu
+
+        pnum (int): the number of particles to build vectors into
+
+        m_s (int): the s_z spin quantum number
 
     Returns:
-        list[numpy.array(dtype=numpy.complex64)]
+        list[numpy.array(dtype=numpy.complex128)]
     """
     occ = numpy.array([0, 1], dtype=numpy.int32)
     uno = numpy.array([1, 0], dtype=numpy.int32)
@@ -286,7 +288,7 @@ def qubit_config_sector(nqubits: int, pnum: int,
 
     initpn = lexicographic_bitstring_generator(pnum, nqubits)
     for ioccu in initpn:
-        occu = int(ioccu) 
+        occu = int(ioccu)
         if (count_bits(occu & achk) - count_bits(occu & bchk)) == m_s:
             pn_set.append(occu)
 
@@ -312,11 +314,12 @@ def qubit_particle_number_index(nqubits: int, pnum: int) -> List[int]:
     with a specific particle number
 
     Args:
-        nqubits (int) - the number of qubits to act upon
-        pnum (int) - the number of particles to view
+        nqubits (int): the number of qubits to act upon
+
+        pnum (int): the number of particles to view
 
     Returns:
-        list[int] - integers indicating where in the qubit wavefunction the
+        list[int]: integers indicating where in the qubit wavefunction the
             basis state corresponds to particle number
     """
     indexes = []
@@ -344,11 +347,12 @@ def qubit_particle_number_index_spin(nqubits: int,
     with a specific particle number and spin
 
     Args:
-        nqubits (int) - the number of qubits to act upon
-        pnum (int) - the number of particles to view
+        nqubits (int): the number of qubits to act upon
+
+        pnum (int): the number of particles to view
 
     Returns:
-        list[(int int)] - tuples of integers indicating where in the qubit
+        list[(int int)]: tuples of integers indicating where in the qubit
             wavefunction the basis state corresponds to particle number and
             return the corresponding spin
     """
@@ -380,11 +384,12 @@ def rand_wfn(adim: int, bdim: int) -> numpy.ndarray:
     """Utility for generating random normalized wavefunctions.
 
     Args:
-        adim (int) - length of the alpha string
-        bdim (int) - length of the beta string
+        adim (int): length of the alpha string
+
+        bdim (int): length of the beta string
 
     Returns:
-        numpy.ndarray(shape=(adim, bdim), dtype=numpy.complex64)
+        numpy.ndarray(shape=(adim, bdim), dtype=numpy.complex128)
     """
     wfn = numpy.random.randn(adim, bdim).astype(numpy.complex128) + \
           numpy.random.randn(adim, bdim).astype(numpy.complex128)*1.j
@@ -392,8 +397,15 @@ def rand_wfn(adim: int, bdim: int) -> numpy.ndarray:
     return wfn
 
 
-def map_broken_symmetry(s_z, norb):
+def map_broken_symmetry(s_z: int, norb: int) -> Dict[Tuple[int, int], Tuple[int, int]]:
     """Create a map between spin broken and number broken wavefunctions.
+    Args:
+        s_z (int): quantum number s_z
+
+        norb (int): number of orbitals
+
+    Returns:
+        Dict[Tuple[int, int], Tuple[int, int]]
     """
     spin_to_number = {}
     nele = norb + s_z
@@ -416,10 +428,10 @@ def sort_configuration_keys(configs: KeysView[Tuple[int, int]]
     and then by the spin quantum number.
 
     Args:
-        wfn list[(int, int)] - a dictionary of keys
+        configs (KeysView[Tuple[int, int]]): a dictionary of keys
 
     Returns:
-        list with the sorted keys
+        List[Tuple[int, int]]: list with the sorted keys
     """
     return sorted(configs, key=itemgetter(0, 1))
 
@@ -428,12 +440,14 @@ def validate_config(nalpha: int, nbeta: int, norb: int) -> None:
     """ Check that the parameters passed are valid to build a configuration
 
     Args:
-        nalpha (int) - the number of alpha electrons
-        nbeta (int) - the number of beta electrons
-        norb (int) - the number of spatial orbitals
+        nalpha (int): the number of alpha electrons
+
+        nbeta (int): the number of beta electrons
+
+        norb (int): the number of spatial orbitals
 
     Returns:
-        nothing - only raises errors if necessary
+        nothing: only raises errors if necessary
     """
     if nalpha < 0:
         raise ValueError("Cannot have negative number of alpha electrons")
@@ -448,9 +462,13 @@ def validate_config(nalpha: int, nbeta: int, norb: int) -> None:
         raise ValueError("Insufficient number of orbitals")
 
 
-def validate_tuple(matrices) -> None:
+def validate_tuple(matrices: Tuple[numpy.ndarray, ...]) -> None:
     """Validate that the tuple passed in is valid for initializing a general
     Hamiltonian
+
+    Args:
+        matrices(tuple[Nparray,...]): arrays to be used to initialize a \
+            Hamiltonian
     """
     assert isinstance(matrices, tuple)
     for rank, term in enumerate(matrices):
@@ -464,13 +482,14 @@ def dot(wfn1: 'wavefunction.Wavefunction',
     not use the conjugate.  See vdot for the similar conjugate functionality.
 
     Args:
-        wfn1 (wavefunction.Wavefunction) - wavefunction corresponding to the
+        wfn1 (wavefunction.Wavefunction): wavefunction corresponding to the
             row vector
-        wfn2 (wavefunction.Wavefunction) - wavefunction corresponding to the
+
+        wfn2 (wavefunction.Wavefunction): wavefunction corresponding to the
             coumn vector
 
     Returns:
-        (complex) - scalar as result of the dot product
+        (complex): scalar as result of the dot product
     """
     brakeys = wfn1.sectors()
     ketkeys = wfn2.sectors()
@@ -489,13 +508,14 @@ def vdot(wfn1: 'wavefunction.Wavefunction',
     the elements of wfn1.
 
     Args:
-        wfn1 (wavefunction.Wavefunction) - wavefunction corresponding to the
+        wfn1 (wavefunction.Wavefunction): wavefunction corresponding to the
             conjugate row vector
-        wfn2 (wavefunction.Wavefunction) - wavefunction corresponding to the
+
+        wfn2 (wavefunction.Wavefunction): wavefunction corresponding to the
             coumn vector
 
     Returns:
-        (complex) - scalar as result of the dot product
+        (complex): scalar as result of the dot product
     """
     brakeys = wfn1.sectors()
     ketkeys = wfn2.sectors()
@@ -506,4 +526,29 @@ def vdot(wfn1: 'wavefunction.Wavefunction',
             wfn1.get_coeff(config).flat,
             wfn2.get_coeff(config).flat)
     return ipval
+
+def tensors_equal(tensor1: Dict[int, numpy.ndarray], \
+                    tensor2: Dict[int, numpy.ndarray]) -> bool:
+    """ Comparison function for two tensors (dictionaries as used in
+    subclasses of Hamiltonian). Used in implementing equality operators
+    in Hamiltonian subclasses.
+
+    Note: it compares using numpy.all and not numpy.isclose, so that even small
+    numerical deviations may lead to inequality.
+
+    Args:
+        tensor1 (Dict[int, numpy.ndarray]): first tensor
+
+        tensor2 (Dict[int, numpy.ndarray]): second tensor
+
+    Returns:
+        bool: True if all keys and corresponding values of tensor1 match to that
+        of tensor2, false otherwise.
+    """
+    if tensor1.keys() != tensor2.keys():
+        return False
+    for (k,v), (k2,v2) in zip(tensor1.items(), tensor2.items()):
+        if k != k2 or not numpy.all(v == v2):
+            return False
+    return True
 

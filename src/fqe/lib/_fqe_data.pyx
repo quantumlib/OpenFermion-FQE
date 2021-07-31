@@ -38,7 +38,7 @@ def _lm_apply_array1(coeff, h1e, dexc, lena, lenb, norb, alpha=True, out=None):
     func = lib_fqe.lm_apply_array1
     len1 = lena if alpha else lenb
     len2 = lenb if alpha else lena
-    outshape = (len1, len2)
+    outshape = (lena, lenb)
     ndexc = dexc.shape[1]
 
     func.argtypes = [
@@ -503,6 +503,59 @@ def _make_coeff(dvec: 'Nparray', coeff: 'Nparray', mappings: List[Nparray],
     )
 
     return coeff
+
+
+def _apply_diagonal_coulomb(data: 'Nparray',
+                            alpha_strings: 'Nparray',
+                            beta_strings: 'Nparray',
+                            diag: 'Nparray',
+                            array: 'Nparray',
+                            lena: int,
+                            lenb: int,
+                            nalpha: int,
+                            nbeta: int,
+                            norb: int) -> 'Nparray':
+
+    if not diag.dtype == numpy.complex128:
+        diag = diag.astype(numpy.complex128)
+    if not array.dtype == numpy.complex128:
+        array = array.astype(numpy.complex128)
+
+    func = lib_fqe.zdiagonal_coulomb_apply
+    func.argtypes = [
+        ndpointer(
+            shape=(lena,),
+            dtype=numpy.uint64,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        ndpointer(
+            shape=(lenb,),
+            dtype=numpy.uint64,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        ndpointer(
+            shape=(norb,),
+            dtype=numpy.complex128,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        ndpointer(
+            shape=(norb, norb),
+            dtype=numpy.complex128,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        ndpointer(
+            shape=(lena, lenb),
+            dtype=numpy.complex128,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        c_int,
+        c_int,
+        c_int,
+        c_int,
+        c_int
+    ]
+    func(alpha_strings, beta_strings, diag, array, data,
+         lena, lenb, nalpha, nbeta, norb)
 
 
 def _diagonal_coulomb(data: 'Nparray',
@@ -1026,7 +1079,7 @@ def _prepare_cirq_from_to_metadata(fqedata: 'FqeData',
         cirq_bid = numpy.array([pow_of_two[bocc].sum() for bocc in boccs])
     else:
         def occ_to_cirq_ids(occs):
-            cirq_ids = numpy.zeros(len(aoccs), dtype=numpy.int64)
+            cirq_ids = numpy.zeros(len(occs), dtype=numpy.int64)
             for ii, occ in enumerate(occs):
                 of_state = numpy.zeros(nqubit, dtype=int)
                 of_state[occ] = 1

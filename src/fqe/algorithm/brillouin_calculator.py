@@ -85,8 +85,10 @@ def get_acse_residual_fqe(fqe_wf: Wavefunction, fqe_ham: RestrictedHamiltonian,
 
     Args:
         fqe_wf:  fqe.Wavefunction object to calculate expectation value with
+
         fqe_ham: fqe.RestrictedHamiltonian operator corresponding to a chemical
                  Hamiltonian
+
         norbs: Number of orbitals. Number of spatial orbitals
 
     Returns:
@@ -181,8 +183,10 @@ def get_tpdm_grad_fqe(fqe_wf, acse_res_tensor, norbs):
 
     Args:
         fqe_wf:  fqe.Wavefunction object to calculate expectation value with
+
         acse_res_tensor: fqe.RestrictedHamiltonian operator corresponding to a chemical
                          Hamiltonian
+
         norbs: Number of orbitals. Number of spatial orbitals
 
     Returns:
@@ -371,8 +375,10 @@ def get_acse_residual_fqe_parallel(fqe_wf, fqe_ham, norbs):
 
     Args:
         fqe_wf:  fqe.Wavefunction object to calculate expectation value with
+
         fqe_ham: fqe.RestrictedHamiltonian operator corresponding to a chemical
                  Hamiltonian
+
         norbs: Number of orbitals. Number of spatial orbitals
 
     Returns:
@@ -490,8 +496,10 @@ def get_tpdm_grad_fqe_parallel(fqe_wf, acse_res_tensor, norbs):
 
     Args:
         fqe_wf:  fqe.Wavefunction object to calculate expectation value with
+
         fqe_ham: fqe.RestrictedHamiltonian operator corresponding to a chemical
                  Hamiltonian
+
         norbs: Number of orbitals. Number of spatial orbitals
 
     Returns:
@@ -574,7 +582,9 @@ def two_rdo_commutator(two_body_tensor: np.ndarray, tpdm: np.ndarray,
 
     Args:
         two_body_tensor: 4-tensor for the coefficients of A
+
         tpdm: spin-orbital two-RDM p^ q^ r s corresponding to (1'2'2 1)
+
         d3: spin-orbital three-RDM p^ q^ r^ s t u corresponding to (1'2'3'32 1)
     """
     dim = tpdm.shape[0]
@@ -668,7 +678,9 @@ def two_rdo_commutator_symm(two_body_tensor: np.ndarray, tpdm: np.ndarray,
 
     Args:
         two_body_tensor: 4-tensor for the coefficients of A
+
         tpdm: spin-orbital two-RDM p^ q^ r s corresponding to (1'2'2 1)
+
         d3: spin-orbital three-RDM p^ q^ r^ s t u corresponding to (1'2'3'32 1)
     """
     dim = tpdm.shape[0]
@@ -706,7 +718,9 @@ def two_rdo_commutator_antisymm(two_body_tensor: np.ndarray, tpdm: np.ndarray,
 
     Args:
         two_body_tensor: 4-tensor for the coefficients of A
+
         tpdm: spin-orbital two-RDM p^ q^ r s corresponding to (1'2'2 1)
+
         d3: spin-orbital three-RDM p^ q^ r^ s t u corresponding to (1'2'3'32 1)
     """
     dim = tpdm.shape[0]
@@ -751,6 +765,7 @@ def one_rdo_commutator_symm(two_body_tensor: np.ndarray,
 
     Args:
         two_body_tensor: 4-tensor for the coefficients of A
+
         tpdm: spin-orbital two-RDM p^ q^ r s corresponding to (1'2'2 1)
     """
     dim = tpdm.shape[0]

@@ -22,8 +22,6 @@
 
 #define MY_STRING_LEN 1024
 
-/* ========================================================================== */
-
 void *safe_malloc_helper(long long s, size_t t, const char *typ,
                           const char *file, int line, const char *func) {
   void *pn = malloc(s * t);

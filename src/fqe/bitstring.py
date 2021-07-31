@@ -15,42 +15,27 @@
 frequently used operations.
 """
 
+from itertools import combinations
+from typing import Generator, List
+
 import numpy
 from numpy import ndarray as Nparray
 from scipy import special
-from typing import Generator, List
 
-from itertools import combinations
 
-from fqe.lib.bitstring import _lexicographic_bitstring_generator
+from fqe.lib.bitstring import _lexicographic_bitstring_generator, _count_bits, \
+                              _get_occupation
 import fqe.settings
-
-def check_conserved_bits(str0: int, conserved: int) -> bool:
-    """Check that str0 has bits set in the same place that conserved has bits
-    set.
-
-    Args:
-        str0 (bitstring) - a bitstring representing an occupation state of a \
-            configuration
-
-        conserved (bitstring) - a bitstring with bits set that should also be \
-            set in str0
-
-    Returns:
-        (bool) - if all the conserved bits are set in str0 then return True
-    """
-    return (str0 & conserved) == conserved
-
 
 def gbit_index(str0: int) -> Generator[int, None, None]:
     """Generator for returning integers that associate each bit in sequence with
     a corresponding orbital index
 
     Args:
-        str0 (bitstring) - string to process
+        str0 (bitstring): string to process
 
     Returns:
-        (int) - integer corresponding to the index of a set bit in str0
+        (int): integer corresponding to the index of a set bit in str0
 
         .. code-block:: text
 
@@ -71,30 +56,32 @@ def gbit_index(str0: int) -> Generator[int, None, None]:
         bit_index += 1
 
 
-def integer_index(str0: int) -> List[int]:
+def integer_index(string: int) -> 'Nparray':
     """Generate integers indicating the position of occupied orbitals in a
     bitstring starting from 0.  This is a convience wrapper for the gbit_index
     generator
 
     Args:
-         str0 (bistring) - orbital occupation representation
+        string (int): orbital occupation representation
 
     Returns:
-        list[int] - a list of integers indicating the index of each occupied \
+        Nparray: a list of integers indicating the index of each occupied \
             orbital
     """
-    return list(gbit_index(int(str0)))
-
+    if fqe.settings.use_accelerated_code:
+        return _get_occupation(string)
+    else:
+        return numpy.array(list(gbit_index(int(string)))).astype(numpy.int32)
 
 def reverse_integer_index(occ: List[int]) -> int:
     """Reverse of the integer index function above. This function generates an
     bitstring that correspoinds to the list passed as an argument.
 
     Args:
-        occ (List[int]) - list of occupied orbitals
+        occ (List[int]): list of occupied orbitals
 
     Returns:
-        int bitstring - orbital occupation representation
+        int: orbital occupation representation
     """
     out = 0
     for i in occ:
@@ -108,13 +95,12 @@ def lexicographic_bitstring_generator(nele: int, norb: int) -> 'Nparray':
     state
 
     Args:
-         str0 (bitstring) - integer representing bitstring ground state
+        nele (int): number of electrons
 
-         norb (int) - number of spatial orbitals to distribute the \
-         particles into
+        norb (int): number of spatial orbitals
 
     Returns:
-         Nparray - a list of bitstrings representing the occupation \
+        Nparray: a list of bitstrings representing the occupation \
             states
     """
     if nele > norb:
@@ -126,93 +112,110 @@ def lexicographic_bitstring_generator(nele: int, norb: int) -> 'Nparray':
         return out
     else:
         out = []
-        gs_bs = [int(x) for x in '{0:b}'.format(2**nele-1).zfill(norb)]
-        n_orbs = len(gs_bs)
-        for ones_positions in combinations(range(n_orbs), nele):
-            out.append(sum([2**z for z in ones_positions
-                           ]))  # convert directly to int
+        for comb in combinations(range(norb), nele):
+            out.append(reverse_integer_index(list(comb)))
         return numpy.array(sorted(out), dtype=numpy.uint64)
 
-def count_bits(string: int, bitval: str = '1') -> int:
+def count_bits(string: int) -> int:
     """Count the bit value in a bistring
 
     Args:
-        string (bitstring) - a bitstring to count the bits of
-
-        bitval (string) - include the option to count unset bits
+        string (int): a bitstring to count the bits of
 
     Returns:
-        int - the number of bits equal to bitval
+        int: the number of bits equal to 1
     """
-    return bin(int(string)).count(bitval)
+    if fqe.settings.use_accelerated_code:
+        return _count_bits(string)
+    else:
+        return bin(int(string)).count('1')
 
 
 def get_bit(string: int, pos: int) -> int:
     """Return a bit located at the position
 
     Args:
-        string (int) - bit string
+        string (int): bit string
 
-        pos (int) - position in the bit string
+        pos (int): position in the bit string
+
+    Returns:
+        int: 0 if the bit is 0, 2**pos if the bit is 1
     """
-    return int(string) & (2**pos)
+    return int(string) & (1 << pos)
 
 
 def set_bit(string: int, pos: int) -> int:
     """Return bitstring with the bit at the position set
 
     Args:
-        string (int) - bit string
+        string (int): bit string
 
-        pos (int) - position in the bit string
+        pos (int): position in the bit string
+
+    Returns:
+        int: string with the pos bit set to 1
     """
-    return int(string) | (2**pos)
+    return int(string) | (1 << pos)
 
 
 def unset_bit(string: int, pos: int) -> int:
     """Return bitstring with the bit at the position unset
 
     Args:
-        string (int) - bit string
+        string (int): bit string
 
-        pos (int) - position in the bit string
+        pos (int): position in the bit string
+
+    Returns:
+        int: string with the pos bit set to 0
     """
-    return int(string) & ~(2**pos)
+    return int(string) & ~(1 << pos)
 
 
 def count_bits_above(string: int, pos: int) -> int:
     """Return the number of set bits higher than the position
 
     Args:
-        string (int) - bit string
+        string (int): bit string
 
-        pos (int) - position in the bit string
+        pos (int): position in the bit string
+
+    Returns:
+        int: the number of 1 bits above pos
     """
-    return count_bits(int(string) & ~(2**(pos + 1) - 1))
+    return count_bits(int(string) & ~((1 << (pos + 1)) - 1))
 
 
 def count_bits_below(string: int, pos: int) -> int:
     """Return the number of set bits lower than the position
 
     Args:
-        string (int) - bit string
+        string (int): bit string
 
-        pos (int) - position in the bit string
+        pos (int): position in the bit string
+
+    Returns:
+        int: the number of 1 bits below pos
     """
-    return count_bits(int(string) & (2**pos - 1))
+    return count_bits(int(string) & ((1 << pos) - 1))
 
 
 def count_bits_between(string: int, pos1: int, pos2: int) -> int:
     """Count the number of bits between position1 and position2
 
     Args:
-        string (int) - bit string
+        string (int): bit string
 
-        pos1 (int) - one of the positions in the bit string
+        pos1 (int): one of the positions in the bit string
 
-        pos2 (int) - the other position in the bit string
+        pos2 (int): the other position in the bit string
+
+    Returns:
+        int: the number of 1 bits between pos1 and pos2
     """
-    mask = (2**max(pos1, pos2) - 1) ^ (2**(min(pos1, pos2) + 1) - 1)
+    mask = (((1 << pos1) - 1) ^ ((1 << (pos2 + 1)) - 1)) \
+         & (((1 << pos2) - 1) ^ ((1 << (pos1 + 1)) - 1))
     return count_bits(int(string) & mask)
 
 
@@ -220,8 +223,12 @@ def show_bits(string: int, nbits: int = 16) -> str:
     """Return a string showing the occupations of the bitstring
 
     Args:
-        string (int) - bit string
+        string (int): bit string
 
-        nbits (int) - the number of bits to show
+        nbits (int): the number of bits to show
+
+    Returns:
+        str: string representation of the bit string
     """
     return str(bin(int(string))[2:].zfill(nbits))
+

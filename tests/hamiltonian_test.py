@@ -13,9 +13,9 @@
 #   limitations under the License.
 """Unit tests for the base Hamiltonian class."""
 
-from typing import Tuple
+from typing import Tuple, Dict
 
-import numpy as np
+import numpy
 
 from fqe.hamiltonians import hamiltonian
 
@@ -32,34 +32,35 @@ def test_base_hamiltonian():
         def dim(self) -> int:
             return super().dim()
 
-        def calc_diag_transform(self) -> np.ndarray:
+        def calc_diag_transform(self) -> numpy.ndarray:
             return super().calc_diag_transform()
 
         def rank(self) -> int:
             return super().rank()
 
-        def iht(self, time: float) -> Tuple[np.ndarray, ...]:
+        def iht(self, time: float) -> Tuple[numpy.ndarray, ...]:
             return super().iht(time)
 
-        def tensors(self) -> Tuple[np.ndarray, ...]:
+        def tensors(self) -> Tuple[numpy.ndarray, ...]:
             return super().tensors()
 
-        def diag_values(self) -> np.ndarray:
+        def diag_values(self) -> numpy.ndarray:
             return super().diag_values()
 
-        def transform(self, trans: np.ndarray) -> np.ndarray:
+        def transform(self, trans: numpy.ndarray) -> numpy.ndarray:
             return super().transform(trans)
 
     test = Test()
     assert test.dim() == 0
     assert test.rank() == 0
-    assert np.isclose(test.e_0(), 0.0 + 0.0j)
+    assert numpy.isclose(test.e_0(), 0.0 + 0.0j)
     assert test.tensors() == tuple()
     assert test.iht(0.0) == tuple()
     assert test.diag_values().shape == (0,)
     assert test.calc_diag_transform().shape == (0,)
-    assert test.transform(np.empty(0)).shape == (0,)
+    assert test.transform(numpy.empty(0)).shape == (0,)
     assert not test.quadratic()
     assert not test.diagonal()
     assert not test.diagonal_coulomb()
     assert test.conserve_number()
+

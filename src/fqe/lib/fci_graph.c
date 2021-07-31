@@ -28,8 +28,8 @@ void calculate_Z_matrix(int32_t *out,
                         int norb,
                         int nele) {
 #define NB_ 65
-  uint64_t* binom = safe_malloc(binom, NB_ * NB_); 
-  initialize_binom(binom); 
+  uint64_t* binom = safe_malloc(binom, NB_ * NB_);
+  initialize_binom(binom);
 
 #pragma omp parallel for schedule(static) collapse(2)
   for (int km = 0; km < nele - 1; ++km) {
@@ -142,7 +142,7 @@ void calculate_string_address(uint64_t *out,
   for (int i = 0; i < length; ++i) {
     const uint64_t string = strings[i];
     const int address = string_to_index(string, Z_matrix, norb);
-    out[address] = string; 
+    out[address] = string;
   }
 }
 
@@ -220,7 +220,7 @@ void map_to_deexc_alpha_icol(const int32_t ** mappings,
   free(counter);
 }
 
-int make_mapping_each(int64_t *out,
+int make_mapping_each(uint64_t *out,
                       const uint64_t *strings,
                       const int length,
                       const int32_t *dag,
@@ -256,10 +256,52 @@ int make_mapping_each(int64_t *out,
       }
       out[count * 3] = i;
       out[count * 3 + 1] = current;
-      out[count * 3 + 2] = -(parity & 1) * 2 + 1;
+      out[count * 3 + 2] = parity % 2;
       ++count;
     }
   }
   return count;
 }
 
+void make_mapping_each_set(uint64_t *down,
+                           uint64_t *up,
+                           const uint64_t *istrings,
+                           const int length,
+                           const int msize,
+                           const int nsize,
+                           const int dn,
+                           const int norb) {
+
+  uint64_t* comb = safe_malloc(comb, msize);
+  lexicographic_bitstring_generator(comb, norb, dn);
+
+#pragma omp parallel for schedule(dynamic)
+  for (int c = 0; c < msize; ++c) {
+    const uint64_t mask = comb[c];
+    int occ[16];
+    assert(count_bits(mask) == dn && dn < 16);
+    get_occupation(occ, mask);
+
+    int count = 0;
+    for (int i = 0; i != length; ++i) {
+      const uint64_t source = istrings[i];
+      if (((source & mask) ^ mask) == 0) {
+        int parity = count_bits_above(source, occ[dn - 1]) * dn;
+        uint64_t target = UNSET_BIT(source, occ[dn - 1]);
+        for (int d = dn - 2; d >= 0; --d) {
+          parity += (d + 1) * count_bits_between(source, occ[d], occ[d+1]);
+          target = UNSET_BIT(target, occ[d]);
+        }
+        down[0 + 3 * (count + nsize * c)] = source;
+        down[1 + 3 * (count + nsize * c)] = target;
+        down[2 + 3 * (count + nsize * c)] = parity;
+        up[0 + 3 * (count + nsize * c)] = target;
+        up[1 + 3 * (count + nsize * c)] = source;
+        up[2 + 3 * (count + nsize * c)] = parity;
+        ++count;
+      }
+    }
+  }
+
+  free(comb);
+}

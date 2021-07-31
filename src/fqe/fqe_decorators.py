@@ -46,29 +46,31 @@ def build_hamiltonian(ops: Union[FermionOperator, hamiltonian.Hamiltonian],
                       norb: int = 0,
                       conserve_number: bool = True,
                       e_0: complex = 0. + 0.j) -> 'hamiltonian.Hamiltonian':
-    """Build a Hamiltonian object for the fqe
+    """Build a Hamiltonian object for FQE.
 
     Args:
-        ops (FermionOperator, hamiltonian.Hamiltonian) - input operator as \
+        ops (FermionOperator, hamiltonian.Hamiltonian): input operator as \
             FermionOperator.  If a Hamiltonian is passed as an argument, \
             this function returns as is.
 
-        norb (int) - the number of orbitals in the system
+        norb (int): the number of orbitals in the system
 
-        conserve_number (bool) - whether the operator conserves the number
+        conserve_number (bool): whether the operator conserves the number
 
-        e_0 (complex) - the scalar part of the operator
+        e_0 (complex): the scalar part of the operator
 
     Returns:
-        (hamiltonian.Hamiltonian) - General Hamiltonian that is created from ops
+        (hamiltonian.Hamiltonian): General Hamiltonian that is created from ops
     """
     if isinstance(ops, hamiltonian.Hamiltonian):
         return ops
 
     if isinstance(ops, tuple):
         validate_tuple(ops)
-
-        return general_hamiltonian.General(ops, e_0=e_0)
+        if norb != 0 and ops[0].shape[0] == norb:
+            return restricted_hamiltonian.RestrictedHamiltonian(ops, e_0=e_0)
+        else:
+            return general_hamiltonian.General(ops, e_0=e_0)
 
     if not isinstance(ops, FermionOperator):
         raise TypeError('Expected FermionOperator' \
@@ -112,9 +114,7 @@ def build_hamiltonian(ops: Union[FermionOperator, hamiltonian.Hamiltonian],
         else:
             dtypes = [xx.dtype for xx in ops_mat.values()]
             dtypes = numpy.unique(dtypes)
-            if len(dtypes) != 1:
-                raise TypeError(
-                    "Non-unique coefficient types for input operator")
+            assert len(dtypes) == 1
 
             for i in range(maxrank + 1):
                 if i not in ops_mat:
@@ -132,14 +132,14 @@ def build_hamiltonian(ops: Union[FermionOperator, hamiltonian.Hamiltonian],
 
 
 def transform_to_spin_broken(ops: 'FermionOperator') -> 'FermionOperator':
-    """Convert a Fermion Operator string from number broken to spin broken
+    """Convert a FermionOperator string from number broken to spin broken
     operators.
 
     Args:
-        ops (FermionOperator) - input FermionOperator
+        ops (FermionOperator): input FermionOperator
 
     Returns:
-        (FermionOperator) - transformed FermionOperator to spin broken indexing
+        (FermionOperator): transformed FermionOperator to spin broken indexing
     """
     newstr = FermionOperator()
     for term in ops.terms:
@@ -165,11 +165,11 @@ def split_openfermion_tensor(ops: 'FermionOperator'
     rank.
 
     Args:
-        ops (FermionOperator) - a string of Fermion Operators
+        ops (FermionOperator): a string of OpenFermion Fermion Operators
 
     Returns:
-        split dict[int] = FermionOperator - a list of Fermion Operators sorted
-            according to their degree
+        split dict[int] = FermionOperator: a list of Fermion Operators sorted
+            according to their rank.
     """
     e_0 = 0. + 0.j
 
@@ -194,15 +194,15 @@ def split_openfermion_tensor(ops: 'FermionOperator'
 
 
 def fermionops_tomatrix(ops: 'FermionOperator', norb: int) -> numpy.ndarray:
-    """Convert FermionOperators to matrix
+    """Convert FermionOperators to a matrix.
 
     Args:
-        ops (FermionOperator) - input FermionOperator from OpenFermion
+        ops (FermionOperator): input FermionOperator from OpenFermion
 
-        norb (int) - the number of orbitals in the system
+        norb (int): the number of orbitals in the system
 
     Returns:
-        (numpy.ndarray) - resulting matrix
+        (numpy.ndarray): resulting matrix
     """
     ablk, bblk = largest_operator_index(ops)
 
@@ -234,7 +234,7 @@ def fermionops_tomatrix(ops: 'FermionOperator', norb: int) -> numpy.ndarray:
                     raise ValueError('Found annihilation operator where' \
                                      'creation is expected')
             elif term[i][1]:
-                raise ValueError('Found creattion operator where' \
+                raise ValueError('Found creation operator where ' \
                                  'annihilation is expected')
 
             spin = index % 2
@@ -278,29 +278,25 @@ def fermionops_tomatrix(ops: 'FermionOperator', norb: int) -> numpy.ndarray:
 
 def process_rank2_matrix(mat: numpy.ndarray, norb: int,
                          e_0: complex = 0. + 0.j) -> 'hamiltonian.Hamiltonian':
-    """Look at the structure of the (1, 0) component of the one body matrix and
+    """Look at the structure of the (1, 0) component of the one-body matrix and
     determine the symmetries.
 
     Args:
-        mat (numpy.ndarray) - input matrix to be processed
+        mat (numpy.ndarray): input matrix to be processed
 
-        norb (int) - the number of orbitals in the system
+        norb (int): the number of orbitals in the system
 
-        e_0 (copmlex) - scalar part of the Hamiltonian
+        e_0 (complex): scalar part of the Hamiltonian
 
     Returns:
-        (Hamiltonian) - resulting Hamiltonian
+        (Hamiltonian): resulting Hamiltonian
     """
     if not numpy.allclose(mat, mat.conj().T):
         raise ValueError('Input matrix is not Hermitian')
 
-    diagonal = True
-
-    for i in range(1, max(norb, mat.shape[0])):
-        for j in range(0, i):
-            if mat[i, j] != 0. + 0.j:
-                diagonal = False
-                break
+    test = numpy.copy(mat)
+    numpy.fill_diagonal(test, 0.0)
+    diagonal = not numpy.any(test)
 
     if diagonal:
         return diagonal_hamiltonian.Diagonal(mat.diagonal(), e_0=e_0)
@@ -309,49 +305,39 @@ def process_rank2_matrix(mat: numpy.ndarray, norb: int,
         return gso_hamiltonian.GSOHamiltonian(tuple([mat]), e_0=e_0)
 
     if numpy.allclose(mat[:norb, :norb], mat[norb:, norb:]):
-        return restricted_hamiltonian.RestrictedHamiltonian(tuple([mat]),
+        return restricted_hamiltonian.RestrictedHamiltonian((mat[:norb, :norb],),
                                                             e_0=e_0)
 
-    spin_mat = numpy.zeros((norb, 2 * norb), dtype=mat.dtype)
-    spin_mat[:, :norb] = mat[:norb, :norb]
-    spin_mat[:, norb:2 * norb] = mat[norb:, norb:]
-    return sso_hamiltonian.SSOHamiltonian(tuple([spin_mat]), e_0=e_0)
+    return sso_hamiltonian.SSOHamiltonian(tuple([mat]), e_0=e_0)
 
 
 def check_diagonal_coulomb(mat: numpy.ndarray) -> bool:
-    """Look at the structure of the two body matrix and determine
+    """Look at the structure of the two-body matrix and determine
     if it is diagonal coulomb
 
     Args:
-        mat (numpy.ndarray) - input two-body Hamiltonian elements
+        mat (numpy.ndarray): input two-body Hamiltonian elements
 
     Returns:
-        (bool) - whether mat is diagonal Coulomb
+        (bool): whether mat is diagonal Coulomb
     """
     dim = mat.shape[0]
     assert mat.shape == (dim, dim, dim, dim)
 
-    for i in range(dim):
-        for j in range(dim):
-            for k in range(dim):
-                for l in range(dim):
-                    if i == k and j == l:
-                        pass
-                    elif mat[i, j, k, l] != 0. + 0.j:
-                        return False
-    return True
-
+    test = numpy.copy(mat).reshape((dim * dim, dim * dim))
+    numpy.fill_diagonal(test, 0.0)
+    return not numpy.any(test)
 
 def wrap_rdm(rdm):
-    """Decorator to convert arguments to the fqe internal classes
+    """Decorator to convert parameters to `Wavefunction.rdm()` \
+       to FQE internal classes.
     """
-
     @wraps(rdm)
     def symmetry_process(self, string, brawfn=None):
         if self.conserve_spin() and not self.conserve_number():
             wfn = self._copy_beta_inversion()
         else:
-            wfn = copy.deepcopy(self)
+            wfn = self
 
         if any(char.isdigit() for char in string):
             if self.conserve_spin() and not self.conserve_number():
@@ -363,7 +349,8 @@ def wrap_rdm(rdm):
 
 
 def wrap_apply(apply):
-    """Decorator to convert arguments to the fqe internal classes
+    """Decorator to convert parameters to `Wavefunction.apply()` \
+       to FQE internal classes.
     """
 
     @wraps(apply)
@@ -371,16 +358,19 @@ def wrap_apply(apply):
         """ Converts an FermionOperator to hamiltonian.Hamiltonian
 
         Args:
-            ops (FermionOperator or Hamiltonian) - input operator
+            ops (FermionOperator or Hamiltonian): input operator
         """
-        hamil = build_hamiltonian(ops, conserve_number=self.conserve_number())
+        hamil = build_hamiltonian(ops,
+                                  norb=self.norb(),
+                                  conserve_number=self.conserve_number())
         return apply(self, hamil)
 
     return convert
 
 
 def wrap_time_evolve(time_evolve):
-    """Decorator to convert arguments to the fqe internal classes
+    """Decorator to convert parameters to `Wavefunction.time_evolve()` \
+       to FQE internal classes.
     """
 
     @wraps(time_evolve)
@@ -391,18 +381,21 @@ def wrap_time_evolve(time_evolve):
         """ Converts an FermionOperator to hamiltonian.Hamiltonian
 
         Args:
-            time (float) - time to be propagated
+            time (float): time to be propagated
 
-            ops (FermionOperator or Hamiltonian) - input operator
+            ops (FermionOperator or Hamiltonian): input operator
         """
-        hamil = build_hamiltonian(ops, conserve_number=self.conserve_number())
+        hamil = build_hamiltonian(ops,
+                                  norb=self.norb(),
+                                  conserve_number=self.conserve_number())
         return time_evolve(self, time, hamil, inplace)
 
     return convert
 
 
 def wrap_apply_generated_unitary(apply_generated_unitary):
-    """Decorator to convert arguments to the fqe internal classes
+    """Decorator to convert parameters to \
+       `Wavefunction.apply_generated_unitary()` to FQE internal classes.
     """
 
     @wraps(apply_generated_unitary)
@@ -414,26 +407,28 @@ def wrap_apply_generated_unitary(apply_generated_unitary):
                 expansion: int = 30,
                 spec_lim: Optional[List[float]] = None):
         """Perform the exponentiation of fermionic algebras to the
-        wavefunction according the method and accuracy.
+        wavefunction according to the method and accuracy.
 
         Args:
-            time (float) - the final time value to evolve to
+            time (float): the final time value to evolve to
 
-            algo (string) - polynomial expansion algorithm to be used
+            algo (string): polynomial expansion algorithm to be used
 
-            hamil (Hamiltonian) - the Hamiltonian used to generate the unitary
+            hamil (Hamiltonian): the Hamiltonian used to generate the unitary
 
-            accuracy (double) - the accuracy to which the system should be evolved
+            accuracy (double): the accuracy to which the system should be evolved
 
-            expansion (int) - the maximum number of terms in the polynomial expansion
+            expansion (int): the maximum number of terms in the polynomial expansion
 
-            spec_lim (List[float]) - spectral range of the Hamiltonian, the length of \
+            spec_lim (List[float]): spectral range of the Hamiltonian, the length of \
                 the list should be 2. Optional.
 
         Returns:
-            newwfn (Wavefunction) - a new intialized wavefunction object
+            newwfn (Wavefunction): a new intialized wavefunction object
         """
-        hamil = build_hamiltonian(ops, conserve_number=self.conserve_number())
+        hamil = build_hamiltonian(ops,
+                                  norb=self.norb(),
+                                  conserve_number=self.conserve_number())
         return apply_generated_unitary(self,
                                        time,
                                        algo,

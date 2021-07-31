@@ -19,6 +19,8 @@ from typing import TYPE_CHECKING, Dict, Tuple
 
 import numpy
 from numpy.ctypeslib import ndpointer
+import scipy
+from scipy import special
 
 from fqe.lib import lib_fqe
 
@@ -42,7 +44,7 @@ def _calculate_Z_matrix(out, norb, nele):
 def _map_deexc(out, inp, index, idx):
     func = lib_fqe.map_deexc
     lena = out.shape[0]
-    lk = out.shape[1] 
+    lk = out.shape[1]
     size = inp.shape[0]
     func.argtypes = [
         ndpointer(
@@ -215,7 +217,7 @@ def _make_mapping_each(out: 'Nparray', strings: 'Nparray',
     func.argtypes = [
         ndpointer(
             shape=(length, 3),
-            dtype=numpy.int64,
+            dtype=numpy.uint64,
             flags=('C_CONTIGUOUS', 'ALIGNED')
         ),
         ndpointer(
@@ -237,3 +239,38 @@ def _make_mapping_each(out: 'Nparray', strings: 'Nparray',
     ]
     return func(out, strings, length,
                 dag, dag.size, undag, undag.size)
+
+
+def _make_mapping_each_set(istrings: 'Nparray', dnv: int, norb: int, nele: int):
+    nsize = int(special.binom(norb-dnv, nele-dnv))
+    msize = int(special.binom(norb, dnv))
+    length = istrings.size
+
+    mapping_down = numpy.zeros((msize, nsize, 3), dtype=numpy.uint64)
+    mapping_up = numpy.zeros((msize, nsize, 3), dtype=numpy.uint64)
+
+    func = lib_fqe.make_mapping_each_set
+    func.argtypes = [
+        ndpointer(
+            shape=(msize, nsize, 3),
+            dtype=numpy.uint64,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        ndpointer(
+            shape=(msize, nsize, 3),
+            dtype=numpy.uint64,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        ndpointer(
+            shape=(length,),
+            dtype=numpy.uint64,
+            flags=('C_CONTIGUOUS', 'ALIGNED')
+        ),
+        c_int,
+        c_int,
+        c_int,
+        c_int,
+        c_int
+    ]
+    func(mapping_down, mapping_up, istrings, length, msize, nsize, dnv, norb)
+    return mapping_down, mapping_up

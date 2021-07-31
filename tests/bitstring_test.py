@@ -14,91 +14,72 @@
 """Test cases for bitstring.py
 """
 
-import unittest
-
 import numpy
+import pytest
 
 from fqe import bitstring
+import fqe.settings
 
-
-class BitstringTest(unittest.TestCase):
-    """Unit tests
+def test_bit_integer_index_val():
+    """The index of bits should start at 0.
     """
+    _gbiti = bitstring.gbit_index(1)
+    assert next(_gbiti) == 0
+    _gbiti = bitstring.gbit_index(11)
+    assert next(_gbiti) == 0
+    assert next(_gbiti) == 1
+    assert next(_gbiti) == 3
 
-    def test_check_conserved_bits_none(self):
-        """Make sure that no bits are still conserved bits
-        """
-        self.assertTrue(bitstring.check_conserved_bits(0, 0))
+def test_bit_integer_index_list(c_or_python):
+    """Make sure sequential integers are returned for a full bitstring
+    """
+    fqe.settings.use_accelerated_code = c_or_python
+    test_list = list(range(8))
+    start = (1 << 8) - 1
+    biti_list = bitstring.integer_index(start)
+    assert (biti_list == test_list).all()
 
-    def test_check_conserved_bits_true_case(self):
-        """Check for a positive conservation result
-        """
-        conserved = 4
-        string0 = 1 + 4 + 8
-        self.assertTrue(bitstring.check_conserved_bits(string0, conserved))
+def test_lexicographic_bitstring_generator_init(c_or_python):
+    """Check that the returned array is empty when arguments are wrong
+    """
+    fqe.settings.use_accelerated_code = c_or_python
+    with pytest.raises(ValueError):
+        bitstring.lexicographic_bitstring_generator(4, 1)
 
-    def test_check_conserved_bits_false_case(self):
-        """Check for a negative conservation result
-        """
-        conserved = 2
-        string0 = 1 + 4 + 8
-        self.assertFalse(bitstring.check_conserved_bits(string0, conserved))
+def test_lexicographic_bitstring_generator_list(c_or_python):
+    """lexicographic bitstrings for a single bit should be the set of binary
+    numbers.
+    """
+    fqe.settings.use_accelerated_code = c_or_python
+    test_list = numpy.array([2**i for i in range(10)], dtype=numpy.int32)
+    _gbitl = bitstring.lexicographic_bitstring_generator(1, 10)
+    assert numpy.array_equal(_gbitl, test_list)
 
-    def test_bit_integer_index_val(self):
-        """The index of bits should start at 0.
-        """
-        _gbiti = bitstring.gbit_index(1)
-        self.assertEqual(next(_gbiti), 0)
-        _gbiti = bitstring.gbit_index(11)
-        self.assertEqual(next(_gbiti), 0)
-        self.assertEqual(next(_gbiti), 1)
-        self.assertEqual(next(_gbiti), 3)
+def test_lexicographic_bitstring_generator_order(c_or_python):
+    """Here is a use case of the lexicographic bitstring routine.
+    """
+    fqe.settings.use_accelerated_code = c_or_python
+    test_data = [3, 5, 6, 9, 10, 12, 17, 18, 20, 24, 33, 34, 36, 40, 48]
+    test_list = numpy.array(test_data, dtype=numpy.int32)
+    _gbitl = bitstring.lexicographic_bitstring_generator(2, 6)
+    assert numpy.array_equal(_gbitl, test_list)
 
-    def test_bit_integer_index_list(self):
-        """Make sure sequential integers are returned for a full bitstring
-        """
-        test_list = list(range(8))
-        start = (1 << 8) - 1
-        biti_list = bitstring.integer_index(start)
-        self.assertEqual(biti_list, test_list)
+def test_count_bits(c_or_python):
+    """Return the number of set bits in the bitstring
+    """
+    fqe.settings.use_accelerated_code = c_or_python
+    assert bitstring.count_bits(0) == 0
+    assert bitstring.count_bits(1 + 2 + 4 + 8 + 32) == 5
 
-    def test_lexicographic_bitstring_generator_init(self):
-        """Check that the returned array is empty when arguments are wrong 
-        """
-        self.assertRaises(ValueError,
-                          bitstring.lexicographic_bitstring_generator, 4, 1)
-
-    def test_lexicographic_bitstring_generator_list(self):
-        """lexicographic bitstrings for a single bit should be the set of binary
-        numbers.
-        """
-        test_list = numpy.array([2**i for i in range(10)], dtype=numpy.int32)
-        _gbitl = bitstring.lexicographic_bitstring_generator(1, 10)
-        self.assertTrue(numpy.array_equal(_gbitl, test_list))
-
-    def test_lexicographic_bitstring_generator_order(self):
-        """Here is a use case of the lexicographic bitstring routine.
-        """
-        test_data = [3, 5, 6, 9, 10, 12, 17, 18, 20, 24, 33, 34, 36, 40, 48]
-        test_list = numpy.array(test_data, dtype=numpy.int32)
-        _gbitl = bitstring.lexicographic_bitstring_generator(2, 6)
-        self.assertTrue(numpy.array_equal(_gbitl, test_list))
-
-    def test_count_bits(self):
-        """Return the number of set bits in the bitstring
-        """
-        self.assertEqual(bitstring.count_bits(0), 0)
-        self.assertEqual(bitstring.count_bits(1 + 2 + 4 + 8 + 32), 5)
-
-    def test_basic_bit_function(self):
-        """Return the number of set bits in the bitstring
-        """
-        workbit = (1 << 8) - 1
-        self.assertEqual(bitstring.get_bit(workbit, 3), 8)
-        self.assertEqual(bitstring.set_bit(workbit, 11), workbit + 2**11)
-        self.assertEqual(bitstring.unset_bit(workbit, 2), workbit - 2**2)
-        self.assertEqual(bitstring.count_bits_above(workbit, 1), 6)
-        self.assertEqual(bitstring.count_bits_below(workbit - 2, 8), 7)
-        self.assertEqual(bitstring.count_bits_between(workbit - 2, 1, 5), 3)
-        self.assertEqual(bitstring.show_bits(1 + 2, nbits=4), '0011')
-        self.assertEqual(bitstring.show_bits(1 + 2 + 16), '0000000000010011')
+def test_basic_bit_function():
+    """Return the number of set bits in the bitstring
+    """
+    workbit = (1 << 8) - 1
+    assert bitstring.get_bit(workbit, 3) == 8
+    assert bitstring.set_bit(workbit, 11) == workbit + 2**11
+    assert bitstring.unset_bit(workbit, 2) == workbit - 2**2
+    assert bitstring.count_bits_above(workbit, 1) == 6
+    assert bitstring.count_bits_below(workbit - 2, 8) == 7
+    assert bitstring.count_bits_between(workbit - 2, 1, 5) == 3
+    assert bitstring.show_bits(1 + 2, nbits=4) == '0011'
+    assert bitstring.show_bits(1 + 2 + 16) == '0000000000010011'

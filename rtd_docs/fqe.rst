@@ -9,9 +9,10 @@ A module for wrapper functions:
    :maxdepth: 2
 
    fqe_control.rst
+   fqe_decorators.rst
 
 
-Modules for wavefunction data structures and underlying utilities: 
+Modules for wavefunction data structures and underlying utilities:
 
 .. toctree::
    :maxdepth: 2

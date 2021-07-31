@@ -31,8 +31,9 @@ import fqe
 from fqe.hamiltonians.restricted_hamiltonian import RestrictedHamiltonian
 from fqe.algorithm.low_rank import (
     evolve_fqe_givens,
-    evolve_fqe_diagaonal_coulomb,
-    double_factor_trotter_evolution,
+    evolve_fqe_givens_sector,
+    evolve_fqe_diagonal_coulomb,
+    double_factor_trotter_evolution
 )
 
 
@@ -194,6 +195,19 @@ def test_fqe_givens():
     assert np.allclose(givens_fqe_wfn.rdm("i^ j^ k l"),
                        final_wfn_test2.rdm("i^ j^ k l"))
 
+def test_fqe_givens_raises():
+    """ Make sure evolve_fqe_givens raises an exception on incorrect input.
+    """
+    fqe_wfn = fqe.Wavefunction([[2, 2, 2]])
+    u = np.zeros((2,2), dtype=np.complex128)
+    with pytest.raises(ValueError):
+        fqe_wfn = evolve_fqe_givens_sector(fqe_wfn, u, sector="test")
+
+    u = np.zeros((3,3), dtype=np.complex128)
+    with pytest.raises(ValueError):
+        fqe_wfn = evolve_fqe_givens_sector(fqe_wfn, u)
+
+
 
 def test_charge_charge_evolution():
     norbs = 4
@@ -209,7 +223,7 @@ def test_charge_charge_evolution():
 
     vij = np.random.random((norbs, norbs))
     vij = vij + vij.T
-    final_fqe_wfn = evolve_fqe_diagaonal_coulomb(initial_fqe_wfn, vij, time)
+    final_fqe_wfn = evolve_fqe_diagonal_coulomb(initial_fqe_wfn, vij, time)
     test_wfn = evolve_wf_diagonal_coulomb(wf=initial_wf, vij_mat=vij, time=time)
     test_wfn = fqe.from_cirq(test_wfn.flatten(), 1.0e-12)
 

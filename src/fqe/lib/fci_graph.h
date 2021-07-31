@@ -61,12 +61,21 @@ void map_to_deexc_alpha_icol(const int32_t ** mappings,
                              const int exc0,
                              const int exc1,
                              const int ldiag);
-int make_mapping_each(int64_t *out,
+int make_mapping_each(uint64_t *out,
                       const uint64_t *strings,
                       const int length,
                       const int32_t *dag,
                       const int dag_length,
                       const int32_t *undag,
                       const int undag_length);
+
+void make_mapping_each_opt(uint64_t *down,
+                           uint64_t *up,
+                           const uint64_t *istrings,
+                           const int length,
+                           const int msize,
+                           const int nsize,
+                           const int dn,
+                           const int norb);
 
 #endif  // SRC_FQE_LIB_FCI_GRAPH_H_

@@ -15,6 +15,7 @@
 */
 
 #include "wick.h"
+#include <stdbool.h>
 #include <assert.h>
 
 /* C-kernel for filling custom RDMs using particle RDMs. */

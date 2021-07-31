@@ -22,7 +22,7 @@
 
 from typing import List, Tuple, TYPE_CHECKING
 
-import numpy as np
+import numpy
 
 from fqe.util import paritysort_list, reverse_bubble_list
 
@@ -32,16 +32,17 @@ if TYPE_CHECKING:
     from openfermion import FermionOperator
 
 
-def antisymm_two_body(h2e: np.ndarray) -> np.ndarray:
+def antisymm_two_body(h2e: numpy.ndarray) -> numpy.ndarray:
     """Given a two body matrix, perform antisymmeterization on the elements.
 
     Args:
-        h2e: Input 2-body tensor.
+        h2e (numpy.ndarray): Inumpyut 2-body tensor.
 
     Returns:
-        Output 2-body tensor.
+        numpy.ndarray: Output 2-body tensor.
     """
-    tmp = np.zeros_like(h2e)
+    assert len(h2e.shape) == 4
+    tmp = numpy.zeros_like(h2e)
     dim = h2e.shape[0]
     for i in range(dim):
         for j in range(dim):
@@ -52,16 +53,17 @@ def antisymm_two_body(h2e: np.ndarray) -> np.ndarray:
     return tmp
 
 
-def antisymm_three_body(h3e: np.ndarray) -> np.ndarray:
+def antisymm_three_body(h3e: numpy.ndarray) -> numpy.ndarray:
     """Given a three body matrix, perform antisymmeterization on the elements.
 
     Args:
-        h3e: Input 3-body tensor.
+        h3e (numpy.ndarray): Inumpyut 3-body tensor.
 
     Returns:
-        Output 3-body tensor.
+        numpy.ndarray: Output 3-body tensor.
     """
-    tmp = np.zeros_like(h3e)
+    assert len(h3e.shape) == 6
+    tmp = numpy.zeros_like(h3e)
     dim = h3e.shape[0]
     for i in range(dim):
         for j in range(dim):
@@ -80,16 +82,17 @@ def antisymm_three_body(h3e: np.ndarray) -> np.ndarray:
     return h3e
 
 
-def antisymm_four_body(h4e: np.ndarray) -> np.ndarray:
+def antisymm_four_body(h4e: numpy.ndarray) -> numpy.ndarray:
     """Given a four body matrix, perform antisymmeterization on the elements.
 
     Args:
-        h4e: Input 4-body tensor.
+        h4e (numpy.ndarray): Inumpyut 4-body tensor.
 
     Returns:
-        Output 4-body tensor.
+        numpy.ndarray: Output 4-body tensor.
     """
-    tmp = np.zeros_like(h4e)
+    assert len(h4e.shape) == 8
+    tmp = numpy.zeros_like(h4e)
     dim = h4e.shape[0]
 
     for i in range(dim):
@@ -160,7 +163,10 @@ def gather_nbody_spin_sectors(operators: 'FermionOperator') -> Newop:
     passed in {creation}{annihilation} order.
 
     Args:
-        operators: Operators in the FermionOperator format.
+        operators (FermionOperator): Operators in the FermionOperator format.
+
+    Returns:
+        Newop
     """
     # Get the indices of the elements
     nalpha = 0
@@ -196,7 +202,7 @@ def gather_nbody_spin_sectors(operators: 'FermionOperator') -> Newop:
     return coeff, (-1)**nswaps, indexes[:nalpha], indexes[nalpha:]
 
 
-def nbody_matrix(ops: 'FermionOperator', norb: int) -> np.ndarray:
+def nbody_matrix(ops: 'FermionOperator', norb: int) -> numpy.ndarray:
     """Parse the creation and annihilation operators and return a sparse matrix
     with the elements of the matrix filled with the convention
 
@@ -206,23 +212,33 @@ def nbody_matrix(ops: 'FermionOperator', norb: int) -> np.ndarray:
             1 2 3 ... 1 2 3 ...
 
     Args:
-        ops: Matrix in the FermionOperator format.
-        norb: The number of orbitals in the system.
+        ops (FermionOperator): Matrix in the FermionOperator format.
+
+        norb (int): The number of orbitals in the system.
+
+    Returns:
+        numpy.ndarray: operator in the dense format
     """
     orb_ptr = norb
     orbdim = 2 * norb
 
+    nop = None
     for prod in ops.terms:
-        number_operators = len(prod)
-        mat_dim = [orbdim for _ in range(number_operators)]
-        # TODO: Should `nbodymat` be defined outside the loop?
-        nbodymat = np.zeros(mat_dim, dtype=np.complex128)
+        if nop is None:
+            nop = len(prod)
+        elif len(prod) != nop:
+            raise ValueError("nbody_matrix: FermionOperator inconsistent rank")
+
+    if nop is None:
+        return numpy.empty(0)
+
+    mat_dim = [orbdim for _ in range(nop)]
+    nbodymat = numpy.zeros(mat_dim, dtype=numpy.complex128)
+    for prod in ops.terms:
         mat_ele = [((ele[0] - 1) // 2) + orb_ptr if ele[0] % 2 else ele[0] // 2
                    for ele in prod]
         ele = tuple(mat_ele)
-        con = tuple(reversed(mat_ele))
         sval = complex(ops.terms[prod])
         nbodymat[ele] += sval
-        nbodymat[con] += sval.conjugate()
 
     return nbodymat

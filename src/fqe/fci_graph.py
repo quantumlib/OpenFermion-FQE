@@ -33,7 +33,22 @@ import fqe.settings
 Spinmap = Dict[Tuple[int, ...], Nparray]
 
 
-def map_to_deexc(mappings, states, norbs, nele):
+def map_to_deexc(mappings: Spinmap, states: int, norbs: int, nele: int
+                 ) -> Nparray:
+    """Build map to de-excitations from excitations.
+
+    Args:
+        mappings (Spinmap): Map of excitations
+
+        states (int): number of states
+
+        norb (int): number of orbitals
+
+        nele (int): number of electrons
+
+    Returns:
+        (Nparray): de-excitations
+    """
     lk = nele * (norbs - nele + 1)
     dexc = numpy.zeros((states, lk, 3), dtype=numpy.int32)
     index = numpy.zeros((states,), dtype=numpy.uint32)
@@ -55,12 +70,12 @@ def _get_Z_matrix(norb: int, nele: int) -> Nparray:
     caching already calculated z matrices.
 
     Args:
-        norb (int) - the number of spatial orbitals
+        norb (int): the number of spatial orbitals
 
-        nele (int) - the number of electrons for a single spin case
+        nele (int): the number of electrons for a single spin case
 
-        Returns:
-            Z (Nparray) - The Z matrix for building addresses.
+    Returns:
+        Z (Nparray): The Z matrix for building addresses.
     """
     Z = numpy.zeros((nele, norb), dtype=numpy.int32)
 
@@ -93,15 +108,26 @@ class FciGraph:
     def __init__(self, nalpha: int, nbeta: int, norb: int) -> None:
         """
         Args:
-            nalpha (int) - The number of alpha electrons
+            nalpha (int): The number of alpha electrons
 
-            nbeta (int) - The number of beta electrons
+            nbeta (int): The number of beta electrons
 
-            norb (int) - The number of spatial orbitals such that the total number
+            norb (int): The number of spatial orbitals such that the total number
                 of orbitals is ntot = 2*norb.
 
             _alpha_map and _beta_map are  Dict[Tuple[int,int], Nparray]
         """
+        if norb < 0:
+            raise ValueError(f'norb needs to be >= 0, passed value is {norb}')
+        if nalpha < 0:
+            raise ValueError(f'nalpha needs to be >= 0, passed value is {nalpha}')
+        if nbeta < 0:
+            raise ValueError(f'nbeta needs to be >= 0, passed value is {nbeta}')
+        if nalpha > norb:
+            raise ValueError(f'nalpha needs to be <= norb, passed value is {nbeta}')
+        if nbeta > norb:
+            raise ValueError(f'nbeta needs to be <= norb, passed value is {nbeta}')
+
         self._norb = norb
         self._nalpha = nalpha
         self._nbeta = nbeta
@@ -125,13 +151,20 @@ class FciGraph:
         self._fci_map: Dict[Tuple[int, ...], Tuple[Spinmap, Spinmap]] = {}
 
     def alpha_beta_transpose(self):
+        """
+        Creates a new FciGraph object where the alpha-electrons and
+        beta-electrons and their corresponding determinants are switched.
+
+        Returns:
+            (FciGraph): The transposed instance
+        """
         out = copy.deepcopy(self)
         out._nalpha, out._nbeta = out._nbeta, out._nalpha
         out._lena,   out._lenb  = out._lenb,  out._lena
         out._astr,   out._bstr  = out._bstr,  out._astr
         out._aind,   out._bind  = out._bind,  out._aind
         out._alpha_map, out._beta_map = out._beta_map, out._alpha_map
-        out._dexca,  out.dexcb  = out._dexcb, out._dexca
+        out._dexca,  out._dexcb = out._dexcb, out._dexca
         return out
 
     def insert_mapping(self, dna: int, dnb: int,
@@ -141,11 +174,11 @@ class FciGraph:
         differences for the number of alpha and beta electrons.
 
         Args:
-            dna (int) - the difference in the number of alpha electrons
+            dna (int): the difference in the number of alpha electrons
 
-            dnb (int) - the difference in the number of beta electrons
+            dnb (int): the difference in the number of beta electrons
 
-            mapping_pair (Tuple[Spinmap, Spinmap]) - mapping for alpha and \
+            mapping_pair (Tuple[Spinmap, Spinmap]): mapping for alpha and
                 beta electrons
         """
         self._fci_map[(dna, dnb)] = mapping_pair
@@ -156,14 +189,13 @@ class FciGraph:
         (difference in the number of electrons for alpha and beta)
 
         Args:
-            dna (int) - the difference in the number of alpha electrons
+            dna (int): the difference in the number of alpha electrons
 
-            dnb (int) - the difference in the number of beta electrons
+            dnb (int): the difference in the number of beta electrons
 
         Returns:
-            (Tuple[Spinmap, Spinmap]) - mapping for alpha and beta electrons
+            (Tuple[Spinmap, Spinmap]): mapping for alpha and beta electrons
         """
-        assert (dna, dnb) in self._fci_map
         return self._fci_map[(dna, dnb)]
 
     def _build_mapping(self, strings: Nparray, nele: int, index: Dict[int, int]
@@ -173,11 +205,11 @@ class FciGraph:
         fci_graph.
 
         Args:
-            strings (Nparray) - list of the determinant bitstrings
+            strings (Nparray): list of the determinant bitstrings
 
-            nele (int) - number of electrons in the the determinants
+            nele (int): number of electrons in the the determinants
 
-            index (Dict[int,int])) - list of the indices corresponding to the \
+            index (Dict[int,int])): list of the indices corresponding to the
                 determinant bitstrings
         """
         norb = self._norb
@@ -216,14 +248,13 @@ class FciGraph:
         :math:`a^\\dagger_i a_j`
 
         Args:
-            iorb (int) - orbital index for the creation operator
+            iorb (int): orbital index for the creation operator
 
-            jorb (int) - orbital index for the annhilation operator
+            jorb (int): orbital index for the annhilation operator
 
         Returns:
             (List[Tuple[int, int, int]]) - array of string mapping with phases
         """
-        assert (iorb, jorb) in self._alpha_map.keys()
         return self._alpha_map[(iorb, jorb)]
 
     def beta_map(self, iorb: int, jorb: int) -> List[Tuple[int, int, int]]:
@@ -232,14 +263,13 @@ class FciGraph:
         :math:`a^\\dagger_i a_j`
 
         Args:
-            iorb (int) - orbital index for the creation operator
+            iorb (int): orbital index for the creation operator
 
-            jorb (int) - orbital index for the annhilation operator
+            jorb (int): orbital index for the annhilation operator
 
         Returns:
-            (List[Tuple[int, int, int]]) - array of string mapping with phases
+            (List[Tuple[int, int, int]]): array of string mapping with phases
         """
-        assert (iorb, jorb) in self._beta_map.keys()
         return self._beta_map[(iorb, jorb)]
 
     def lena(self) -> int:
@@ -268,14 +298,14 @@ class FciGraph:
         return self._norb
 
     def _build_strings(self, nele: int,
-                       length: int) -> Tuple[List[int], Dict[int, int]]:
+                       length: int) -> Tuple[Nparray, Dict[int, int]]:
         """Build all bitstrings for index the FCI and their lexicographic index
            for a single spin case.
 
         Args:
-            nele (int) - number of electrons in this graph
+            nele (int): number of electrons in this graph
 
-            length (int) - the largest dimension of the graph
+            length (int): the largest dimension of the graph
 
         Returns:
             An initialized string array for accessing configurations in the FCI
@@ -302,24 +332,24 @@ class FciGraph:
         return string_list, index_list
 
     def string_alpha(self, address: int) -> int:
-        """Retrieve the alpha bitstring reprsentation stored at the address
+        """Retrieve the alpha bitstring representation stored at the address
 
         Args:
-            address (int) - an integer pointing into the fcigraph
+            address (int): an integer pointing into the fcigraph
 
         Returns:
-            (bitstring) - an occupation representation of the configuration
+            (bitstring): an occupation representation of the configuration
         """
         return self._astr[address]
 
     def string_beta(self, address: int) -> int:
-        """Retrieve the beta bitstring reprsentation stored at the address
+        """Retrieve the beta bitstring representation stored at the address
 
         Args:
-            address (int) - an integer pointing into the fcigraph
+            address (int): an integer pointing into the fcigraph
 
         Returns:
-            (bitstring) - an occupation representation of the configuration
+            (bitstring): an occupation representation of the configuration
         """
         return self._bstr[address]
 
@@ -337,10 +367,10 @@ class FciGraph:
         """Retrieve the alpha index stored by it's bitstring
 
         Args:
-            bit_string (bitstring) - an occupation representation of the configuration
+            bit_string (bitstring): an occupation representation of the configuration
 
         Returns:
-            address (int) - an integer pointing into the fcigraph
+            address (int): an integer pointing into the fcigraph
         """
         return self._aind[bit_string]
 
@@ -348,10 +378,10 @@ class FciGraph:
         """Retrieve the beta bitstring reprsentation stored at the address
 
         Args:
-            bit_string (bitstring) - an occupation representation of the configuration
+            bit_string (bitstring): an occupation representation of the configuration
 
         Returns:
-            address (int) - an integer pointing into the fcigraph
+            address (int): an integer pointing into the fcigraph
         """
         return self._bind[bit_string]
 
@@ -373,21 +403,25 @@ class FciGraph:
         index into the CI matrix.
 
         Args:
-            nele (int) - the number of electrons for a single spin case
+            nele (int): the number of electrons for a single spin case
 
-            norb (int) - the number of spatial orbitals
+            norb (int): the number of spatial orbitals
 
-            occupation (list[int]) - a list with integers indicating the index
+            occupation (list[int]): a list with integers indicating the index
                 of the occupied orbitals starting from 0
 
         Returns:
-            address (int) - A pointer into a spin a block of the CI addressing
+            address (int): A pointer into a spin a block of the CI addressing
                 system
         """
         Z = _get_Z_matrix(norb, nele)
         return sum(Z[i, occupation[i]] for i in range(nele))
 
     def _get_block_mappings(self, max_states=100, jorb=None):
+        """Internal function that blocks the mappings in pieces of max_states
+        width for both alpha and beta determinants. When jorb is not None, get
+        mappings are restricted to the ones with (i, j) == (i, jorb).
+        """
         from itertools import product
 
         def split(maps, totstates, max_states):
@@ -402,26 +436,21 @@ class FciGraph:
             totmaps = numpy.asarray(
                 sorted(totmaps, key=lambda x: (x[1], x[0])),
                 dtype=numpy.int32
-            )
+            ).reshape(-1, 4)
             rangelist = list(range(0, totstates, max_states)) + [totstates]
             dat = []
             for begin, end in zip(rangelist, rangelist[1:]):
                 indexes1 = numpy.logical_and(end > totmaps[:, 1],
                                              totmaps[:, 1] >= begin)
-                indexes2 = numpy.logical_and(end > totmaps[:, 2],
-                                             totmaps[:, 2] >= begin)
 
-                map1 = numpy.sort(totmaps[indexes1].view('i4,i4,i4,i4'),
-                                  order=['f0', 'f1']).view(numpy.int32)
-                map2 = numpy.sort(totmaps[indexes2].view('i4,i4,i4,i4'),
-                                  order=['f0', 'f1']).view(numpy.int32)
-                dat.append([range(begin, end), map1, map2])
+                mp = numpy.sort(totmaps[indexes1].view('i4,i4,i4,i4'),
+                                order=['f0', 'f1']).view(numpy.int32)
+                dat.append([range(begin, end), mp])
             return dat
 
         adat = split(self._alpha_map, self.lena(), max_states)
         bdat = split(self._beta_map, self.lenb(), max_states)
-        return [(ar, br, (am1, am2), (bm1, bm2))
-                for (ar, am1, am2), (br, bm1, bm2) in product(adat, bdat)]
+        return [(ar, br, am, bm) for (ar, am), (br, bm) in product(adat, bdat)]
 
     def _map_to_deexc_alpha_icol(self):
         """Internal function for generating mapping for column-wise application
@@ -432,7 +461,7 @@ class FciGraph:
         length = int(binom(norb - 1, nele - 1))
         length2 = int(binom(norb - 1, nele))
 
-        exc = numpy.zeros((norb, length2, norb - nele, 3), dtype=numpy.int32)
+        exc = numpy.zeros((norb, length2, nele, 3), dtype=numpy.int32)
         diag = numpy.zeros((norb, length,), dtype=numpy.int32)
         index = numpy.zeros((norb, length2,), dtype=numpy.int32)
         astrings = self.string_alpha_all()
@@ -441,7 +470,6 @@ class FciGraph:
                 exc, diag, index, astrings, norb, self._alpha_map
             )
         else:
-            counter = numpy.zeros((norb, length2,), dtype=int)
             alpha = numpy.ones((norb, self.lena()), dtype=int) * -1
             count = numpy.zeros(norb, dtype=int)
             for i, astring in enumerate(astrings):
@@ -454,6 +482,7 @@ class FciGraph:
             assert numpy.all(numpy.equal(count, length2))
             icounter = numpy.zeros(norb, dtype=int)
 
+            counter = numpy.zeros((norb, length2,), dtype=int)
             for (i, j), values in self._alpha_map.items():
                 icol = j
                 if i != j:
@@ -468,11 +497,33 @@ class FciGraph:
                         assert parity == 1
                         diag[icol, icounter[icol]] = target
                         icounter[icol] += 1
+            assert numpy.all(numpy.equal(counter, exc.shape[2]))
 
         return index, exc, diag
 
     def make_mapping_each(self, result: 'Nparray', alpha: bool,
                           dag: List[int], undag: List[int]) -> int:
+        """Generates the mapping for an the alpha or beta part of an individual
+        operator onto the given FciGraph. The operator should be particle
+        number conserving.
+
+        Args:
+            result ('Nparray'): The filled in mapping
+                [origin index, target determinant, parity]
+
+            alpha (bool): True or false if the alpha or beta part of the
+                individual operator is being treated, respectively.
+
+            dag (List[int]): List of orbitals where the creation operators are
+                applied.
+
+            undag (List[int]): List of orbitals where the annihilation
+                operators are applied.
+
+        Returns:
+            (int): The total number of mappings filled in `result`.
+
+        """
         if alpha:
             strings = self.string_alpha_all()
             length = self.lena()
@@ -498,7 +549,7 @@ class FciGraph:
                 current = int(strings[index])
 
                 check = (current & dag_mask) == 0 and \
-                        (current & undag_mask ^ undag_mask) == 0
+                    (current & undag_mask ^ undag_mask) == 0
                 if check:
                     parity = 0
                     for i in reversed(undag):
@@ -507,13 +558,7 @@ class FciGraph:
                     for i in reversed(dag):
                         parity += count_bits_above(current, i)
                         current = set_bit(current, i)
-                    result[count, 0] = index
-                    result[count, 1] = current
-                    result[count, 2] = (-1)**parity
+                    result[count, :] = index, current, parity % 2
                     count += 1
         return count
 
-
-if __name__ == "__main__":
-    fcig = FciGraph(4, 4, 8)
-    print(fcig._alpha_map[(3, 7)])

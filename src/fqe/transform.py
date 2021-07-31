@@ -17,13 +17,11 @@ that provide interoperability.
 
 from typing import TYPE_CHECKING, Optional
 
-from openfermion import FermionOperator, BinaryCode
-
 import numpy
-import fqe.settings
-
+from openfermion import FermionOperator, BinaryCode
 from cirq import LineQubit
 
+import fqe.settings
 from fqe.cirq_utils import qubit_projection
 from fqe.openfermion_utils import convert_qubit_wfn_to_fqe_syntax
 from fqe.openfermion_utils import fci_qubit_representation
@@ -44,22 +42,22 @@ def cirq_to_fqe_single(cirq_wfn: numpy.ndarray, nele: int, m_s: int,
 
         |\\Psi\\rangle &= \\mathrm{(qubit\\ operators)}|0 0\\cdots\\rangle
         = \\mathrm{(Fermion\\ Operators)}|\\mathrm{vac}\\rangle \\\\
-        |\\Psi\\rangle &= \\sum_iC_i \\mathrm{ops}_{i}|\\mathrm{vac}>
+        |\\Psi\\rangle &= \\sum_iC_i \\mathrm{ops}_{i}|\\mathrm{vac}\\rangle
 
-    where the c_{i} are the projection of the wavefunction onto a FCI space.
+    where the :math:`c_{i}` are the projection of the wavefunction onto a FCI space.
 
     Args:
-        cirq_wfn (numpy.array(ndim=1, numpy.dtype=complex64)) - coeffcients in \
+        cirq_wfn (numpy.array(ndim=1, numpy.dtype=complex128)): coeffcients in \
             the qubit basis.
 
-        nele (int) - the number of electrons
+        nele (int): the number of electrons
 
-        m_s (int) - the s_z spin angular momentum
+        m_s (int): the s_z spin angular momentum
 
-        qubiin (LineQUibit) - LineQubits to process the representation
+        qubiin (LineQubit): LineQubits to process the representation.
 
     Returns:
-        FermionOperator
+        (FermionOperator)
     """
     if nele == 0:
         return FermionOperator('', cirq_wfn[0] * 1.)
@@ -89,15 +87,19 @@ def from_cirq_old(wfn: 'Wavefunction', state: numpy.ndarray) -> None:
     """For each availble FqeData structure, find the projection onto the cirq
     wavefunction and set the coefficients to the proper value.
 
+    This is the old Python implementation of `from_cirq`. It is advised to use the
+    function `from_cirq` instead, which may select an accelerated C codepath
+    if available.
+
     Args:
-        wfn (wavefunction.Wavefunction) - an Fqe Wavefunction to fill from the \
+        wfn (wavefunction.Wavefunction): an FQE Wavefunction to fill from the \
             cirq wavefunction
 
-        state (numpy.array(numpy.dtype=complex64)) - a cirq state to convert \
-            into an Fqe wavefunction
+        state (numpy.array(numpy.dtype=complex128)): a cirq state to convert \
+            into an FQE wavefunction
 
     Returns:
-        nothing - mutates the wfn in place
+        nothing: mutates the wfn in place
     """
     nqubits = int(numpy.log2(state.size))
     for key in wfn.sectors():
@@ -113,20 +115,20 @@ def from_cirq(wfn: 'Wavefunction', state: numpy.ndarray,
     """For each availble FqeData structure, find the projection onto the cirq
     wavefunction and set the coefficients to the proper value.
 
-    Cirq coefficients that have zero projection onto the wfn are ignored. It is
-    up to the user's own descretion to provide a correct Wavefunction.
+    Cirq coefficients that have zero projection onto `wfn` are ignored. It is
+    up to the user's own descretion to provide a correct wavefunction.
 
     If in doubt, the user can use `fqe.from_cirq`, which initializes the
-    Wavefunction for you.
+    Wavefunction.
 
     Args:
-        wfn (wavefunction.Wavefunction) - an Fqe Wavefunction to fill from the \
+        wfn (wavefunction.Wavefunction): an FQE Wavefunction to fill from the \
             cirq wavefunction
 
-        state (numpy.array(numpy.dtype=complex64)) - a cirq state to convert \
-            into an Fqe wavefunction
+        state (numpy.array(numpy.dtype=complex128)): a cirq state to convert \
+            into an FQE wavefunction
 
-        binarycode (Optional[openfermion.ops.BinaryCode]) - binary code to \
+        binarycode (Optional[openfermion.ops.BinaryCode]): binary code to \
             encode the fermions to the qbit bosons. If None given,
             Jordan-Wigner transform is assumed.
 
