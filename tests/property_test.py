@@ -21,7 +21,7 @@ from scipy.special import binom
 
 import fqe
 from fqe.wavefunction import Wavefunction
-from fqe.hamiltonians import general_hamiltonian
+from fqe.hamiltonians import restricted_hamiltonian
 from fqe.fqe_ops.fqe_ops import (
     NumberOperator,
     S2Operator,
@@ -41,7 +41,7 @@ def test_lih_energy():
     nele = nalpha + nbeta
     h1e, h2e, lih_ground = build_lih_data.build_lih_data('energy')
 
-    elec_hamil = general_hamiltonian.General((h1e, h2e))
+    elec_hamil = restricted_hamiltonian.RestrictedHamiltonian((h1e, h2e))
     wfn = Wavefunction([[nele, nalpha - nbeta, norb]])
     wfn.set_wfn(strategy='from_data',
                 raw_data={(nele, nalpha - nbeta): lih_ground})
