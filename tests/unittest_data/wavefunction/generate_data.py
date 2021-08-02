@@ -20,6 +20,7 @@ from fqe.wavefunction import Wavefunction
 from openfermion import FermionOperator
 from fqe.hamiltonians import sparse_hamiltonian, diagonal_hamiltonian
 from fqe import get_restricted_hamiltonian
+from fqe import get_gso_hamiltonian
 from fqe import get_diagonalcoulomb_hamiltonian
 
 datadir = os.path.join(os.path.dirname(os.path.abspath(__file__)))
@@ -117,7 +118,10 @@ def generate_data(param):
     h1e = build_H1(norbs, full=full)
     h2e = build_H2(norbs, full=full)
     e_0 = rng.uniform() + rng.uniform() * 1j
-    hamil = get_restricted_hamiltonian((h1e, h2e,), e_0=e_0)
+    if not full:
+        hamil = get_restricted_hamiltonian((h1e, h2e,), e_0=e_0)
+    else:
+        hamil = get_gso_hamiltonian((h1e, h2e,), e_0=e_0)
     hamil._conserve_number = number_conserving
     try:
         out = wfn.apply(hamil)
@@ -137,7 +141,10 @@ def generate_data(param):
     }
 
     # Quadratic Ham
-    hamil = get_restricted_hamiltonian((h1e,))
+    if not full:
+        hamil = get_restricted_hamiltonian((h1e,))
+    else:
+        hamil = get_gso_hamiltonian((h1e,))
     hamil._conserve_number = number_conserving
     try:
         out = wfn.apply(hamil)
