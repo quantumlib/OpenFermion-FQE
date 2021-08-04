@@ -95,7 +95,12 @@ class FqeData:
         else:
             self._core = fcigraph
         self._dtype = dtype
-        self._low_thresh = 0.3
+
+        if fqe.settings.use_accelerated_code:
+            # Use the same C extension for both cases by default
+            self._low_thresh = 0.0
+        else:
+            self._low_thresh = 0.3
         self._nele = self.nalpha() + self.nbeta()
         self._m_s = self.nalpha() - self.nbeta()
         self.coeff = numpy.zeros((self.lena(), self.lenb()),

@@ -1326,6 +1326,7 @@ def test_lowfilling_2_body(c_or_python):
           ]],
         dtype=numpy.complex128)
     work = fqe_data.FqeData(2, 2, norb)
+    work._low_thresh = 0.3 # enable low-filling code for C and python
     work.coeff = numpy.copy(wfn)
     test = work.apply(tuple([h1e_spa, h2e_spa]))
     assert numpy.allclose(numpy.multiply(wfn, scale), test.coeff)
