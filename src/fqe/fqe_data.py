@@ -26,7 +26,7 @@
 #pylint: disable=dangerous-default-value
 import copy
 import itertools
-from typing import List, Optional, Tuple, Callable, Generator, \
+from typing import List, Optional, Tuple, Callable, Iterator, \
                    TYPE_CHECKING
 
 import numpy
@@ -2666,7 +2666,7 @@ class FqeData:
         """
         return self._nele
 
-    def generator(self) -> Generator[int, int, complex]:
+    def generator(self) -> Iterator[Tuple[int, int, complex]]:
         """Generator for configurations in the FqeData object
         """
         for inda in range(self._core.lena()):

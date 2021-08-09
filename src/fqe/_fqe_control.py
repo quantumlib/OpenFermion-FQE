@@ -140,8 +140,8 @@ def get_number_conserving_wavefunction(nele: int, norb: int) -> 'Wavefunction':
     return wavefunction.Wavefunction(param, broken=['spin'])
 
 
-def Wavefunction(
-        param: List[List[int]],  # pylint: disable=function-redefined
+def Wavefunction(  # type: ignore # pylint: disable=function-redefined
+        param: List[List[int]],
         broken: Optional[Union[List[str], str]] = None) -> 'Wavefunction':
     """Initialize a wavefunction through the fqe namespace
 

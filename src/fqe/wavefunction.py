@@ -764,7 +764,7 @@ class Wavefunction:
             sval (complex): value to scale by
         """
 
-        sval = complex(sval)
+        sval = complex(sval)  # type: ignore
 
         for sector in self._civec.values():
             sector.scale(sval)
