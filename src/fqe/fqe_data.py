@@ -439,7 +439,7 @@ class FqeData:
         array_for_dimensions = next(
             filter(lambda x: isinstance(x, numpy.ndarray), array), False)
 
-        if type(array_for_dimensions) is bool:
+        if isinstance(array_for_dimensions, bool):
             # this can only be False
             assert (not array_for_dimensions)
             return
