@@ -17,6 +17,7 @@
 import unittest
 import fqe.settings
 
+
 class AcceleratedCodeValuesIterator:
     """ Class that permits iteration over all possible values of
         use_accelerated_code, depending on compile/runtime options.
@@ -26,6 +27,7 @@ class AcceleratedCodeValuesIterator:
         check whether the package was configured with/without
         accelerated code in the future.
     """
+
     def __init__(self, init=False):
         self.value = int(init)
 
@@ -42,11 +44,13 @@ class AcceleratedCodeValuesIterator:
         #else:
         raise StopIteration
 
+
 class FQETestCase(unittest.TestCase):
     """ Base class for FQE test cases.
         Allows for easy performing of test for both accelerated
         and unaccelerated codes by iterating over
         self_accelerated_code_values
     """
+
     def setUp(self):
         self.accelerated_code_values = AcceleratedCodeValuesIterator()

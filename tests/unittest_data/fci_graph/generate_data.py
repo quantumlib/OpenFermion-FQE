@@ -25,12 +25,8 @@ def generate_data(nalpha, nbeta, norb):
     data = {}
     graph = FciGraph(nalpha, nbeta, norb)
     data['graph'] = graph
-    operator_list = [
-        [[0, 2, 3], [1, 0, 5]],
-        [[1], [1]],
-        [[], [4]],
-        [[0, 2, 3], [4, 5]]
-    ]
+    operator_list = [[[0, 2, 3], [1, 0, 5]], [[1], [1]], [[], [4]],
+                     [[0, 2, 3], [4, 5]]]
     data['make_mapping_each'] = \
         generate_data_make_mapping_each(graph, operator_list)
     data['map_to_deexc_alpha_icol'] = \

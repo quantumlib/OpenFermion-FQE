@@ -17,6 +17,7 @@ import pytest
 import numpy
 from fqe.lib.linalg import _zimatadd, _transpose
 
+
 def test_zimatadd():
     """Testing zimatadd"""
     data = numpy.random.rand(3, 2) + 1.j * numpy.random.rand(3, 2)
@@ -24,20 +25,20 @@ def test_zimatadd():
     factor = 1.2 + 2.3j
     ref = out + data.T * factor
     _zimatadd(out, data, factor)
-    assert numpy.allclose(out, ref) 
+    assert numpy.allclose(out, ref)
 
     with pytest.raises(ValueError):
         out2 = numpy.random.rand(2, 2, 3)
         _zimatadd(out2, data, factor)
+
 
 def test_transpose():
     """Testing zimatadd"""
     data = numpy.random.rand(3, 2) + 1.j * numpy.random.rand(3, 2)
     out = numpy.random.rand(2, 3) + 1.j * numpy.random.rand(2, 3)
     _transpose(out, data)
-    assert numpy.allclose(out, data.T) 
+    assert numpy.allclose(out, data.T)
 
     with pytest.raises(ValueError):
         out2 = numpy.random.rand(2, 2, 3)
         _transpose(out2, data)
-

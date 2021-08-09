@@ -78,7 +78,7 @@ def to_spin1(h1r: np.ndarray, asymmetric: bool = False) -> np.ndarray:
         (np.ndarray): resulting array
     """
     norb = h1r.shape[0]
-    assert(h1r.shape[1] == norb)
+    assert (h1r.shape[1] == norb)
     n = 2 * norb
     h1e = np.zeros((n, n))
 
@@ -102,9 +102,9 @@ def to_spin2(h2r: np.ndarray, asymmetric: bool = False) -> np.ndarray:
         (np.ndarray): resulting array
     """
     norb = h2r.shape[0]
-    assert(h2r.shape[1] == norb)
-    assert(h2r.shape[2] == norb)
-    assert(h2r.shape[3] == norb)
+    assert (h2r.shape[1] == norb)
+    assert (h2r.shape[2] == norb)
+    assert (h2r.shape[3] == norb)
     n = 2 * norb
     h2e = np.zeros((n, n, n, n))
     h2e[:norb, :norb, :norb, :norb] = h2r
@@ -117,6 +117,7 @@ def to_spin2(h2r: np.ndarray, asymmetric: bool = False) -> np.ndarray:
     h2e[norb:, norb:, norb:, norb:] = prefactor * h2r
 
     return h2e
+
 
 def to_spin3(h3r: np.ndarray, asymmetric: bool = False) -> np.ndarray:
     """
@@ -132,11 +133,11 @@ def to_spin3(h3r: np.ndarray, asymmetric: bool = False) -> np.ndarray:
         (np.ndarray): resulting array
     """
     norb = h3r.shape[0]
-    assert(h3r.shape[1] == norb)
-    assert(h3r.shape[2] == norb)
-    assert(h3r.shape[3] == norb)
-    assert(h3r.shape[4] == norb)
-    assert(h3r.shape[5] == norb)
+    assert (h3r.shape[1] == norb)
+    assert (h3r.shape[2] == norb)
+    assert (h3r.shape[3] == norb)
+    assert (h3r.shape[4] == norb)
+    assert (h3r.shape[5] == norb)
     n = 2 * norb
     h3e = np.zeros((n, n, n, n, n, n))
 
@@ -173,40 +174,55 @@ def to_spin4(h4r: np.ndarray, asymmetric: bool = False) -> np.ndarray:
     """
 
     norb = h4r.shape[0]
-    assert(h4r.shape[1] == norb)
-    assert(h4r.shape[2] == norb)
-    assert(h4r.shape[3] == norb)
-    assert(h4r.shape[4] == norb)
-    assert(h4r.shape[5] == norb)
-    assert(h4r.shape[6] == norb)
-    assert(h4r.shape[7] == norb)
+    assert (h4r.shape[1] == norb)
+    assert (h4r.shape[2] == norb)
+    assert (h4r.shape[3] == norb)
+    assert (h4r.shape[4] == norb)
+    assert (h4r.shape[5] == norb)
+    assert (h4r.shape[6] == norb)
+    assert (h4r.shape[7] == norb)
     n = 2 * norb
     h4e = np.zeros((n, n, n, n, n, n, n, n))
 
     h4e[:norb, :norb, :norb, :norb, :norb, :norb, :norb, :norb] = h4r
 
     prefactor = 2.0 if asymmetric else 1.0
-    h4e[:norb, norb:, :norb, :norb, :norb, norb:, :norb, :norb] = prefactor*h4r
-    h4e[norb:, :norb, :norb, :norb, norb:, :norb, :norb, :norb] = prefactor*h4r
-    h4e[:norb, :norb, norb:, :norb, :norb, :norb, norb:, :norb] = prefactor*h4r
-    h4e[:norb, :norb, :norb, norb:, :norb, :norb, :norb, norb:] = prefactor*h4r
+    h4e[:norb, norb:, :norb, :norb, :norb, norb:, :norb, :
+        norb] = prefactor * h4r
+    h4e[norb:, :norb, :norb, :norb, norb:, :norb, :norb, :
+        norb] = prefactor * h4r
+    h4e[:norb, :norb, norb:, :norb, :norb, :norb, norb:, :
+        norb] = prefactor * h4r
+    h4e[:norb, :norb, :norb, norb:, :norb, :norb, :norb,
+        norb:] = prefactor * h4r
 
     prefactor = 4.0 if asymmetric else 1.0
-    h4e[norb:, norb:, :norb, :norb, norb:, norb:, :norb, :norb] = prefactor*h4r
-    h4e[:norb, norb:, norb:, :norb, :norb, norb:, norb:, :norb] = prefactor*h4r
-    h4e[norb:, :norb, norb:, :norb, norb:, :norb, norb:, :norb] = prefactor*h4r
-    h4e[:norb, norb:, :norb, norb:, :norb, norb:, :norb, norb:] = prefactor*h4r
-    h4e[norb:, :norb, :norb, norb:, norb:, :norb, :norb, norb:] = prefactor*h4r
-    h4e[:norb, :norb, norb:, norb:, :norb, :norb, norb:, norb:] = prefactor*h4r
+    h4e[norb:, norb:, :norb, :norb, norb:, norb:, :norb, :
+        norb] = prefactor * h4r
+    h4e[:norb, norb:, norb:, :norb, :norb, norb:, norb:, :
+        norb] = prefactor * h4r
+    h4e[norb:, :norb, norb:, :norb, norb:, :norb, norb:, :
+        norb] = prefactor * h4r
+    h4e[:norb, norb:, :norb, norb:, :norb, norb:, :norb,
+        norb:] = prefactor * h4r
+    h4e[norb:, :norb, :norb, norb:, norb:, :norb, :norb,
+        norb:] = prefactor * h4r
+    h4e[:norb, :norb, norb:, norb:, :norb, :norb, norb:,
+        norb:] = prefactor * h4r
 
     prefactor = 6.0 if asymmetric else 1.0
-    h4e[norb:, norb:, norb:, :norb, norb:, norb:, norb:, :norb] = prefactor*h4r
-    h4e[norb:, norb:, :norb, norb:, norb:, norb:, :norb, norb:] = prefactor*h4r
-    h4e[:norb, norb:, norb:, norb:, :norb, norb:, norb:, norb:] = prefactor*h4r
-    h4e[norb:, :norb, norb:, norb:, norb:, :norb, norb:, norb:] = prefactor*h4r
+    h4e[norb:, norb:, norb:, :norb, norb:, norb:, norb:, :
+        norb] = prefactor * h4r
+    h4e[norb:, norb:, :norb, norb:, norb:, norb:, :norb,
+        norb:] = prefactor * h4r
+    h4e[:norb, norb:, norb:, norb:, :norb, norb:, norb:,
+        norb:] = prefactor * h4r
+    h4e[norb:, :norb, norb:, norb:, norb:, :norb, norb:,
+        norb:] = prefactor * h4r
 
     prefactor = 8.0 if asymmetric else 1.0
-    h4e[norb:, norb:, norb:, norb:, norb:, norb:, norb:, norb:] = prefactor*h4r
+    h4e[norb:, norb:, norb:, norb:, norb:, norb:, norb:,
+        norb:] = prefactor * h4r
 
     return h4e
 
@@ -268,6 +284,7 @@ def build_H2(norb: int, full: bool = False, asymmetric: bool = False) \
         return to_spin2(h2e, asymmetric)
     else:
         return h2e
+
 
 def build_H3(norb: int, full: bool = False, asymmetric: bool = False) \
     -> np.ndarray:
@@ -375,6 +392,7 @@ def build_gso(norb: int) -> Tuple[np.ndarray, ...]:
     """
 
     return build_restricted(2 * norb, full=False)
+
 
 def build_sso(norb: int) -> Tuple[np.ndarray, ...]:
     """ Build a test Hamiltonian that mimics a SSO Hamiltonian structure.

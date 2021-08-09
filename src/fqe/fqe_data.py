@@ -66,7 +66,7 @@ class FqeData:
                  nbeta: int,
                  norb: int,
                  fcigraph: Optional[FciGraph] = None,
-                 dtype: 'Dtype'=numpy.complex128) -> None:
+                 dtype: 'Dtype' = numpy.complex128) -> None:
         """The FqeData structure holds the wavefunction for a particular
         configuration and provides an interace for accessing the data through
         the fcigraph functionality.
@@ -103,8 +103,7 @@ class FqeData:
             self._low_thresh = 0.3
         self._nele = self.nalpha() + self.nbeta()
         self._m_s = self.nalpha() - self.nbeta()
-        self.coeff = numpy.zeros((self.lena(), self.lenb()),
-                                 dtype=self._dtype)
+        self.coeff = numpy.zeros((self.lena(), self.lenb()), dtype=self._dtype)
 
     def __getitem__(self, key: Tuple[int, int]) -> complex:
         """Get an item from the fqe data structure by using the knowles-handy
@@ -198,7 +197,8 @@ class FqeData:
 
             for alp_cnf in range(self._core.lena()):
                 for bet_cnf in range(self._core.lenb()):
-                    self.coeff[alp_cnf, bet_cnf] *= alpha[alp_cnf] + beta[bet_cnf]
+                    self.coeff[alp_cnf,
+                               bet_cnf] *= alpha[alp_cnf] + beta[bet_cnf]
 
     def evolve_diagonal(self, array: 'Nparray',
                         inplace: bool = False) -> 'Nparray':
@@ -286,11 +286,10 @@ class FqeData:
             data = numpy.copy(self.coeff)
 
         if fqe.settings.use_accelerated_code:
-            _apply_diagonal_coulomb(data,
-                                    self._core.string_alpha_all(),
-                                    self._core.string_beta_all(),
-                                    diag, array, self.lena(), self.lenb(),
-                                    self.nalpha(), self.nbeta(), self.norb())
+            _apply_diagonal_coulomb(data, self._core.string_alpha_all(),
+                                    self._core.string_beta_all(), diag, array,
+                                    self.lena(), self.lenb(), self.nalpha(),
+                                    self.nbeta(), self.norb())
         else:
             alpha = numpy.zeros((self._core.lena(),), dtype=numpy.complex128)
             beta = numpy.zeros((self._core.lenb(),), dtype=numpy.complex128)
@@ -325,7 +324,8 @@ class FqeData:
                     boccs = self._core.string_beta(bet_cnf)
                     for jnd in integer_index(boccs):
                         ab += aarrays[jnd]
-                    data[alp_cnf, bet_cnf] *= (ab + alpha[alp_cnf] + beta[bet_cnf])
+                    data[alp_cnf, bet_cnf] *= (ab + alpha[alp_cnf] +
+                                               beta[bet_cnf])
 
         return data
 
@@ -355,11 +355,10 @@ class FqeData:
             data = numpy.copy(self.coeff)
 
         if fqe.settings.use_accelerated_code:
-            _diagonal_coulomb(data,
-                              self._core.string_alpha_all(),
-                              self._core.string_beta_all(),
-                              diag, array, self.lena(), self.lenb(),
-                              self.nalpha(), self.nbeta(), self.norb())
+            _diagonal_coulomb(data, self._core.string_alpha_all(),
+                              self._core.string_beta_all(), diag, array,
+                              self.lena(), self.lenb(), self.nalpha(),
+                              self.nbeta(), self.norb())
         else:
             diagexp = numpy.exp(diag)
             arrayexp = numpy.exp(array)
@@ -397,7 +396,8 @@ class FqeData:
                     diag_ele = 1.0
                     for ind in beta_occ[b]:
                         diag_ele *= aarrays[ind]
-                    data[a, b] *= diag_ele * diag_ele * alpha_diag[a] * beta_diag[b]
+                    data[a, b] *= diag_ele * diag_ele * alpha_diag[
+                        a] * beta_diag[b]
 
         return data
 
@@ -436,17 +436,17 @@ class FqeData:
         # Get the first numpy array (i.e. a non-None object) in array
         # and use its dimensions to determine whether we have spatial or spin orbitals
         # Necessary since 1-body operator cam be absent
-        array_for_dimensions = next(filter(lambda x: isinstance(x, numpy.ndarray),
-                                           array), False)
+        array_for_dimensions = next(
+            filter(lambda x: isinstance(x, numpy.ndarray), array), False)
 
         if type(array_for_dimensions) is bool:
             # this can only be False
-            assert(not array_for_dimensions)
+            assert (not array_for_dimensions)
             return
 
         spatial = array_for_dimensions.shape[0] == self.norb()
         ## check correct dimensions in case of spin orbitals
-        if not spatial and array_for_dimensions.shape[0] != 2 *self.norb():
+        if not spatial and array_for_dimensions.shape[0] != 2 * self.norb():
             raise ValueError("Inconsistent number of spin-orbitals in "
                              "operators and wavefunction.")
         if len_arr == 1:
@@ -499,10 +499,22 @@ class FqeData:
             cT = numpy.empty(self.coeff.shape[::-1], dtype=self._dtype)
             _transpose(cT, self.coeff)
 
-            _lm_apply_array1(self.coeff, h1e, self._core._dexca, self.lena(),
-                             self.lenb(), self.norb(), True, out=out)
-            _lm_apply_array1(cT, h1e, self._core._dexcb, self.lenb(),
-                             self.lena(), self.norb(), True, out=out_b)
+            _lm_apply_array1(self.coeff,
+                             h1e,
+                             self._core._dexca,
+                             self.lena(),
+                             self.lenb(),
+                             self.norb(),
+                             True,
+                             out=out)
+            _lm_apply_array1(cT,
+                             h1e,
+                             self._core._dexcb,
+                             self.lenb(),
+                             self.lena(),
+                             self.norb(),
+                             True,
+                             out=out_b)
             _zimatadd(out, out_b, 1.)
             return out
 
@@ -540,9 +552,14 @@ class FqeData:
             out = _lm_apply_array1(self.coeff, h1e[:norb, :norb],
                                    self._core._dexca, self.lena(), self.lenb(),
                                    self.norb(), True)
-            _lm_apply_array1(self.coeff, h1e[norb:, norb:],
-                             self._core._dexcb, self.lena(), self.lenb(),
-                             self.norb(), False, out=out)
+            _lm_apply_array1(self.coeff,
+                             h1e[norb:, norb:],
+                             self._core._dexcb,
+                             self.lena(),
+                             self.lenb(),
+                             self.norb(),
+                             False,
+                             out=out)
             return out
 
         if fqe.settings.use_accelerated_code:
@@ -675,17 +692,21 @@ class FqeData:
         h2e = numpy.moveaxis(copy.deepcopy(h2e), 1, 2) * (-1.0)
         h1e -= numpy.einsum('ikkj->ij', h2e)
 
-        out = _lm_apply_array12_same_spin_opt(
-            self.coeff, h1e, h2e,
-            self._core._dexca, self.lena(), self.lenb(), self.norb())
-        out += _lm_apply_array12_same_spin_opt(
-            self.coeff.T, h1e, h2e,
-            self._core._dexcb, self.lenb(), self.lena(), self.norb()).T
+        out = _lm_apply_array12_same_spin_opt(self.coeff, h1e, h2e,
+                                              self._core._dexca, self.lena(),
+                                              self.lenb(), self.norb())
+        out += _lm_apply_array12_same_spin_opt(self.coeff.T, h1e, h2e,
+                                               self._core._dexcb, self.lenb(),
+                                               self.lena(), self.norb()).T
 
-        _lm_apply_array12_diff_spin_opt(
-            self.coeff, h2e + numpy.einsum('ijkl->klij', h2e),
-            self._core._dexca, self._core._dexcb,
-            self.lena(), self.lenb(), self.norb(), out=out)
+        _lm_apply_array12_diff_spin_opt(self.coeff,
+                                        h2e + numpy.einsum('ijkl->klij', h2e),
+                                        self._core._dexca,
+                                        self._core._dexcb,
+                                        self.lena(),
+                                        self.lenb(),
+                                        self.norb(),
+                                        out=out)
         return out
 
     def _apply_array_spin12_halffilling(self, h1e: 'Nparray',
@@ -730,19 +751,25 @@ class FqeData:
         norb = self.norb()
         h1e -= numpy.einsum('ikkj->ij', h2e)
 
-        out = _lm_apply_array12_same_spin_opt(
-            self.coeff, h1e[:norb, :norb], h2e[:norb, :norb, :norb, :norb],
-            self._core._dexca, self.lena(), self.lenb(), self.norb()
-        )
-        out += _lm_apply_array12_same_spin_opt(
-            self.coeff.T, h1e[norb:, norb:], h2e[norb:, norb:, norb:, norb:],
-            self._core._dexcb, self.lenb(), self.lena(), self.norb()).T
+        out = _lm_apply_array12_same_spin_opt(self.coeff, h1e[:norb, :norb],
+                                              h2e[:norb, :norb, :norb, :norb],
+                                              self._core._dexca, self.lena(),
+                                              self.lenb(), self.norb())
+        out += _lm_apply_array12_same_spin_opt(self.coeff.T, h1e[norb:, norb:],
+                                               h2e[norb:, norb:, norb:, norb:],
+                                               self._core._dexcb, self.lenb(),
+                                               self.lena(), self.norb()).T
 
         h2e_c = h2e[:norb, :norb, norb:, norb:] \
             + numpy.einsum('ijkl->klij', h2e[norb:, norb:, :norb, :norb])
-        _lm_apply_array12_diff_spin_opt(
-            self.coeff, h2e_c, self._core._dexca, self._core._dexcb,
-            self.lena(), self.lenb(), self.norb(), out=out)
+        _lm_apply_array12_diff_spin_opt(self.coeff,
+                                        h2e_c,
+                                        self._core._dexca,
+                                        self._core._dexcb,
+                                        self.lena(),
+                                        self.lenb(),
+                                        self.norb(),
+                                        out=out)
         return out
 
     def _apply_array_spatial12_lowfilling(self, h1e: 'Nparray',
@@ -759,7 +786,7 @@ class FqeData:
             return self._apply_array_spatial12_lowfilling_python(h1e, h2e)
 
     def _apply_array_spatial12_lowfilling_fast(self, h1e: 'Nparray',
-                                          h2e: 'Nparray') -> 'Nparray':
+                                               h2e: 'Nparray') -> 'Nparray':
         """
         Low-filling specialization of the code to calculate application of
         1- and 2-body spatial operators to the wavefunction self.  It returns
@@ -783,13 +810,11 @@ class FqeData:
             alpha_array = self._to_array1(alpha_map, norb)
             intermediate = numpy.zeros(
                 (nlt, int(binom(norb, nalpha - 2)), lenb), dtype=self._dtype)
-            _apply_array12_lowfillingaa(
-                self.coeff, alpha_array, intermediate)
+            _apply_array12_lowfillingaa(self.coeff, alpha_array, intermediate)
 
             intermediate = numpy.tensordot(h2ecomp, intermediate, axes=1)
 
-            _apply_array12_lowfillingaa2(
-                intermediate, alpha_array, out)
+            _apply_array12_lowfillingaa2(intermediate, alpha_array, out)
 
         if self.nalpha() - 1 >= 0 and self.nbeta() - 1 >= 0:
             alpha_map, beta_map = self._core.find_mapping(-1, -1)
@@ -803,21 +828,25 @@ class FqeData:
             _apply_array12_lowfillingab(self.coeff, alpha_array, beta_array,
                                         nalpha, nbeta, intermediate)
             intermediate = numpy.tensordot(h2e, intermediate, axes=2)
-            _apply_array12_lowfillingab2(alpha_array, beta_array,
-                                         nalpha, nbeta, intermediate, out)
+            _apply_array12_lowfillingab2(alpha_array, beta_array, nalpha, nbeta,
+                                         intermediate, out)
 
         if self.nbeta() - 2 >= 0:
             _, beta_map = self._core.find_mapping(0, -2)
             beta_array = self._to_array1(beta_map, norb)
             intermediate = numpy.zeros((nlt, lena, int(binom(norb, nbeta - 2))),
                                        dtype=self._dtype)
-            _apply_array12_lowfillingaa(
-                self.coeff, beta_array, intermediate, alpha=False)
+            _apply_array12_lowfillingaa(self.coeff,
+                                        beta_array,
+                                        intermediate,
+                                        alpha=False)
 
             intermediate = numpy.tensordot(h2ecomp, intermediate, axes=1)
 
-            _apply_array12_lowfillingaa2(
-                intermediate, beta_array, out, alpha=False)
+            _apply_array12_lowfillingaa2(intermediate,
+                                         beta_array,
+                                         out,
+                                         alpha=False)
         return out
 
     def _to_array1(self, maps, norb):
@@ -952,7 +981,7 @@ class FqeData:
             return self._apply_array_spin12_lowfilling_python(h1e, h2e)
 
     def _apply_array_spin12_lowfilling_fast(self, h1e: 'Nparray',
-                                       h2e: 'Nparray') -> 'Nparray':
+                                            h2e: 'Nparray') -> 'Nparray':
         """
         Low-filling specialization of the code to calculate application of
         1- and 2-body spin-orbital operators to the wavefunction self. It
@@ -993,12 +1022,10 @@ class FqeData:
             alpha_array = self._to_array1(alpha_map, norb)
             intermediate = numpy.zeros(
                 (nlt, int(binom(norb, nalpha - 2)), lenb), dtype=self._dtype)
-            _apply_array12_lowfillingaa(
-                self.coeff, alpha_array, intermediate)
+            _apply_array12_lowfillingaa(self.coeff, alpha_array, intermediate)
 
             intermediate = numpy.tensordot(h2ecompa, intermediate, axes=1)
-            _apply_array12_lowfillingaa2(
-                intermediate, alpha_array, out)
+            _apply_array12_lowfillingaa2(intermediate, alpha_array, out)
 
         if self.nalpha() - 1 >= 0 and self.nbeta() - 1 >= 0:
             alpha_map, beta_map = self._core.find_mapping(-1, -1)
@@ -1011,7 +1038,8 @@ class FqeData:
             _apply_array12_lowfillingab(self.coeff, alpha_array, beta_array,
                                         nalpha, nbeta, intermediate)
             intermediate = numpy.tensordot(h2e[:norb, norb:, :norb, norb:],
-                                           intermediate, axes=2)
+                                           intermediate,
+                                           axes=2)
             _apply_array12_lowfillingab2(alpha_array, beta_array, nalpha, nbeta,
                                          intermediate, out)
 
@@ -1020,12 +1048,16 @@ class FqeData:
             beta_array = self._to_array1(beta_map, norb)
             intermediate = numpy.zeros((nlt, lena, int(binom(norb, nbeta - 2))),
                                        dtype=self._dtype)
-            _apply_array12_lowfillingaa(
-                self.coeff, beta_array, intermediate, alpha=False)
+            _apply_array12_lowfillingaa(self.coeff,
+                                        beta_array,
+                                        intermediate,
+                                        alpha=False)
 
             intermediate = numpy.tensordot(h2ecompb, intermediate, axes=1)
-            _apply_array12_lowfillingaa2(
-                intermediate, beta_array, out, alpha=False)
+            _apply_array12_lowfillingaa2(intermediate,
+                                         beta_array,
+                                         out,
+                                         alpha=False)
         return out
 
     def _apply_array_spin12_lowfilling_python(self, h1e: 'Nparray',
@@ -1099,7 +1131,8 @@ class FqeData:
                             intermediate[i, j, targeta, targetb] += 2 * work
 
             intermediate = numpy.tensordot(h2e[:norb, norb:, :norb, norb:],
-                                           intermediate, axes=2)
+                                           intermediate,
+                                           axes=2)
 
             for i in range(norb):
                 for j in range(norb):
@@ -1170,11 +1203,11 @@ class FqeData:
                 for j in range(norb):
                     tmp = odvec[i, j, :, :]
                     tmp2 = self._calculate_dvec_spatial_with_coeff(tmp)
-                    dvec += numpy.tensordot(h3e[:, :, i, :, :, j], tmp2,
+                    dvec += numpy.tensordot(h3e[:, :, i, :, :, j],
+                                            tmp2,
                                             axes=((1, 3), (0, 1)))
         else:
-            dvec = numpy.tensordot(h3e, evec,
-                                   axes=((1, 4, 2, 5), (0, 1, 2, 3)))
+            dvec = numpy.tensordot(h3e, evec, axes=((1, 4, 2, 5), (0, 1, 2, 3)))
 
         if out is not None:
             out -= self._calculate_coeff_spatial_with_dvec(dvec)
@@ -1230,18 +1263,24 @@ class FqeData:
                         odvecb[i, j, :, :])
 
                     dveca += numpy.tensordot(h3e[:n, :n, i, :n, :n, j],
-                                             evecaa, axes=axes)
+                                             evecaa,
+                                             axes=axes)
                     dveca += numpy.tensordot(h3e[:n, :n, n + i, :n, :n, n + j],
-                                          evecab, axes=axes) * symfac
+                                             evecab,
+                                             axes=axes) * symfac
                     dveca += numpy.tensordot(h3e[:n, n:, n + i, :n, n:, n + j],
-                                          evecbb, axes=axes)
+                                             evecbb,
+                                             axes=axes)
 
                     dvecb += numpy.tensordot(h3e[n:, :n, i, n:, :n, j],
-                                             evecaa, axes=axes)
+                                             evecaa,
+                                             axes=axes)
                     dvecb += numpy.tensordot(h3e[n:, :n, n + i, n:, :n, n + j],
-                                          evecab, axes=axes) * symfac
+                                             evecab,
+                                             axes=axes) * symfac
                     dvecb += numpy.tensordot(h3e[:n, n:, n + i, :n, n:, n + j],
-                                          evecbb, axes=axes)
+                                             evecbb,
+                                             axes=axes)
         else:
             symfac = 1.0
             axes = ((1, 4, 2, 5), (0, 1, 2, 3))  # type: ignore
@@ -1316,10 +1355,11 @@ class FqeData:
 
         out = self._apply_array_spatial123(nh1e, nh2e, nh3e, dvec, evec)
 
-        evec = numpy.transpose(
-            numpy.tensordot(h4e, evec, axes=((2, 6, 3, 7), (0, 1, 2, 3))),
-            axes=[0, 2, 1, 3, 4, 5]
-        )
+        evec = numpy.transpose(numpy.tensordot(h4e,
+                                               evec,
+                                               axes=((2, 6, 3, 7), (0, 1, 2,
+                                                                    3))),
+                               axes=[0, 2, 1, 3, 4, 5])
 
         dvec2 = numpy.zeros(dvec.shape, dtype=self._dtype)
         for i in range(norb):
@@ -1363,12 +1403,13 @@ class FqeData:
                                                  h4e[i, k, j, l, k, :, l, :] +
                                                  h4e[j, i, k, l, k, :, l, :] +
                                                  h4e[i, j, k, l, :, k, l, :])
-                            nh3e[i, j, k, :, :, :] += (h4e[k, i, j, l, l, :, :, :] +
-                                                       h4e[j, i, l, k, l, :, :, :] +
-                                                       h4e[i, l, j, k, l, :, :, :] +
-                                                       h4e[i, k, j, l, :, l, :, :] +
-                                                       h4e[i, j, l, k, :, l, :, :] +
-                                                       h4e[i, j, k, l, :, :, l, :])
+                            nh3e[i, j, k, :, :, :] += (
+                                h4e[k, i, j, l, l, :, :, :] +
+                                h4e[j, i, l, k, l, :, :, :] +
+                                h4e[i, l, j, k, l, :, :, :] +
+                                h4e[i, k, j, l, :, l, :, :] +
+                                h4e[i, j, l, k, :, l, :, :] +
+                                h4e[i, j, k, l, :, :, l, :])
 
         (dveca, dvecb) = self.calculate_dvec_spin()
         evecaa = numpy.zeros((norb, norb, norb, norb, lena, lenb),
@@ -1396,10 +1437,11 @@ class FqeData:
             """Tensor contraction and transposition corresponding with
             einsum 'ikmojlnp,mnopxy->ijklxy'
             """
-            return numpy.transpose(
-                numpy.tensordot(A, B, axes=((2, 6, 3, 7), (0, 1, 2, 3))),
-                axes=(0, 2, 1, 3, 4, 5)
-            )
+            return numpy.transpose(numpy.tensordot(A,
+                                                   B,
+                                                   axes=((2, 6, 3, 7), (0, 1, 2,
+                                                                        3))),
+                                   axes=(0, 2, 1, 3, 4, 5))
 
         n = norb  # shorter
         nevecaa = ncon(h4e[:n, :n, :n, :n, :n, :n, :n, :n], evecaa) \
@@ -1445,10 +1487,8 @@ class FqeData:
                                           index[icol], exc[icol], diag[icol],
                                           self.lena(), self.lenb(), icol)
 
-    def apply_columns_recursive_inplace(self,
-                                        mat1: 'Nparray',
-                                        mat2: 'Nparray'
-                                       ) -> None:
+    def apply_columns_recursive_inplace(self, mat1: 'Nparray',
+                                        mat2: 'Nparray') -> None:
         """
         Apply column operators recursively to perform wave function transformation
         under the unitary transfomration of the orbitals. Only called from
@@ -1459,7 +1499,9 @@ class FqeData:
 
             mat2 (Nparray): the beta-beta part of the transformation matrix
         """
-        trans = FqeData(self.nbeta(), self.nalpha(), self.norb(),
+        trans = FqeData(self.nbeta(),
+                        self.nalpha(),
+                        self.norb(),
                         self._core.alpha_beta_transpose(),
                         dtype=self.coeff.dtype)
         buf = trans.coeff.reshape(self.lena(), self.lenb())
@@ -1526,15 +1568,14 @@ class FqeData:
 
         out = copy.deepcopy(self)
         out.coeff.fill(0.0)
-        out.apply_individual_nbody_accumulate(coeff, self,
-                                              daga, undaga, dagb, undagb)
+        out.apply_individual_nbody_accumulate(coeff, self, daga, undaga, dagb,
+                                              undagb)
         return out
 
-    def apply_individual_nbody_accumulate(self,
-                                          coeff: complex, idata: 'FqeData',
-                                          daga: List[int], undaga: List[int],
-                                          dagb: List[int], undagb: List[int]
-                                         ) -> None:
+    def apply_individual_nbody_accumulate(self, coeff: complex,
+                                          idata: 'FqeData', daga: List[int],
+                                          undaga: List[int], dagb: List[int],
+                                          undagb: List[int]) -> None:
         """
         Apply function with an individual operator represented in arrays.
         It is assumed that the operator is spin conserving. The result will
@@ -1588,22 +1629,19 @@ class FqeData:
         parityb_vec[:] = 1 - 2 * ubetamap[:, 2]
 
         if fqe.settings.use_accelerated_code:
-            _apply_individual_nbody1_accumulate(
-                coeff, self.coeff, idata.coeff, alphamap,
-                targetb_vec, sourceb_vec, parityb_vec)
+            _apply_individual_nbody1_accumulate(coeff, self.coeff, idata.coeff,
+                                                alphamap, targetb_vec,
+                                                sourceb_vec, parityb_vec)
         else:
             FqeData._apply_individual_nbody1_accumulate_python(
-                coeff, self.coeff, idata.coeff, alphamap,
-                targetb_vec, sourceb_vec, parityb_vec)
+                coeff, self.coeff, idata.coeff, alphamap, targetb_vec,
+                sourceb_vec, parityb_vec)
 
     @staticmethod
-    def _apply_individual_nbody1_accumulate_python(coeff: 'Nparray',
-                                                   ocoeff: 'Nparray',
-                                                   icoeff: 'Nparray',
-                                                   amap: 'Nparray',
-                                                   btarget: 'Nparray',
-                                                   bsource: 'Nparray',
-                                                   bparity: 'Nparray') -> None:
+    def _apply_individual_nbody1_accumulate_python(
+            coeff: 'Nparray', ocoeff: 'Nparray', icoeff: 'Nparray',
+            amap: 'Nparray', btarget: 'Nparray', bsource: 'Nparray',
+            bparity: 'Nparray') -> None:
         """
         Python version of _apply_individual_nbody1_accumulate
         ported from C from fqe_data.c for compatibility
@@ -1627,7 +1665,8 @@ class FqeData:
         """
         return self._rdm1_blocked(bradata)
 
-    def _rdm1_blocked(self, bradata: Optional['FqeData'] = None,
+    def _rdm1_blocked(self,
+                      bradata: Optional['FqeData'] = None,
                       max_states: int = 100) -> Tuple['Nparray']:
         """
         API for calculating 1-particle RDMs given a wave function. When bradata
@@ -1646,26 +1685,31 @@ class FqeData:
             rdm = numpy.zeros((norb, norb), dtype=bradata._dtype)
             for alpha_range, beta_range, alpha_maps, beta_maps in mappings:
                 dvec = _make_dvec_part(coeff_a, alpha_maps, alpha_range,
-                                      beta_range, norb, self.lena(), self.lenb(),
-                                      True)
-                dvec = _make_dvec_part(coeff_b, beta_maps, alpha_range,
-                                      beta_range, norb, self.lena(), self.lenb(),
-                                      False, out=dvec)
+                                       beta_range, norb, self.lena(),
+                                       self.lenb(), True)
+                dvec = _make_dvec_part(coeff_b,
+                                       beta_maps,
+                                       alpha_range,
+                                       beta_range,
+                                       norb,
+                                       self.lena(),
+                                       self.lenb(),
+                                       False,
+                                       out=dvec)
 
-                rdm[:, :] += numpy.tensordot(dvec, coeffconj[
-                    alpha_range.start:alpha_range.stop,
-                    beta_range.start:beta_range.stop
-                ])
+                rdm[:, :] += numpy.tensordot(
+                    dvec, coeffconj[alpha_range.start:alpha_range.
+                                    stop, beta_range.start:beta_range.stop])
 
             return (numpy.transpose(rdm.conj()),)
         else:
             dvec2 = self.calculate_dvec_spatial()
-            return (numpy.transpose(numpy.tensordot(dvec2.conj(),
-                                                    self.coeff,
-                                                    axes=((2, 3), (0, 1)))), )
+            return (numpy.transpose(
+                numpy.tensordot(dvec2.conj(), self.coeff,
+                                axes=((2, 3), (0, 1)))),)
 
     def rdm12(self, bradata: Optional['FqeData'] = None
-              ) -> Tuple['Nparray', 'Nparray']:
+             ) -> Tuple['Nparray', 'Nparray']:
         """
         API for calculating 1- and 2-particle RDMs given a wave function.
         When bradata is given, it calculates transition RDMs. Depending on the
@@ -1701,7 +1745,7 @@ class FqeData:
         return self._rdm12_halffilling(bradata)
 
     def _rdm12_halffilling(self, bradata: Optional['FqeData'] = None
-                           ) -> Tuple['Nparray', 'Nparray']:
+                          ) -> Tuple['Nparray', 'Nparray']:
         """
         Standard code for calculating 1- and 2-particle RDMs given a
         wavefunction. When bradata is given, it calculates transition RDMs.
@@ -1713,18 +1757,18 @@ class FqeData:
             dvec2 = dvec if bradata is None \
                     else bradata.calculate_dvec_spatial()
             out1 = numpy.transpose(numpy.tensordot(dvec2.conj(), self.coeff))
-            out2 = numpy.transpose(
-                numpy.tensordot(dvec2.conj(), dvec, axes=((2, 3), (2, 3))),
-                axes=(1, 2, 0, 3)) * (-1.0)
+            out2 = numpy.transpose(numpy.tensordot(
+                dvec2.conj(), dvec, axes=((2, 3), (2, 3))),
+                                   axes=(1, 2, 0, 3)) * (-1.0)
 
             for i in range(self.norb()):
                 out2[:, i, i, :] += out1[:, :]
             return out1, out2
 
-
-    def _rdm12_halffilling_blocked(self, bradata: Optional['FqeData'] = None,
+    def _rdm12_halffilling_blocked(self,
+                                   bradata: Optional['FqeData'] = None,
                                    max_states: int = 100
-                                   ) -> Tuple['Nparray', 'Nparray']:
+                                  ) -> Tuple['Nparray', 'Nparray']:
         """
         Standard code for calculating 1- and 2-particle RDMs given a
         wavefunction. When bradata is given, it calculates transition RDMs.
@@ -1741,25 +1785,35 @@ class FqeData:
         rdm1 = numpy.zeros((norb,) * 2, dtype=bradata._dtype)
         rdm2 = numpy.zeros((norb,) * 4, dtype=bradata._dtype)
         for alpha_range, beta_range, alpha_maps, beta_maps in mappings:
-            dvec = _make_dvec_part(coeff_a, alpha_maps, alpha_range,
-                                   beta_range, norb, self.lena(), self.lenb(),
-                                   True)
-            dvec = _make_dvec_part(coeff_b, beta_maps, alpha_range,
-                                   beta_range, norb, self.lena(), self.lenb(),
-                                   False, out=dvec)
+            dvec = _make_dvec_part(coeff_a, alpha_maps, alpha_range, beta_range,
+                                   norb, self.lena(), self.lenb(), True)
+            dvec = _make_dvec_part(coeff_b,
+                                   beta_maps,
+                                   alpha_range,
+                                   beta_range,
+                                   norb,
+                                   self.lena(),
+                                   self.lenb(),
+                                   False,
+                                   out=dvec)
 
-            dvec2 = _make_dvec_part(bcoeff_a, alpha_maps, alpha_range,
-                                    beta_range, norb, self.lena(), self.lenb(),
-                                    True)
-            dvec2 = _make_dvec_part(bcoeff_b, beta_maps, alpha_range,
-                                    beta_range, norb, self.lena(), self.lenb(),
-                                    False, out=dvec2)
+            dvec2 = _make_dvec_part(bcoeff_a, alpha_maps,
+                                    alpha_range, beta_range, norb, self.lena(),
+                                    self.lenb(), True)
+            dvec2 = _make_dvec_part(bcoeff_b,
+                                    beta_maps,
+                                    alpha_range,
+                                    beta_range,
+                                    norb,
+                                    self.lena(),
+                                    self.lenb(),
+                                    False,
+                                    out=dvec2)
 
             dvec2conj = dvec2.conj()
-            rdm1[:, :] += numpy.tensordot(dvec2conj, self.coeff[
-                alpha_range.start:alpha_range.stop,
-                beta_range.start:beta_range.stop
-            ])
+            rdm1[:, :] += numpy.tensordot(
+                dvec2conj, self.coeff[alpha_range.start:alpha_range.
+                                      stop, beta_range.start:beta_range.stop])
             rdm2[:, :, :, :] += \
                 numpy.tensordot(dvec2conj, dvec, axes=((2, 3), (2, 3)))
 
@@ -1769,7 +1823,7 @@ class FqeData:
         return (numpy.transpose(rdm1), rdm2)
 
     def _rdm12_lowfilling_python(self, bradata: Optional['FqeData'] = None
-                                 ) -> Tuple['Nparray', 'Nparray']:
+                                ) -> Tuple['Nparray', 'Nparray']:
         """
         Low-filling specialization of the code for Calculating 1- and 2-particle
         RDMs given a wave function. When bradata is given, it calculates
@@ -1801,7 +1855,8 @@ class FqeData:
             inter = compute_intermediate0(self.coeff)
             inter2 = inter if bradata is None else compute_intermediate0(
                 bradata.coeff)
-            outpack += numpy.tensordot(inter2.conj(), inter,
+            outpack += numpy.tensordot(inter2.conj(),
+                                       inter,
                                        axes=((1, 2), (1, 2)))
 
         if self.nalpha() - 1 >= 0 and self.nbeta() - 1 >= 0:
@@ -1824,7 +1879,8 @@ class FqeData:
             inter = compute_intermediate1(self.coeff)
             inter2 = inter if bradata is None else compute_intermediate1(
                 bradata.coeff)
-            outunpack += numpy.tensordot(inter2.conj(), inter,
+            outunpack += numpy.tensordot(inter2.conj(),
+                                         inter,
                                          axes=((2, 3), (2, 3)))
 
         if self.nbeta() - 2 >= 0:
@@ -1844,7 +1900,8 @@ class FqeData:
             inter = compute_intermediate2(self.coeff)
             inter2 = inter if bradata is None else compute_intermediate2(
                 bradata.coeff)
-            outpack += numpy.tensordot(inter2.conj(), inter,
+            outpack += numpy.tensordot(inter2.conj(),
+                                       inter,
                                        axes=((1, 2), (1, 2)))
 
         out = numpy.zeros_like(outunpack)
@@ -1864,7 +1921,7 @@ class FqeData:
         return self.rdm1(bradata)[0], out
 
     def _rdm12_lowfilling(self, bradata: Optional['FqeData'] = None
-                          ) -> Tuple['Nparray', 'Nparray']:
+                         ) -> Tuple['Nparray', 'Nparray']:
         """
         Low-filling specialization of the code for Calculating 1- and 2-particle
         RDMs given a wave function. When bradata is given, it calculates
@@ -1887,20 +1944,21 @@ class FqeData:
             def compute_intermediate0(coeff):
                 tmp = numpy.zeros((nlt, int(binom(norb, nalpha - 2)), lenb),
                                   dtype=self.coeff.dtype)
-                _apply_array12_lowfillingaa(
-                    self.coeff, alpha_array, tmp)
+                _apply_array12_lowfillingaa(self.coeff, alpha_array, tmp)
                 return tmp
 
             inter = compute_intermediate0(self.coeff)
             inter2 = inter if bradata is None else compute_intermediate0(
                 bradata.coeff)
-            outpack += numpy.tensordot(inter2.conj(), inter,
+            outpack += numpy.tensordot(inter2.conj(),
+                                       inter,
                                        axes=((1, 2), (1, 2)))
 
         if self.nalpha() - 1 >= 0 and self.nbeta() - 1 >= 0:
             alpha_map, beta_map = self._core.find_mapping(-1, -1)
-            inter = numpy.zeros((norb, norb, int(binom(norb, nalpha - 1)),
-                                 int(binom(norb, nbeta - 1))), dtype=self._dtype)
+            inter = numpy.zeros((norb, norb, int(binom(
+                norb, nalpha - 1)), int(binom(norb, nbeta - 1))),
+                                dtype=self._dtype)
 
             alpha_array = self._to_array2(alpha_map, norb)
             beta_array = self._to_array2(beta_map, norb)
@@ -1912,14 +1970,15 @@ class FqeData:
             if bradata is None:
                 inter2 = inter
             else:
-                inter2 = numpy.zeros((norb, norb, int(binom(norb, nalpha - 1)),
-                                     int(binom(norb, nbeta - 1))), dtype=self._dtype)
+                inter2 = numpy.zeros((norb, norb, int(binom(
+                    norb, nalpha - 1)), int(binom(norb, nbeta - 1))),
+                                     dtype=self._dtype)
                 _apply_array12_lowfillingab(bradata.coeff, alpha_array, beta_array, \
                                             nalpha, nbeta, inter2)
 
             # 0.25 needed since _apply_array12_lowfillingab adds a factor 2
-            outunpack += numpy.tensordot(inter2.conj(), inter,
-                                         axes=((2, 3), (2, 3))) * 0.25
+            outunpack += numpy.tensordot(
+                inter2.conj(), inter, axes=((2, 3), (2, 3))) * 0.25
 
         if self.nbeta() - 2 >= 0:
             _, beta_map = self._core.find_mapping(0, -2)
@@ -1928,15 +1987,18 @@ class FqeData:
             def compute_intermediate2(coeff):
                 tmp = numpy.zeros((nlt, lena, int(binom(norb, nbeta - 2))),
                                   dtype=self.coeff.dtype)
-                _apply_array12_lowfillingaa(
-                    self.coeff, beta_array, tmp, alpha=False)
+                _apply_array12_lowfillingaa(self.coeff,
+                                            beta_array,
+                                            tmp,
+                                            alpha=False)
 
                 return tmp
 
             inter = compute_intermediate2(self.coeff)
             inter2 = inter if bradata is None else compute_intermediate2(
                 bradata.coeff)
-            outpack += numpy.tensordot(inter2.conj(), inter,
+            outpack += numpy.tensordot(inter2.conj(),
+                                       inter,
                                        axes=((1, 2), (1, 2)))
 
         out = numpy.zeros_like(outunpack)
@@ -1960,7 +2022,7 @@ class FqeData:
                dvec: 'Nparray' = None,
                dvec2: 'Nparray' = None,
                evec2: 'Nparray' = None
-               ) -> Tuple['Nparray', 'Nparray', 'Nparray']:
+              ) -> Tuple['Nparray', 'Nparray', 'Nparray']:
         """
         Calculates 1- through 3-particle RDMs given a wave function. When
         bradata is given, it calculates transition RDMs.
@@ -1977,19 +2039,20 @@ class FqeData:
         if dvec is None:
             dvec = self.calculate_dvec_spatial()
         if dvec2 is None:
-            dvec2 = dvec if bradata is None else bradata.calculate_dvec_spatial()
+            dvec2 = dvec if bradata is None else bradata.calculate_dvec_spatial(
+            )
 
         out1 = numpy.transpose(numpy.tensordot(dvec2.conj(), self.coeff))
-        out2 = numpy.transpose(
-            numpy.tensordot(dvec2.conj(), dvec, axes=((2, 3), (2, 3))),
-            axes=(1, 2, 0, 3)) * (-1.0)
+        out2 = numpy.transpose(numpy.tensordot(
+            dvec2.conj(), dvec, axes=((2, 3), (2, 3))),
+                               axes=(1, 2, 0, 3)) * (-1.0)
         for i in range(norb):
             out2[:, i, i, :] += out1[:, :]
 
         if evec2 is not None:
-            out3 = -numpy.transpose(
-                numpy.tensordot(evec2.conj(), dvec, axes=((4, 5), (2, 3))),
-                axes=(3, 1, 4, 2, 0, 5))
+            out3 = -numpy.transpose(numpy.tensordot(
+                evec2.conj(), dvec, axes=((4, 5), (2, 3))),
+                                    axes=(3, 1, 4, 2, 0, 5))
         else:
             out3 = numpy.empty((norb,) * 6, dtype=dvec.dtype)
             dvec_conj = dvec.conj()
@@ -2011,7 +2074,7 @@ class FqeData:
         return (out1, out2, out3)
 
     def rdm1234(self, bradata: Optional['FqeData'] = None
-                ) -> Tuple['Nparray', 'Nparray', 'Nparray', 'Nparray']:
+               ) -> Tuple['Nparray', 'Nparray', 'Nparray', 'Nparray']:
         """
         Calculates 1- through 4-particle RDMs given a wave function. When
         bradata is given, it calculates transition RDMs.
@@ -2044,9 +2107,10 @@ class FqeData:
 
         (out1, out2, out3) = self.rdm123(bradata, dvec, dvec2, evec2)
 
-        out4 = numpy.transpose(
-            numpy.tensordot(evec2.conj(), evec, axes=((4, 5), (4, 5))),
-            axes=(3, 1, 4, 6, 2, 0, 5, 7))
+        out4 = numpy.transpose(numpy.tensordot(evec2.conj(),
+                                               evec,
+                                               axes=((4, 5), (4, 5))),
+                               axes=(3, 1, 4, 6, 2, 0, 5, 7))
         for i in range(norb):
             for j in range(norb):
                 for k in range(norb):
@@ -2135,25 +2199,16 @@ class FqeData:
 
         """
         norb = self.norb()
-        dvec = numpy.zeros(
-            (norb, norb, self.lena(), self.lenb()), dtype=self._dtype)
+        dvec = numpy.zeros((norb, norb, self.lena(), self.lenb()),
+                           dtype=self._dtype)
         if fqe.settings.use_accelerated_code:
+            _make_dvec(dvec, coeff, [
+                self.alpha_map(i, j) for i in range(norb) for j in range(norb)
+            ], self.lena(), self.lenb(), True)
             _make_dvec(
-                dvec,
-                coeff,
-                [self.alpha_map(i, j) for i in range(norb) for j in range(norb)],
-                self.lena(),
-                self.lenb(),
-                True
-            )
-            _make_dvec(
-                dvec,
-                coeff,
+                dvec, coeff,
                 [self.beta_map(i, j) for i in range(norb) for j in range(norb)],
-                self.lena(),
-                self.lenb(),
-                False
-            )
+                self.lena(), self.lenb(), False)
         else:
             for i in range(norb):
                 for j in range(norb):
@@ -2164,7 +2219,7 @@ class FqeData:
         return dvec
 
     def _calculate_dvec_spin_with_coeff(self, coeff: 'Nparray'
-                                        ) -> Tuple['Nparray', 'Nparray']:
+                                       ) -> Tuple['Nparray', 'Nparray']:
         """Generate
 
         .. math::
@@ -2283,7 +2338,7 @@ class FqeData:
         return dvec
 
     def _calculate_coeff_spin_with_dvec(self, dvec: Tuple['Nparray', 'Nparray']
-                                        ) -> 'Nparray':
+                                       ) -> 'Nparray':
         """Generate
 
         .. math::
@@ -2299,8 +2354,10 @@ class FqeData:
             beta_maps = [
                 self.beta_map(j, i) for i in range(norb) for j in range(norb)
             ]
-            _make_coeff(dvec[0], out, alpha_maps, self.lena(), self.lenb(), True)
-            _make_coeff(dvec[1], out, beta_maps, self.lena(), self.lenb(), False)
+            _make_coeff(dvec[0], out, alpha_maps, self.lena(), self.lenb(),
+                        True)
+            _make_coeff(dvec[1], out, beta_maps, self.lena(), self.lenb(),
+                        False)
         else:
             for i in range(self.norb()):
                 for j in range(self.norb()):
@@ -2359,9 +2416,10 @@ class FqeData:
             else:
                 self.coeff[xi, yi] *= factor
 
-    def evolve_individual_nbody_nontrivial(
-            self, time: float, coeff: complex, daga: List[int],
-            undaga: List[int], dagb: List[int], undagb: List[int]) -> 'FqeData':
+    def evolve_individual_nbody_nontrivial(self, time: float, coeff: complex,
+                                           daga: List[int], undaga: List[int],
+                                           dagb: List[int],
+                                           undagb: List[int]) -> 'FqeData':
         """
         This code time-evolves a wave function with an individual n-body
         generator which is spin-conserving. It is assumed that :math:`\\hat{T}^2 = 0`.
@@ -2430,11 +2488,11 @@ class FqeData:
 
         out = copy.deepcopy(self)
 
-        out.apply_cos_inplace(time, ncoeff, numbera + dagworka,
-                              undagworka, numberb + dagworkb, undagworkb)
+        out.apply_cos_inplace(time, ncoeff, numbera + dagworka, undagworka,
+                              numberb + dagworkb, undagworkb)
 
-        out.apply_cos_inplace(time, ncoeff, numbera + undagworka,
-                              dagworka, numberb + undagworkb, dagworkb)
+        out.apply_cos_inplace(time, ncoeff, numbera + undagworka, dagworka,
+                              numberb + undagworkb, dagworkb)
         phase = (-1)**((len(daga) + len(undaga)) * (len(dagb) + len(undagb)))
         work_cof = numpy.conj(coeff) * phase * (-1.0j)
 
@@ -2445,8 +2503,8 @@ class FqeData:
                                               daga, undaga, dagb, undagb)
         return out
 
-    def _evaluate_map(self, opa: List[int], oha: List[int],
-                      opb: List[int], ohb: List[int]):
+    def _evaluate_map(self, opa: List[int], oha: List[int], opb: List[int],
+                      ohb: List[int]):
         """
         Utility internal function that performs part of the operations in
         evolve_inplace_individual_nbody_nontrivial, in which alpha and beta
@@ -2482,12 +2540,9 @@ class FqeData:
             bmap = bmap[:counter]
         return amap, bmap
 
-    def apply_cos_inplace(self, time: float, ncoeff: complex,
-                          opa: List[int],
-                          oha: List[int],
-                          opb: List[int],
-                          ohb: List[int]
-                         ) -> None:
+    def apply_cos_inplace(self, time: float, ncoeff: complex, opa: List[int],
+                          oha: List[int], opb: List[int],
+                          ohb: List[int]) -> None:
         """
         Utility internal function that performs part of the operations in
         evolve_inplace_individual_nbody_nontrivial. This function processes
@@ -2637,8 +2692,8 @@ class FqeData:
         return numpy.linalg.norm(self.coeff)
 
     def print_sector(self,
-                     pformat: Optional[Callable[[int, int], str]]=None,
-                     threshold: Optional[float]=0.0001):
+                     pformat: Optional[Callable[[int, int], str]] = None,
+                     threshold: Optional[float] = 0.0001):
         """Iterate over the strings and coefficients and print then
         using the print format
 
@@ -2649,8 +2704,10 @@ class FqeData:
                 printed
         """
         if pformat is None:
+
             def print_format(astr, bstr):
                 return '{0:b}:{1:b}'.format(astr, bstr)
+
             pformat = print_format
 
         print('Sector N = {} : S_z = {}'.format(self._nele, self._m_s))
@@ -2772,10 +2829,10 @@ class FqeData:
             Nparray: the above quantity in numpy array
         """
         dveca, dvecb = self.calculate_dvec_spin()
-        tpdm_ab = numpy.transpose(
-            numpy.tensordot(dveca.conj(), dvecb, axes=((2, 3), (2, 3))),
-            axes=(1, 2, 3, 0)
-        )
+        tpdm_ab = numpy.transpose(numpy.tensordot(dveca.conj(),
+                                                  dvecb,
+                                                  axes=((2, 3), (2, 3))),
+                                  axes=(1, 2, 3, 0))
         return tpdm_ab
 
     def get_aa_tpdm(self) -> Tuple['Nparray', 'Nparray']:
@@ -2788,9 +2845,10 @@ class FqeData:
         """
         dveca, _ = self.calculate_dvec_spin()
         alpha_opdm = numpy.tensordot(dveca, self.coeff.conj(), axes=2)
-        nik_njl_aa = numpy.transpose(
-            numpy.tensordot(dveca.conj(), dveca, axes=((2, 3), (2, 3))),
-            axes=(1, 2, 0, 3))
+        nik_njl_aa = numpy.transpose(numpy.tensordot(dveca.conj(),
+                                                     dveca,
+                                                     axes=((2, 3), (2, 3))),
+                                     axes=(1, 2, 0, 3))
         for ii in range(nik_njl_aa.shape[1]):
             nik_njl_aa[:, ii, ii, :] -= alpha_opdm
         return alpha_opdm, -nik_njl_aa
@@ -2805,9 +2863,10 @@ class FqeData:
         """
         _, dvecb = self.calculate_dvec_spin()
         beta_opdm = numpy.tensordot(dvecb, self.coeff.conj(), axes=2)
-        nik_njl_bb = numpy.transpose(
-            numpy.tensordot(dvecb.conj(), dvecb, axes=((2, 3), (2, 3))),
-            axes=(1, 2, 0, 3))
+        nik_njl_bb = numpy.transpose(numpy.tensordot(dvecb.conj(),
+                                                     dvecb,
+                                                     axes=((2, 3), (2, 3))),
+                                     axes=(1, 2, 0, 3))
         for ii in range(nik_njl_bb.shape[1]):
             nik_njl_bb[:, ii, ii, :] -= beta_opdm
         return beta_opdm, -nik_njl_bb
@@ -2930,9 +2989,11 @@ class FqeData:
         ccckkk_abb = ckckck_abb.transpose(0, 2, 4, 5, 3, 1).copy()
 
         for ii in range(ckckck_bbb.shape[0]):
-            ckckck_bbb[:, ii, ii, :, :, :] += tpdm_swapped[1::2, 1::2, 1::2, 1::2]
+            ckckck_bbb[:, ii, ii, :, :, :] += tpdm_swapped[1::2, 1::2, 1::2, 1::
+                                                           2]
             ckckck_bbb[:, ii, :, :, ii, :] -= tpdm[1::2, 1::2, 1::2, 1::2]
-            ckckck_bbb[:, :, :, ii, ii, :] += tpdm_swapped[1::2, 1::2, 1::2, 1::2]
+            ckckck_bbb[:, :, :, ii, ii, :] += tpdm_swapped[1::2, 1::2, 1::2, 1::
+                                                           2]
             for jj in range(ckckck_bbb.shape[0]):
                 ckckck_bbb[:, ii, ii, jj, jj, :] -= opdm[1::2, 1::2]
         ccckkk_bbb = ckckck_bbb.transpose(0, 2, 4, 5, 3, 1).copy()

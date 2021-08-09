@@ -20,6 +20,7 @@ from fqe.fci_graph import FciGraph
 
 datadir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'fci_graph')
 
+
 def loader(nalpha, nbeta, norb, key):
     filename = f'{nalpha:02d}{nbeta:02d}{norb:02d}.pickle'
     with open(os.path.join(datadir, filename), 'rb') as f:

@@ -224,7 +224,7 @@ def evolve_fqe_charge_charge_sector(wfn: Wavefunction,
 
 
 def evolve_fqe_diagonal_coulomb(wfn: Wavefunction, vij_mat: np.ndarray,
-                                 time=1) -> Wavefunction:
+                                time=1) -> Wavefunction:
     r"""Utility for testing evolution of a full 2^{n} wavefunction via
 
     :math:`exp{-i time * \sum_{i,j, sigma, tau}v_{i, j}n_{i\sigma}n_{j\tau}}.`
@@ -278,8 +278,8 @@ def double_factor_trotter_evolution(initial_wfn: Wavefunction,
     intermediate_wfn = evolve_fqe_givens(initial_wfn, basis_change_unitaries[0])
     for step in range(1, len(basis_change_unitaries)):
         intermediate_wfn = evolve_fqe_diagonal_coulomb(intermediate_wfn,
-                                                        vij_mats[step - 1],
-                                                        deltat)
+                                                       vij_mats[step - 1],
+                                                       deltat)
         intermediate_wfn = evolve_fqe_givens(intermediate_wfn,
                                              basis_change_unitaries[step])
 

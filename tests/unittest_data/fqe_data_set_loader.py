@@ -11,6 +11,7 @@ class FqeDataSetLoader:
     """ FqeDataSetLoader provides an interface to load reference data for
     unit testing.
     """
+
     def __init__(self, nelec, norb):
         """
         Args:
@@ -31,7 +32,7 @@ class FqeDataSetLoader:
             fi = os.path.join(self.file_path, "ci" + nstr + ".npy")
             cr = numpy.fromfile(fr).reshape(sector.coeff.shape)
             ci = numpy.fromfile(fi).reshape(sector.coeff.shape)
-            sector.coeff = cr + 1.j*ci
+            sector.coeff = cr + 1.j * ci
             _data[(nalpha, nbeta)] = sector
         self.data = FqeDataSet(self.nelec, self.norb, _data)
 
@@ -47,14 +48,12 @@ class FqeDataSetLoader:
 
     def get_rdm(self, order):
         """Get the RDM of the specified order."""
-        fr = os.path.join(self.file_path,
-                          "dr" + str(order) + ".npy")
-        fi = os.path.join(self.file_path,
-                          "di" + str(order) + ".npy")
+        fr = os.path.join(self.file_path, "dr" + str(order) + ".npy")
+        fi = os.path.join(self.file_path, "di" + str(order) + ".npy")
         shape = tuple([2 * self.norb] * order * 2)
         dr = numpy.fromfile(fr).reshape(shape)
         di = numpy.fromfile(fi).reshape(shape)
-        return dr + 1.j*di
+        return dr + 1.j * di
 
     def get_indv_ref(self, daga, undaga, dagb, undagb):
         """Get reference coefficients for applications of an
@@ -82,14 +81,12 @@ class FqeDataSetLoader:
             nalpha = self.nelec - nbeta
             nstr = "{:02d}{:02d}{:02d}".format(nalpha, nbeta, self.norb)
             sector = FqeData(nalpha, nbeta, self.norb)
-            crfile = os.path.join(
-                self.file_path, "cr" + nstr + suffix + ".npy")
-            cifile = os.path.join(
-                self.file_path, "ci" + nstr + suffix + ".npy")
+            crfile = os.path.join(self.file_path, "cr" + nstr + suffix + ".npy")
+            cifile = os.path.join(self.file_path, "ci" + nstr + suffix + ".npy")
 
             cr = numpy.fromfile(crfile).reshape(sector.coeff.shape)
             ci = numpy.fromfile(cifile).reshape(sector.coeff.shape)
 
-            sector.coeff = cr + 1.j*ci
+            sector.coeff = cr + 1.j * ci
             _data[(nalpha, nbeta)] = sector
         return FqeDataSet(self.nelec, self.norb, _data)

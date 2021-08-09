@@ -164,4 +164,3 @@ class SSOHamiltonian(hamiltonian.Hamiltonian):
             numpy.ndarray: Transformed one-body Hamiltonian as a numpy.ndarray.
         """
         return trans.conj().T @ self._tensor[2] @ trans
-

@@ -63,4 +63,3 @@ def test_base_hamiltonian():
     assert not test.diagonal()
     assert not test.diagonal_coulomb()
     assert test.conserve_number()
-

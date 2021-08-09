@@ -23,12 +23,9 @@ from numpy.ctypeslib import ndpointer
 from fqe.lib import lib_fqe
 
 
-def _wickfill(target: numpy.ndarray,
-              source: Optional[numpy.ndarray],
-              indices: Optional[numpy.ndarray],
-              factor: float,
-              delta: Optional[numpy.ndarray]
-              ) -> numpy.ndarray:
+def _wickfill(target: numpy.ndarray, source: Optional[numpy.ndarray],
+              indices: Optional[numpy.ndarray], factor: float,
+              delta: Optional[numpy.ndarray]) -> numpy.ndarray:
     """
     This function is an internal utility that wraps a C-implementation to fill
     in custom RDMs using particle RDMs. The result of Wick's theorem is passed
@@ -54,26 +51,12 @@ def _wickfill(target: numpy.ndarray,
     func = lib_fqe.wickfill
 
     func.argtypes = [
-        ndpointer(
-            dtype=numpy.complex128,
-            flags=('C_CONTIGUOUS', 'ALIGNED')
-        ),
-        ndpointer(
-            dtype=numpy.complex128,
-            flags=('C_CONTIGUOUS', 'ALIGNED')
-        ),
-        ndpointer(
-            dtype=numpy.uint32,
-            flags=('C_CONTIGUOUS', 'ALIGNED')
-        ),
-        c_double,
-        ndpointer(
-            dtype=numpy.uint32,
-            flags=('C_CONTIGUOUS', 'ALIGNED')
-        ),
-        c_int,
-        c_int,
-        c_int
+        ndpointer(dtype=numpy.complex128, flags=('C_CONTIGUOUS', 'ALIGNED')),
+        ndpointer(dtype=numpy.complex128, flags=('C_CONTIGUOUS', 'ALIGNED')),
+        ndpointer(dtype=numpy.uint32,
+                  flags=('C_CONTIGUOUS', 'ALIGNED')), c_double,
+        ndpointer(dtype=numpy.uint32, flags=('C_CONTIGUOUS', 'ALIGNED')), c_int,
+        c_int, c_int
     ]
 
     norb = target.shape[0]
@@ -81,11 +64,11 @@ def _wickfill(target: numpy.ndarray,
     trank = len(target.shape) // 2
 
     if indices is None or len(indices) == 0:
-        indices = numpy.zeros((1, ), dtype=numpy.uint32)
+        indices = numpy.zeros((1,), dtype=numpy.uint32)
     if delta is None or len(delta) == 0:
-        delta = numpy.zeros((1, ), dtype=numpy.uint32)
+        delta = numpy.zeros((1,), dtype=numpy.uint32)
     if source is None or len(source) == 0:
-        source = numpy.zeros((1, ), dtype=numpy.complex128)
+        source = numpy.zeros((1,), dtype=numpy.complex128)
 
     # Fixes if target or source is not C contigious
     if not target.flags['C']:

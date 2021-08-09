@@ -42,6 +42,7 @@ from fqe.algorithm.low_rank import evolve_fqe_charge_charge_unrestricted, \
     evolve_fqe_givens_unrestricted
 from fqe.algorithm.algorithm_util import valdemaro_reconstruction
 
+
 class SumOfSquaresOperator:
 
     def __init__(self,
@@ -284,8 +285,7 @@ class VBC:
             # calculate rdms for grad
             _, tpdm = wf.sector((self.nele, self.sz)).get_openfermion_rdms()
             if v_reconstruct:
-                d3 = 6 * valdemaro_reconstruction(
-                    tpdm / 2, self.nele)
+                d3 = 6 * valdemaro_reconstruction(tpdm / 2, self.nele)
             else:
                 d3 = wf.sector((self.nele, self.sz)).get_three_pdm()
 

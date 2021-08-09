@@ -3,7 +3,6 @@ import numpy as np
 import fqe
 import time
 
-
 if __name__ == "__main__":
     norbs = 20
     sz = 0

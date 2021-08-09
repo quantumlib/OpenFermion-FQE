@@ -16,13 +16,16 @@
 from fqe.fqe_ops import fqe_operator
 from fqe import wavefunction
 
+
 def test_operator():
     """Testing abstract FqeOperator class using a dummy class"""
+
     # pylint: disable=useless-super-delegation
     class TestFQEOperator(fqe_operator.FqeOperator):
         """
         This class is just to make sure the abstract FqeOperator class is tested.
         """
+
         def contract(
                 self,
                 brastate: "wavefunction.Wavefunction",
@@ -38,6 +41,6 @@ def test_operator():
 
     test = TestFQEOperator()
     wfn = wavefunction.Wavefunction([[1, 1, 1]])
-    assert round(abs(0.0 + 0.0j-test.contract(wfn, wfn)), 7) == 0
+    assert round(abs(0.0 + 0.0j - test.contract(wfn, wfn)), 7) == 0
     assert "fqe-operator" == test.representation()
     assert 0 == test.rank()

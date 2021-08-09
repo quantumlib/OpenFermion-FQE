@@ -140,8 +140,7 @@ def test_apply_number():
     wfn.set_wfn(strategy='from_data', raw_data={(4, 2): test})
     out2 = wfn.apply(hamil)
 
-    assert numpy.allclose(out1._civec[(4, 2)].coeff,
-                          out2._civec[(4, 2)].coeff)
+    assert numpy.allclose(out1._civec[(4, 2)].coeff, out2._civec[(4, 2)].coeff)
 
 
 def test_apply_type_error():
@@ -161,6 +160,7 @@ def test_apply_type_error():
     with pytest.raises(TypeError):
         wfn.time_evolve(0.1, hamil)
 
+
 def test_apply_value_error():
     data = numpy.zeros((2, 2), dtype=numpy.complex128)
     wfn = Wavefunction([[2, 0, 2]])
@@ -178,6 +178,7 @@ def test_apply_value_error():
     hamil = get_restricted_hamiltonian((data, data2))
     with pytest.raises(ValueError):
         wfn.time_evolve(0.1, hamil, True)
+
 
 def test_apply_individual_nbody_error():
     fop = FermionOperator('1^ 0')
@@ -234,7 +235,7 @@ def test_apply_diagonal_coulomb():
     wfn.set_wfn(strategy='random')
 
     rng = numpy.random.default_rng(680429)
-    vij = 8*rng.uniform(0, 1, size=(norb, norb))
+    vij = 8 * rng.uniform(0, 1, size=(norb, norb))
     h2 = numpy.zeros((norb, norb, norb, norb))
     h1 = numpy.zeros((norb, norb))
     for i in range(norb):
@@ -272,6 +273,7 @@ def test_apply_nbody():
     hamil = sparse_hamiltonian.SparseHamiltonian(fop)
     assert (out1 - wfn.apply(hamil)).norm() < 1e-13
 
+
 def test_apply_few_body():
     wfn = Wavefunction([[2, 0, 2]])
     wfn.set_wfn(strategy='random')
@@ -286,6 +288,7 @@ def test_apply_few_body():
     out = wfn._apply_few_nbody(hamil12)
     assert (ref - out).norm() < 1e-13
 
+
 def test_apply_empty_nbody():
     wfn = Wavefunction([[2, 0, 2]])
     wfn.set_wfn(strategy='random')
@@ -295,14 +298,14 @@ def test_apply_empty_nbody():
     out1 = wfn._apply_few_nbody(hamil)
     assert (wfn - out1).norm() < 1e-13
 
+
 def test_nbody_evolve():
     """Check that 'individual_nbody' is consistent with a general 1-electron op
     """
     norb = 4
     nele = 4
     time = 0.1
-    ops = FermionOperator('0^ 1', 1 - 0.2j) + FermionOperator(
-        '1^ 0', 1 + 0.2j)
+    ops = FermionOperator('0^ 1', 1 - 0.2j) + FermionOperator('1^ 0', 1 + 0.2j)
     sham = fqe.get_sparse_hamiltonian(ops, conserve_spin=False)
 
     h1e = hamiltonian_utils.nbody_matrix(ops, norb)
@@ -314,20 +317,18 @@ def test_nbody_evolve():
     out = wfn._evolve_individual_nbody(time, sham)
 
     hamil = general_hamiltonian.General(tuple([h1e]))
-    ref = wfn.apply_generated_unitary(time,
-                                      'taylor',
-                                      hamil,
-                                      accuracy=1.0e-9)
+    ref = wfn.apply_generated_unitary(time, 'taylor', hamil, accuracy=1.0e-9)
 
     assert (ref - out).norm() < 1.e-8
+
 
 def test_quadratic_evolve():
     norb = 4
     nalpha = 2
     nbeta = 2
     time = 0.1
-    h1e = numpy.zeros((2*norb, 2*norb))
-    h2e = numpy.zeros((2*norb, 2*norb, 2*norb, 2*norb))
+    h1e = numpy.zeros((2 * norb, 2 * norb))
+    h2e = numpy.zeros((2 * norb, 2 * norb, 2 * norb, 2 * norb))
 
     rng = numpy.random.default_rng(826283)
     h1a = rng.uniform(-1, 1, size=(norb, norb))
@@ -352,6 +353,7 @@ def test_quadratic_evolve():
     wfn.time_evolve(time, hamil1, inplace=True)
     assert (ref - wfn).norm() < 1.e-8
 
+
 def test_rdm():
     """Check that the rdms will properly return the energy
     """
@@ -372,7 +374,7 @@ def test_rdm():
     expval += numpy.tensordot(h3e, rdm3, axes=(axes, axes))
     axes = [0, 1, 2, 3, 4, 5, 6, 7]
     expval += numpy.tensordot(h4e, rdm4, axes=(axes, axes))
-    assert round(abs(expval-energy), 13) == 0
+    assert round(abs(expval - energy), 13) == 0
 
 
 def test_expectation_value_type_error():
@@ -407,8 +409,7 @@ def test_save_read():
     read_wfn = Wavefunction()
     read_wfn.read('test_save_read')
     for key in read_wfn.sectors():
-        assert numpy.allclose(read_wfn._civec[key].coeff,
-                              wfn._civec[key].coeff)
+        assert numpy.allclose(read_wfn._civec[key].coeff, wfn._civec[key].coeff)
     assert read_wfn._symmetry_map == wfn._symmetry_map
     assert read_wfn._conserved == wfn._conserved
     assert read_wfn._conserve_spin == wfn._conserve_spin
@@ -424,27 +425,23 @@ def test_wavefunction_print():
     numpy.random.seed(seed=409)
     wfn = get_number_conserving_wavefunction(3, 3)
     sector_alpha_dim, sector_beta_dim = wfn.sector((3, -3)).coeff.shape
-    coeffs = numpy.arange(1,
-                          sector_alpha_dim * sector_beta_dim + 1).reshape(
-                              (sector_alpha_dim, sector_beta_dim))
+    coeffs = numpy.arange(1, sector_alpha_dim * sector_beta_dim + 1).reshape(
+        (sector_alpha_dim, sector_beta_dim))
     wfn.sector((3, -3)).coeff = coeffs
 
     sector_alpha_dim, sector_beta_dim = wfn.sector((3, -1)).coeff.shape
-    coeffs = numpy.arange(1,
-                          sector_alpha_dim * sector_beta_dim + 1).reshape(
-                              (sector_alpha_dim, sector_beta_dim))
+    coeffs = numpy.arange(1, sector_alpha_dim * sector_beta_dim + 1).reshape(
+        (sector_alpha_dim, sector_beta_dim))
     wfn.sector((3, -1)).coeff = coeffs
 
     sector_alpha_dim, sector_beta_dim = wfn.sector((3, 1)).coeff.shape
-    coeffs = numpy.arange(1,
-                          sector_alpha_dim * sector_beta_dim + 1).reshape(
-                              (sector_alpha_dim, sector_beta_dim))
+    coeffs = numpy.arange(1, sector_alpha_dim * sector_beta_dim + 1).reshape(
+        (sector_alpha_dim, sector_beta_dim))
     wfn.sector((3, 1)).coeff = coeffs
 
     sector_alpha_dim, sector_beta_dim = wfn.sector((3, 3)).coeff.shape
-    coeffs = numpy.arange(1,
-                          sector_alpha_dim * sector_beta_dim + 1).reshape(
-                              (sector_alpha_dim, sector_beta_dim))
+    coeffs = numpy.arange(1, sector_alpha_dim * sector_beta_dim + 1).reshape(
+        (sector_alpha_dim, sector_beta_dim))
     wfn.sector((3, 3)).coeff = coeffs
 
     ref_string = 'Sector N = 3 : S_z = -3\n' + \
@@ -521,8 +518,8 @@ def test_hartree_fock_init():
     wfn.print_wfn()
     wfn.set_wfn(strategy='hartree-fock')
     wfn.print_wfn()
-    assert round(abs(wfn.expectationValue(elec_hamil) -
-                     (-8.857341498221992)), 13) == 0
+    assert round(abs(wfn.expectationValue(elec_hamil) - (-8.857341498221992)),
+                 13) == 0
     hf_wf = numpy.zeros((int(binom(norb, 2)), int(binom(norb, 2))))
     hf_wf[0, 0] = 1.
     assert numpy.allclose(wfn.get_coeff((4, 0)), hf_wf)
@@ -536,7 +533,7 @@ def test_hartree_fock_init():
 def test_set_wfn_random_with_multiple_sectors_is_normalized():
     wfn = Wavefunction([[2, 0, 4], [2, -2, 4]], broken=None)
     wfn.set_wfn(strategy="random")
-    assert round(abs(wfn.norm()-1.0), 7) == 0
+    assert round(abs(wfn.norm() - 1.0), 7) == 0
 
 
 def test_iadd():
@@ -583,12 +580,10 @@ def test_number_sectors(param):
         assert FqeDataSet_isclose(numbersectors[k], reference[k])
 
 
-@pytest.mark.parametrize("param,kind", [(c, k) for c in all_cases
-                                        for k in ['apply_array',
-                                                  'apply_sparse',
-                                                  'apply_diagonal',
-                                                  'apply_quadratic',
-                                                  'apply_dc']])
+@pytest.mark.parametrize("param,kind", [(c, k) for c in all_cases for k in [
+    'apply_array', 'apply_sparse', 'apply_diagonal', 'apply_quadratic',
+    'apply_dc'
+]])
 def test_apply(param, kind):
     """Checks _apply_array through the apply API
     """
@@ -604,12 +599,10 @@ def test_apply(param, kind):
         assert Wavefunction_isclose(out, reference_data['wfn_out'])
 
 
-@pytest.mark.parametrize("param,kind", [(c, k) for c in all_cases
-                                        for k in ['apply_array',
-                                                  'apply_sparse',
-                                                  'apply_diagonal',
-                                                  'apply_quadratic',
-                                                  'apply_dc']])
+@pytest.mark.parametrize("param,kind", [(c, k) for c in all_cases for k in [
+    'apply_array', 'apply_sparse', 'apply_diagonal', 'apply_quadratic',
+    'apply_dc'
+]])
 def test_evolve(param, kind):
     """Checks time_evolve through the evolve API
     """
@@ -653,6 +646,7 @@ def test_chebyshev():
     err = (chebyshev - taylor).norm()
     assert err < 1.e-8
 
+
 def test_number_broken_rdm():
     wfn_alpha = Wavefunction([[1, 1, 2]])
     wfn_beta = Wavefunction([[1, -1, 2]])
@@ -661,8 +655,10 @@ def test_number_broken_rdm():
 
     wfn_tot = Wavefunction([[1, 1, 2], [1, -1, 2]], broken=["spin"])
     wfn_tot.set_wfn(strategy='from_data',
-                    raw_data={(1, 1): wfn_alpha._civec[(1, 1)].coeff,
-                              (1, -1): wfn_beta._civec[(1, -1)].coeff})
+                    raw_data={
+                        (1, 1): wfn_alpha._civec[(1, 1)].coeff,
+                        (1, -1): wfn_beta._civec[(1, -1)].coeff
+                    })
 
     rdm_a = wfn_alpha._compute_rdm(4)
     rdm_b = wfn_beta._compute_rdm(4)
@@ -682,10 +678,11 @@ def test_number_broken_rdm():
     assert numpy.allclose(rdm_full3[2][2:, 2:, 2:, 2:, 2:, 2:], rdm_b[2])
 
     rdm_full4 = wfn_tot._compute_rdm(4)
-    assert numpy.allclose(
-        rdm_full4[3][:2, :2, :2, :2, :2, :2, :2, :2], rdm_a[3])
-    assert numpy.allclose(
-        rdm_full4[3][2:, 2:, 2:, 2:, 2:, 2:, 2:, 2:], rdm_b[3])
+    assert numpy.allclose(rdm_full4[3][:2, :2, :2, :2, :2, :2, :2, :2],
+                          rdm_a[3])
+    assert numpy.allclose(rdm_full4[3][2:, 2:, 2:, 2:, 2:, 2:, 2:, 2:],
+                          rdm_b[3])
+
 
 def test_rdm_expectationvalue():
     norb = 4
@@ -725,8 +722,9 @@ def test_rdm_expectationvalue():
     assert abs(trdm01 - texp01) < 1e-13
 
     NtimesOvlp = wfn.expectationValue(Nop, brawfn=brawfn)
-    ref = N*vdot(brawfn, wfn)
+    ref = N * vdot(brawfn, wfn)
     assert abs(ref - NtimesOvlp) < 1e-13
+
 
 def test_time_evolve_broken_symm():
     """Compare spin and number conserving
@@ -747,21 +745,24 @@ def test_time_evolve_broken_symm():
     wfn_spin.set_wfn(strategy='from_data', raw_data={(4, -2): test})
     wfn_spin.normalize()
     wfn_number.set_wfn(strategy='from_data',
-                        raw_data={(2, 0): numpy.flip(test, 1)})
+                       raw_data={(2, 0): numpy.flip(test, 1)})
     wfn_number.normalize()
     spin_evolved = wfn_spin.time_evolve(time, h_noncon)
     number_evolved = wfn_number.time_evolve(time, h_con)
     ref = spin_evolved._copy_beta_inversion()
     hamil = general_hamiltonian.General(h_con.tensors(), e_0=h_noncon.e_0())
-    unitary_evolved = wfn_number.apply_generated_unitary(
-        time, 'taylor', hamil)
+    unitary_evolved = wfn_number.apply_generated_unitary(time, 'taylor', hamil)
     for key in number_evolved.sectors():
         assert numpy.allclose(number_evolved._civec[key].coeff,
-                            ref._civec[key].coeff)
+                              ref._civec[key].coeff)
         assert numpy.allclose(number_evolved._civec[key].coeff,
-                            unitary_evolved._civec[key].coeff)
+                              unitary_evolved._civec[key].coeff)
 
-    assert round(abs(spin_evolved.rdm('2^ 1^')-(-0.004985346234592781 - 0.0049853462345928745j)), 7) == 0
+    assert round(
+        abs(
+            spin_evolved.rdm('2^ 1^') -
+            (-0.004985346234592781 - 0.0049853462345928745j)), 7) == 0
+
 
 def test_broken_number_3body():
     norb = 4
@@ -770,23 +771,20 @@ def test_broken_number_3body():
 
     work = FermionOperator('0^ 1^ 2 3 4^ 6', 3.0 - 1.3j)
     work += hermitian_conjugated(work)
-    h_noncon = fqe.build_hamiltonian(work,
-                                     norb=norb,
-                                     conserve_number=False)
+    h_noncon = fqe.build_hamiltonian(work, norb=norb, conserve_number=False)
 
     gen = fqe.fqe_decorators.normal_ordered(
         fqe.fqe_decorators.transform_to_spin_broken(work))
     matrix = fqe.fqe_decorators.fermionops_tomatrix(gen, norb)
-    h1 = numpy.zeros((2*norb, 2*norb))
-    h2 = numpy.zeros((2*norb, 2*norb, 2*norb, 2*norb))
+    h1 = numpy.zeros((2 * norb, 2 * norb))
+    h2 = numpy.zeros((2 * norb, 2 * norb, 2 * norb, 2 * norb))
 
     hamil = general_hamiltonian.General((h1, h2, matrix))
     hamil._conserve_number = False
 
     wfn_spin.set_wfn(strategy='random')
     nbody_evolved = wfn_spin.time_evolve(time, h_noncon)
-    unitary_evolved = wfn_spin.apply_generated_unitary(
-        time, 'taylor', hamil)
+    unitary_evolved = wfn_spin.apply_generated_unitary(time, 'taylor', hamil)
     for key in nbody_evolved.sectors():
         assert numpy.allclose(nbody_evolved._civec[key].coeff,
-                            unitary_evolved._civec[key].coeff)
+                              unitary_evolved._civec[key].coeff)

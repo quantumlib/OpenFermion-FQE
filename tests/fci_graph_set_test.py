@@ -24,6 +24,7 @@ from tests.unittest_data.fci_graph_set_loader import loader
 
 refs = [(4, 3, 8), (4, 4, 6)]
 
+
 def test_init_from_params():
     """The fci graph set should also be initializable from a prebuilt set
     of parameters.
@@ -37,6 +38,7 @@ def test_init_from_params():
     assert isinstance(test, FciGraphSet)
     assert test._linked == set([((2, 1), (3, 0)), ((1, 2), (2, 1))])
 
+
 def test_append():
     """This function append a FciGraph object to the set. It automatically
     calls a function to link the new FciGraph to the existing ones.
@@ -45,11 +47,14 @@ def test_append():
     test = FciGraphSet(0, 1, params)
     graph = FciGraph(2, 0, 6)
     test.append(graph)
-    assert test._linked == set([((2, 1), (3, 0)), ((1, 2), (2, 1)), ((1, 1), (2, 0))])
+    assert test._linked == set([((2, 1), (3, 0)), ((1, 2), (2, 1)),
+                                ((1, 1), (2, 0))])
 
     betamap = graph._fci_map[(-1, 1)][1]
     for i in range(6):
-        assert numpy.array_equal(betamap[(i,)], numpy.array([[0, i, 1]], dtype=numpy.int32))
+        assert numpy.array_equal(betamap[(i,)],
+                                 numpy.array([[0, i, 1]], dtype=numpy.int32))
+
 
 @pytest.mark.parametrize("nalpha,nbeta,norb", refs)
 def test_vs_ref(c_or_python, nalpha, nbeta, norb):

@@ -33,8 +33,8 @@ import fqe.settings
 Spinmap = Dict[Tuple[int, ...], Nparray]
 
 
-def map_to_deexc(mappings: Spinmap, states: int, norbs: int, nele: int
-                 ) -> Nparray:
+def map_to_deexc(mappings: Spinmap, states: int, norbs: int,
+                 nele: int) -> Nparray:
     """Build map to de-excitations from excitations.
 
     Args:
@@ -88,7 +88,7 @@ def _get_Z_matrix(norb: int, nele: int) -> Nparray:
         for k in range(1, nele):
             for ll in range(k, norb - nele + k + 1):
                 Z[k - 1, ll - 1] = sum(
-                    binom(m, nele-k) - binom(m-1, nele-k-1)
+                    binom(m, nele - k) - binom(m - 1, nele - k - 1)
                     for m in range(norb - ll + 1, norb - k + 1))
         k = nele
         for ll in range(nele, norb + 1):
@@ -120,13 +120,16 @@ class FciGraph:
         if norb < 0:
             raise ValueError(f'norb needs to be >= 0, passed value is {norb}')
         if nalpha < 0:
-            raise ValueError(f'nalpha needs to be >= 0, passed value is {nalpha}')
+            raise ValueError(
+                f'nalpha needs to be >= 0, passed value is {nalpha}')
         if nbeta < 0:
             raise ValueError(f'nbeta needs to be >= 0, passed value is {nbeta}')
         if nalpha > norb:
-            raise ValueError(f'nalpha needs to be <= norb, passed value is {nbeta}')
+            raise ValueError(
+                f'nalpha needs to be <= norb, passed value is {nbeta}')
         if nbeta > norb:
-            raise ValueError(f'nbeta needs to be <= norb, passed value is {nbeta}')
+            raise ValueError(
+                f'nbeta needs to be <= norb, passed value is {nbeta}')
 
         self._norb = norb
         self._nalpha = nalpha
@@ -160,11 +163,11 @@ class FciGraph:
         """
         out = copy.deepcopy(self)
         out._nalpha, out._nbeta = out._nbeta, out._nalpha
-        out._lena,   out._lenb  = out._lenb,  out._lena
-        out._astr,   out._bstr  = out._bstr,  out._astr
-        out._aind,   out._bind  = out._bind,  out._aind
+        out._lena, out._lenb = out._lenb, out._lena
+        out._astr, out._bstr = out._bstr, out._astr
+        out._aind, out._bind = out._bind, out._aind
         out._alpha_map, out._beta_map = out._beta_map, out._alpha_map
-        out._dexca,  out._dexcb = out._dexcb, out._dexca
+        out._dexca, out._dexcb = out._dexcb, out._dexca
         return out
 
     def insert_mapping(self, dna: int, dnb: int,
@@ -198,8 +201,8 @@ class FciGraph:
         """
         return self._fci_map[(dna, dnb)]
 
-    def _build_mapping(self, strings: Nparray, nele: int, index: Dict[int, int]
-                       ) -> Spinmap:
+    def _build_mapping(self, strings: Nparray, nele: int,
+                       index: Dict[int, int]) -> Spinmap:
         """Construct the mapping of alpha string and beta string excitations
         for :math:`a^\\dagger_i a_j` from the bitstrings contained in the
         fci_graph.
@@ -215,12 +218,8 @@ class FciGraph:
         norb = self._norb
 
         if fqe.settings.use_accelerated_code:
-            return _build_mapping_strings(
-                strings,
-                _get_Z_matrix(norb, nele),
-                nele,
-                norb
-            )
+            return _build_mapping_strings(strings, _get_Z_matrix(norb, nele),
+                                          nele, norb)
         else:
             out = {}
             for iorb in range(norb):  # excitation
@@ -230,17 +229,18 @@ class FciGraph:
                         if get_bit(string, jorb) and not get_bit(string, iorb):
                             parity = count_bits_between(string, iorb, jorb)
                             sign = 1 if parity % 2 == 0 else -1
-                            value.append((
-                                index[string],
-                                index[unset_bit(set_bit(string, iorb), jorb)],
-                                sign))
+                            value.append(
+                                (index[string],
+                                 index[unset_bit(set_bit(string, iorb),
+                                                 jorb)], sign))
                         elif iorb == jorb and get_bit(string, iorb):
                             value.append((index[string], index[string], 1))
                     out[(iorb, jorb)] = value
 
             # cast to numpy arrays
-            return {k: numpy.asarray(v, dtype=numpy.int32)
-                    for k, v in out.items()}
+            return {
+                k: numpy.asarray(v, dtype=numpy.int32) for k, v in out.items()
+            }
 
     def alpha_map(self, iorb: int, jorb: int) -> List[Tuple[int, int, int]]:
         """
@@ -318,7 +318,7 @@ class FciGraph:
             Z = _get_Z_matrix(norb, nele)
             string_list = _calculate_string_address(Z, nele, norb, blist)
         else:
-            string_list = numpy.zeros((length, ), dtype=numpy.uint64)
+            string_list = numpy.zeros((length,), dtype=numpy.uint64)
             for i in range(length):
                 wbit = blist[i]
                 occ = integer_index(int(wbit))
@@ -433,10 +433,8 @@ class FciGraph:
                 index = io * self.norb() + jo if jorb is None else io
                 totmaps.extend([[index, t, s, p] for s, t, p in mp])
 
-            totmaps = numpy.asarray(
-                sorted(totmaps, key=lambda x: (x[1], x[0])),
-                dtype=numpy.int32
-            ).reshape(-1, 4)
+            totmaps = numpy.asarray(sorted(totmaps, key=lambda x: (x[1], x[0])),
+                                    dtype=numpy.int32).reshape(-1, 4)
             rangelist = list(range(0, totstates, max_states)) + [totstates]
             dat = []
             for begin, end in zip(rangelist, rangelist[1:]):
@@ -462,13 +460,18 @@ class FciGraph:
         length2 = int(binom(norb - 1, nele))
 
         exc = numpy.zeros((norb, length2, nele, 3), dtype=numpy.int32)
-        diag = numpy.zeros((norb, length,), dtype=numpy.int32)
-        index = numpy.zeros((norb, length2,), dtype=numpy.int32)
+        diag = numpy.zeros((
+            norb,
+            length,
+        ), dtype=numpy.int32)
+        index = numpy.zeros((
+            norb,
+            length2,
+        ), dtype=numpy.int32)
         astrings = self.string_alpha_all()
         if fqe.settings.use_accelerated_code:
-            _c_map_to_deexc_alpha_icol(
-                exc, diag, index, astrings, norb, self._alpha_map
-            )
+            _c_map_to_deexc_alpha_icol(exc, diag, index, astrings, norb,
+                                       self._alpha_map)
         else:
             alpha = numpy.ones((norb, self.lena()), dtype=int) * -1
             count = numpy.zeros(norb, dtype=int)
@@ -482,7 +485,10 @@ class FciGraph:
             assert numpy.all(numpy.equal(count, length2))
             icounter = numpy.zeros(norb, dtype=int)
 
-            counter = numpy.zeros((norb, length2,), dtype=int)
+            counter = numpy.zeros((
+                norb,
+                length2,
+            ), dtype=int)
             for (i, j), values in self._alpha_map.items():
                 icol = j
                 if i != j:
@@ -501,8 +507,8 @@ class FciGraph:
 
         return index, exc, diag
 
-    def make_mapping_each(self, result: 'Nparray', alpha: bool,
-                          dag: List[int], undag: List[int]) -> int:
+    def make_mapping_each(self, result: 'Nparray', alpha: bool, dag: List[int],
+                          undag: List[int]) -> int:
         """Generates the mapping for an the alpha or beta part of an individual
         operator onto the given FciGraph. The operator should be particle
         number conserving.
@@ -561,4 +567,3 @@ class FciGraph:
                     result[count, :] = index, current, parity % 2
                     count += 1
         return count
-

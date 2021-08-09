@@ -27,12 +27,14 @@ from fqe.cirq_utils import qubit_wavefunction_from_vacuum
 from fqe.openfermion_utils import ladder_op
 import fqe.settings
 
+
 def test_cirq_to_fqe_error():
     """Check if cirq_to_fqe_single raises an error
     """
     cirq_wfn = numpy.ones((2, 1), dtype=numpy.complex128)
     with pytest.raises(ValueError):
         transform.cirq_to_fqe_single(cirq_wfn, 20, 1, None)
+
 
 def test_cirq_to_fqe_single():
     """Wrap together all the routines to build a wavefuntion that can be
@@ -42,8 +44,7 @@ def test_cirq_to_fqe_single():
                       dtype=numpy.complex128)
     cof /= numpy.sqrt(numpy.vdot(cof, cof))
     wfn_ops = cof[0] * (ladder_op(0, 1) * ladder_op(1, 1) * ladder_op(2, 1))
-    wfn_ops += cof[1] * (ladder_op(0, 1) * ladder_op(2, 1) *
-                          ladder_op(3, 1))
+    wfn_ops += cof[1] * (ladder_op(0, 1) * ladder_op(2, 1) * ladder_op(3, 1))
     qpu = LineQubit.range(count_qubits(wfn_ops))
     cirq_wfn = qubit_wavefunction_from_vacuum(wfn_ops, qpu)
     fqe_wfn = transform.cirq_to_fqe_single(cirq_wfn, 3, 1, None)
@@ -53,7 +54,8 @@ def test_cirq_to_fqe_single():
         assert keyval in test_key
 
     for i in fqe_jw.terms:
-        assert round(abs(fqe_jw.terms[i]-wfn_ops.terms[i]), 7) == 0
+        assert round(abs(fqe_jw.terms[i] - wfn_ops.terms[i]), 7) == 0
+
 
 def test_from_cirq(c_or_python):
     """Check the transition from a line qubit and back.

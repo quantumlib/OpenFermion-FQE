@@ -64,7 +64,7 @@ def generate_data(param):
     for key, value in wfn._civec.items():
         cr = rng.uniform(-0.5, 0.5, size=value.coeff.shape)
         ci = rng.uniform(-0.5, 0.5, size=value.coeff.shape)
-        value.coeff = cr + 1.j*ci
+        value.coeff = cr + 1.j * ci
 
     data['wfn'] = wfn
     if not spin_conserving:
@@ -119,9 +119,15 @@ def generate_data(param):
     h2e = build_H2(norbs, full=full)
     e_0 = rng.uniform() + rng.uniform() * 1j
     if not full:
-        hamil = get_restricted_hamiltonian((h1e, h2e,), e_0=e_0)
+        hamil = get_restricted_hamiltonian((
+            h1e,
+            h2e,
+        ), e_0=e_0)
     else:
-        hamil = get_gso_hamiltonian((h1e, h2e,), e_0=e_0)
+        hamil = get_gso_hamiltonian((
+            h1e,
+            h2e,
+        ), e_0=e_0)
     hamil._conserve_number = number_conserving
     try:
         out = wfn.apply(hamil)
@@ -181,11 +187,7 @@ def generate_data(param):
         # Don't generate an output
         evolved = None
 
-    data['apply_dc'] = {
-        'hamil': hamil,
-        'wfn_out': out,
-        'wfn_evolve': evolved
-    }
+    data['apply_dc'] = {'hamil': hamil, 'wfn_out': out, 'wfn_evolve': evolved}
 
     return data
 

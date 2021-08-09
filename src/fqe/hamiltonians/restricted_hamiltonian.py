@@ -44,7 +44,8 @@ class RestrictedHamiltonian(hamiltonian.Hamiltonian):
         self._tensor: Dict[int, numpy.ndarray] = {}
 
         for rank, matrix in enumerate(tensors):
-            if not (isinstance(rank, int) and isinstance(matrix, numpy.ndarray)):
+            if not (isinstance(rank, int) and
+                    isinstance(matrix, numpy.ndarray)):
                 raise TypeError("tensors should be a tuple of numpy.ndarray")
             if matrix.ndim % 2:
                 raise ValueError("input tensor has an odd rank")

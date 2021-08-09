@@ -30,6 +30,7 @@ from fqe.fqe_decorators import build_hamiltonian
 from tests.unittest_data import build_wfn
 from fqe.algorithm.algorithm_util import valdemaro_reconstruction
 
+
 @pytest.fixture
 def vbc_fixture():
     molecule = build_lih_moleculardata()
@@ -46,6 +47,7 @@ def vbc_fixture():
 
     return fqe_wf, adapt
 
+
 def test_vbc(vbc_fixture):
     """ Test vbc with default parameters.
     """
@@ -53,6 +55,7 @@ def test_vbc(vbc_fixture):
     adapt.vbc(fqe_wf)
     assert np.isclose(adapt.energies[0], -8.957417182801091)
     assert np.isclose(adapt.energies[-1], -8.97304439380826)
+
 
 def test_vbc_valdemaro(vbc_fixture):
     """ Test valdemaro reconstruction.
@@ -62,6 +65,7 @@ def test_vbc_valdemaro(vbc_fixture):
     assert np.isclose(adapt.energies[0], -8.957417182801091)
     assert np.isclose(adapt.energies[-1], -8.97304439380826)
 
+
 def test_vbc_wrong_decomposition_raises(vbc_fixture):
     """ Test if vbc raises an exception on incorrect decomposition method
     """
@@ -69,8 +73,9 @@ def test_vbc_wrong_decomposition_raises(vbc_fixture):
     with pytest.raises(ValueError):
         adapt.vbc(fqe_wf, v_reconstruct=True, generator_decomp='test')
 
+
 @pytest.mark.skip(reason="does not work, tries to pass SumOfSquaresOperator"
-                         "as a FermionOperator in optimize_param() ")
+                  "as a FermionOperator in optimize_param() ")
 def test_vbc_svd(vbc_fixture):
     """ Test VBC with takagi generator decomposition.
     """
@@ -79,8 +84,9 @@ def test_vbc_svd(vbc_fixture):
     assert np.isclose(adapt.energies[0], -8.957417182801091)
     assert np.isclose(adapt.energies[-1], -8.97304439380826)
 
+
 @pytest.mark.skip(reason="does not work, tries to pass SumOfSquaresOperator"
-                         "as a FermionOperator in optimize_param() ")
+                  "as a FermionOperator in optimize_param() ")
 def test_vbc_takagi(vbc_fixture):
     """ Test VBC with takagi generator decomposition.
     """
@@ -107,10 +113,11 @@ def test_vbc_opt_var(vbc_fixture):
     fqe_wf.set_wfn(strategy='hartree-fock')
 
     adapt = VBC(oei, tei, nalpha, nbeta, iter_max=2, verbose=False)
-    adapt.vbc(fqe_wf, v_reconstruct=True,num_opt_var=1)
+    adapt.vbc(fqe_wf, v_reconstruct=True, num_opt_var=1)
     assert np.isclose(adapt.energies[0], -8.957417182801091)
     assert np.isclose(adapt.energies[1], -8.97304439380826)
     assert np.isclose(adapt.energies[2], -8.97482142285195)
+
 
 def test_vbc_takagi_decomps():
     """ Test Takagi decomposition
@@ -179,6 +186,7 @@ def test_vbc_svd_decomps():
         vc = v.conj()
         test_tensor += np.einsum('pi,si,ij,qj,rj->pqrs', v, vc, -1j * cc, v, vc)
     assert np.allclose(test_tensor, new_residual)
+
 
 def test_vbc_time_evolve():
     molecule = build_h4square_moleculardata()

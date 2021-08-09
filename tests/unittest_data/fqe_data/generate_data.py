@@ -23,8 +23,16 @@ sys.path.append(r'../')
 from build_hamiltonian import build_H1, build_H2, build_H3, build_H4
 
 
-def generate_data(nalpha, nbeta, norb, diag=True, maxn=2, maxrdm=0,
-                  daga=[], undaga=[], dagb=[], undagb=[]):
+def generate_data(nalpha,
+                  nbeta,
+                  norb,
+                  diag=True,
+                  maxn=2,
+                  maxrdm=0,
+                  daga=[],
+                  undaga=[],
+                  dagb=[],
+                  undagb=[]):
     # make random coeffs
     nstr = "{:02d}{:02d}{:02d}".format(nalpha, nbeta, norb)
     test = FqeData(nalpha, nbeta, norb)
@@ -33,7 +41,7 @@ def generate_data(nalpha, nbeta, norb, diag=True, maxn=2, maxrdm=0,
     cifile = "ci" + nstr + ".npy"
 
     # use a fixed random seed (different for different test cases)
-    seed = 432782 + norb*1000 + nalpha*100 + nbeta
+    seed = 432782 + norb * 1000 + nalpha * 100 + nbeta
     rng = numpy.random.default_rng(seed)
 
     cr = rng.uniform(-0.5, 0.5, size=test.coeff.shape)
@@ -42,11 +50,11 @@ def generate_data(nalpha, nbeta, norb, diag=True, maxn=2, maxrdm=0,
     cr.tofile(crfile)
     ci.tofile(cifile)
 
-    test.coeff = cr + 1.j*ci
+    test.coeff = cr + 1.j * ci
 
     if diag:
         # make diagonal coulomb (repulsive) matrix
-        dmat = 8*rng.uniform(0, 1, size=(norb, norb))
+        dmat = 8 * rng.uniform(0, 1, size=(norb, norb))
         dmat.tofile("dmat" + nstr + ".npy")
 
         # make diagonal coulomb reference
@@ -134,17 +142,18 @@ def generate_data(nalpha, nbeta, norb, diag=True, maxn=2, maxrdm=0,
     if maxrdm > 4:
         raise Exception("Higher that 4-particle RDMs not available")
 
-
     if daga or undaga or dagb or undagb:
-        out = test.apply_individual_nbody(complex(1), daga, undaga, dagb, undagb)
+        out = test.apply_individual_nbody(complex(1), daga, undaga, dagb,
+                                          undagb)
         sdaga = ''.join([str(da) for da in daga])
         sundaga = ''.join([str(uda) for uda in undaga])
         sdagb = ''.join([str(db) for db in dagb])
         sundagb = ''.join([str(udb) for udb in undagb])
-        out.coeff.real.tofile("cr" + nstr + "indv" + sdaga + "_" + sundaga
-                              + "_" + sdagb + "_" + sundagb + ".npy")
-        out.coeff.imag.tofile("ci" + nstr + "indv" + sdaga + "_" + sundaga
-                              + "_" + sdagb + "_" + sundagb + ".npy")
+        out.coeff.real.tofile("cr" + nstr + "indv" + sdaga + "_" + sundaga +
+                              "_" + sdagb + "_" + sundagb + ".npy")
+        out.coeff.imag.tofile("ci" + nstr + "indv" + sdaga + "_" + sundaga +
+                              "_" + sdagb + "_" + sundagb + ".npy")
+
 
 def regenerate_reference_data():
     """ Regenerates all reference data for fqe_data_test.
@@ -154,6 +163,7 @@ def regenerate_reference_data():
     generate_data(2, 3, 6, daga=[1], undaga=[2], dagb=[], undagb=[])
     generate_data(2, 1, 4, maxn=4, maxrdm=4)
     generate_data(1, 1, 2, diag=False, maxn=4, maxrdm=0)  # test for spin orbs
+
 
 if __name__ == "__main__":
     regenerate_reference_data()

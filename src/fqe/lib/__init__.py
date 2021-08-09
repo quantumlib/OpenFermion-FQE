@@ -11,4 +11,4 @@ class c_double_complex(ctypes.Structure):
 
     @property
     def value(self):
-        return self.real+1j*self.imag
+        return self.real + 1j * self.imag

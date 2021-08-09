@@ -61,8 +61,13 @@ def test_davidson():
         raw_data={(nele, nalpha - nbeta): guess_vec2_coeffs},
     )
     guess_vecs = [guess_wfn1, guess_wfn2]
-    dl_w, dl_v = davidson.davidsonliu_fqe(elec_hamil, 1, guess_vecs, nele=nele,
-                                          sz=sz, norb=norb, verbose=True)
+    dl_w, dl_v = davidson.davidsonliu_fqe(elec_hamil,
+                                          1,
+                                          guess_vecs,
+                                          nele=nele,
+                                          sz=sz,
+                                          norb=norb,
+                                          verbose=True)
     assert abs(dl_w - ecalc) < 1e-10
 
     # dummy geometry
@@ -94,8 +99,10 @@ def test_davidson():
     hf_vec2[hf_idx2, 0] = 1.0
 
     # scale diagonal so vacuum has non-zero energy
-    ww, vv = davidson.davidsonliu(ham_mat + np.eye(ham_mat.shape[0]), 1,
-                                  guess_vecs=[hf_vec, hf_vec2], verbose=True)
+    ww, vv = davidson.davidsonliu(ham_mat + np.eye(ham_mat.shape[0]),
+                                  1,
+                                  guess_vecs=[hf_vec, hf_vec2],
+                                  verbose=True)
     assert abs(ww - 1 - ecalc) < 1e-10
 
     api_w, api_v = davidson.davidson_diagonalization(hamiltonian=elec_hamil,
@@ -143,7 +150,8 @@ def test_davidson_no_init():
     ham_mat = of.get_sparse_operator(of.jordan_wigner(ham_fop)).toarray()
 
     # scale diagonal so vacuum has non-zero energy
-    ww, vv = davidson.davidsonliu(ham_mat + np.eye(ham_mat.shape[0]), 1,
+    ww, vv = davidson.davidsonliu(ham_mat + np.eye(ham_mat.shape[0]),
+                                  1,
                                   verbose=True)
     assert abs(ww - 1 - ecalc) < 1e-10
 

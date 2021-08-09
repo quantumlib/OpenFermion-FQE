@@ -118,4 +118,3 @@ class Diagonal(hamiltonian.Hamiltonian):
         out = copy.deepcopy(self)
         out._hdiag *= -1.0j * time
         return out
-

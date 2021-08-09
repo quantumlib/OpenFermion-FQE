@@ -31,6 +31,7 @@ if TYPE_CHECKING:
     from fqe.fci_graph import FciGraph
     from numpy import ndarray as Nparray
 
+
 class FqeDataSet:
     """One of the fundamental data structures in the FQE. FqeDataSet
     is essentially a view of the list of FqeData's that belong to the same subspace
@@ -207,7 +208,8 @@ class FqeDataSet:
             fsector.coeff += result[key]
         return out
 
-    def _apply123(self, h1e: 'Nparray', h2e: 'Nparray', h3e: 'Nparray') -> 'FqeDataSet':
+    def _apply123(self, h1e: 'Nparray', h2e: 'Nparray',
+                  h3e: 'Nparray') -> 'FqeDataSet':
         """
         Applies a one-, two-, and three-body operator specified by the tuple of numpy arrays.
         The result will be returned as a FqeDataSet object. self is unchanged.
@@ -233,16 +235,17 @@ class FqeDataSet:
         evec = self._calculate_evec(dvec)
 
         for key, sector in evec.items():
-            dvec[key] = numpy.tensordot(h3e, sector, axes=((1, 4, 2, 5),
-                                                           (0, 1, 2, 3)))
+            dvec[key] = numpy.tensordot(h3e,
+                                        sector,
+                                        axes=((1, 4, 2, 5), (0, 1, 2, 3)))
 
         result = self._calculate_coeff_with_dvec(dvec)
         for key, fsector in out._data.items():
             fsector.coeff -= result[key]
         return out
 
-    def _apply1234(self, h1e: 'Nparray', h2e: 'Nparray',
-                   h3e: 'Nparray', h4e: 'Nparray') -> 'FqeDataSet':
+    def _apply1234(self, h1e: 'Nparray', h2e: 'Nparray', h3e: 'Nparray',
+                   h4e: 'Nparray') -> 'FqeDataSet':
         """
         Applies a one-, two-, three-, and four-body operator specified by the tuple of numpy arrays.
         The result will be returned as a FqeDataSet object. self is unchanged.
@@ -281,10 +284,11 @@ class FqeDataSet:
         evec = self._calculate_evec(dvec)
 
         for key, sector in evec.items():
-            evec[key] = numpy.transpose(
-                numpy.tensordot(h4e, sector, axes=((2, 6, 3, 7), (0, 1, 2, 3))),
-                axes=(0, 2, 1, 3, 4, 5)
-            )
+            evec[key] = numpy.transpose(numpy.tensordot(h4e,
+                                                        sector,
+                                                        axes=((2, 6, 3, 7),
+                                                              (0, 1, 2, 3))),
+                                        axes=(0, 2, 1, 3, 4, 5))
 
         dvec2 = copy.deepcopy(dvec)
         for i in range(norb * 2):
@@ -328,14 +332,14 @@ class FqeDataSet:
             FqeDataSet: FqeData object that stores the result of application
         """
         out = self.empty_copy()
-        out.apply_individual_nbody_accumulate(coeff, self, daga, undaga,
-                                              dagb, undagb)
+        out.apply_individual_nbody_accumulate(coeff, self, daga, undaga, dagb,
+                                              undagb)
         return out
 
-    def apply_individual_nbody_accumulate(self,
-                                          coeff: complex, idata: 'FqeDataSet',
-                                          daga: List[int], undaga: List[int],
-                                          dagb: List[int], undagb: List[int]) -> None:
+    def apply_individual_nbody_accumulate(self, coeff: complex,
+                                          idata: 'FqeDataSet', daga: List[int],
+                                          undaga: List[int], dagb: List[int],
+                                          undagb: List[int]) -> None:
         """
         Apply function with an individual operator represented in arrays,
         which can handle spin-nonconserving operators
@@ -367,10 +371,10 @@ class FqeDataSet:
                 ualphamap = numpy.zeros((source.lena(), 3), dtype=numpy.uint64)
                 ubetamap = numpy.zeros((source.lenb(), 3), dtype=numpy.uint64)
 
-                acount = source._core.make_mapping_each(ualphamap, True,
-                                                        daga, undaga)
-                bcount = source._core.make_mapping_each(ubetamap, False,
-                                                        dagb, undagb)
+                acount = source._core.make_mapping_each(ualphamap, True, daga,
+                                                        undaga)
+                bcount = source._core.make_mapping_each(ubetamap, False, dagb,
+                                                        undagb)
                 ualphamap = ualphamap[:acount, :]
                 ubetamap = ubetamap[:bcount, :]
 
@@ -406,7 +410,8 @@ class FqeDataSet:
 
     def evolve_individual_nbody(self, time: float, coeff: complex,
                                 daga: List[int], undaga: List[int],
-                                dagb: List[int], undagb: List[int]) -> 'FqeDataSet':
+                                dagb: List[int],
+                                undagb: List[int]) -> 'FqeDataSet':
         """
         This code time-evolves a wave function with an individual n-body generator
         which is spin-nonconserving. It is assumed that :math:`T^2 = 0`.
@@ -474,12 +479,12 @@ class FqeDataSet:
 
         out = copy.deepcopy(self)
         for key in self._data.keys():
-            out._data[key].apply_cos_inplace(time, ncoeff,
-                                             numbera + dagworka, undagworka,
-                                             numberb + dagworkb, undagworkb)
-            out._data[key].apply_cos_inplace(time, ncoeff,
-                                             numbera + undagworka, dagworka,
-                                             numberb + undagworkb, dagworkb)
+            out._data[key].apply_cos_inplace(time, ncoeff, numbera + dagworka,
+                                             undagworka, numberb + dagworkb,
+                                             undagworkb)
+            out._data[key].apply_cos_inplace(time, ncoeff, numbera + undagworka,
+                                             dagworka, numberb + undagworkb,
+                                             dagworkb)
 
         phase = (-1)**((len(daga)+len(undaga))*(len(dagb)+len(undagb)) \
                        + len(daga)*(len(daga)-1)//2 \
@@ -488,9 +493,10 @@ class FqeDataSet:
                        + len(undagb)*(len(undagb)-1)//2)
 
         out.apply_individual_nbody_accumulate(
-            -1.0j*numpy.conj(coeff)*phase*sinfactor, self, undaga, daga, undagb, dagb)
-        out.apply_individual_nbody_accumulate(
-            -1.0j*coeff*sinfactor, self, daga, undaga, dagb, undagb)
+            -1.0j * numpy.conj(coeff) * phase * sinfactor, self, undaga, daga,
+            undagb, dagb)
+        out.apply_individual_nbody_accumulate(-1.0j * coeff * sinfactor, self,
+                                              daga, undaga, dagb, undagb)
         return out
 
     def rdm1(self, bra: Optional['FqeDataSet'] = None) -> Tuple['Nparray']:
@@ -514,7 +520,8 @@ class FqeDataSet:
             out = tmp if out is None else (out + tmp)
         return (out,)
 
-    def rdm12(self, bra: Optional['FqeDataSet'] = None) -> Tuple['Nparray', 'Nparray']:
+    def rdm12(self, bra: Optional['FqeDataSet'] = None
+             ) -> Tuple['Nparray', 'Nparray']:
         """
         Computes 1- and 2-particle RDMs. When bra is specified, it computes a transition RDMs
 
@@ -535,8 +542,8 @@ class FqeDataSet:
         out2 = numpy.empty(0)
         for key in self._data.keys():
             tmp1 = numpy.tensordot(dvec2[key].conj(), self._data[key].coeff).T
-            tmp2 = numpy.transpose(numpy.tensordot(dvec2[key].conj(), dvec[key],
-                                                   axes=((2, 3), (2, 3))),
+            tmp2 = numpy.transpose(numpy.tensordot(
+                dvec2[key].conj(), dvec[key], axes=((2, 3), (2, 3))),
                                    axes=(1, 2, 0, 3)) * (-1.0)
             if out1.shape == (0,):
                 out1 = tmp1
@@ -582,11 +589,11 @@ class FqeDataSet:
         out3 = numpy.empty(0)
         for key in self._data.keys():
             tmp1 = numpy.tensordot(dvec2[key].conj(), self._data[key].coeff).T
-            tmp2 = numpy.transpose(numpy.tensordot(dvec2[key].conj(), dvec[key],
-                                                   axes=((2, 3), (2, 3))),
+            tmp2 = numpy.transpose(numpy.tensordot(
+                dvec2[key].conj(), dvec[key], axes=((2, 3), (2, 3))),
                                    axes=(1, 2, 0, 3)) * (-1.0)
-            tmp3 = numpy.transpose(numpy.tensordot(evec2[key].conj(), dvec[key],
-                                                   axes=((4, 5), (2, 3))),
+            tmp3 = numpy.transpose(numpy.tensordot(
+                evec2[key].conj(), dvec[key], axes=((4, 5), (2, 3))),
                                    axes=(3, 1, 4, 2, 0, 5)) * (-1.0)
             if out1.shape == (0,):
                 out1 = tmp1
@@ -614,7 +621,7 @@ class FqeDataSet:
         return (out1, out2, out3)
 
     def rdm1234(self, bra: Optional['FqeDataSet'] = None
-                ) -> Tuple['Nparray', 'Nparray', 'Nparray', 'Nparray']:
+               ) -> Tuple['Nparray', 'Nparray', 'Nparray', 'Nparray']:
         """
         Computes 1-, 2-, 3-, and 4-particle RDMs. When bra is specified, it
         computes a transition RDMs
@@ -638,7 +645,8 @@ class FqeDataSet:
 
         out4 = numpy.empty(0)
         for key in self._data.keys():
-            tmp4 = numpy.transpose(numpy.tensordot(evec2[key].conj(), evec[key],
+            tmp4 = numpy.transpose(numpy.tensordot(evec2[key].conj(),
+                                                   evec[key],
                                                    axes=((4, 5), (4, 5))),
                                    axes=(3, 1, 4, 6, 2, 0, 5, 7))
             if out4.shape == (0,):
@@ -676,8 +684,8 @@ class FqeDataSet:
         """
         return self._calculate_dvec_with_coeff(self._data)
 
-    def _calculate_dvec_fixed_j(self, jorb: int
-                                ) -> Dict[Tuple[int, int], 'Nparray']:
+    def _calculate_dvec_fixed_j(self,
+                                jorb: int) -> Dict[Tuple[int, int], 'Nparray']:
         """Generate, using self.coeff as C_I, for fixed j
 
         .. math::
@@ -687,7 +695,7 @@ class FqeDataSet:
         return self._calculate_dvec_with_coeff_fixed_j(self._data, jorb)
 
     def _calculate_evec(self, dvec: Dict[Tuple[int, int], 'Nparray']
-                        ) -> Dict[Tuple[int, int], 'Nparray']:
+                       ) -> Dict[Tuple[int, int], 'Nparray']:
         """Generate
 
         .. math::
@@ -725,6 +733,7 @@ class FqeDataSet:
             D^{J}_{ij} = \\sum_I \\langle J|a^\\dagger_i a_j|I \\rangle C_I
 
         """
+
         def to_array(maps, norb):
             nstate = len(maps[(0,)])
             arrays = numpy.zeros((norb, nstate, 3), dtype=numpy.int32)
@@ -752,13 +761,12 @@ class FqeDataSet:
             # a^+ b |0>
             if nalpha + 1 <= norb and nbeta - 1 >= 0:
                 dvec1 = dvec[(nalpha + 1, nbeta - 1)]
-                (alphamap,
-                 betamap) = sector.get_fcigraph().find_mapping(1, -1)
+                (alphamap, betamap) = sector.get_fcigraph().find_mapping(1, -1)
                 if fqe.settings.use_accelerated_code:
                     alpha_array = to_array(alphamap, norb)
                     beta_array = to_array(betamap, norb)
-                    _calculate_dvec1(alpha_array, beta_array, norb,
-                                     nalpha, nbeta, sector.coeff, dvec1)
+                    _calculate_dvec1(alpha_array, beta_array, norb, nalpha,
+                                     nbeta, sector.coeff, dvec1)
                 else:
                     for i in range(norb):
                         for j in range(norb):
@@ -771,13 +779,12 @@ class FqeDataSet:
             # b^+ a |0>
             if nalpha - 1 >= 0 and nbeta + 1 <= norb:
                 dvec1 = dvec[(nalpha - 1, nbeta + 1)]
-                (alphamap,
-                 betamap) = sector.get_fcigraph().find_mapping(-1, 1)
+                (alphamap, betamap) = sector.get_fcigraph().find_mapping(-1, 1)
                 if fqe.settings.use_accelerated_code:
                     alpha_array = to_array(alphamap, norb)
                     beta_array = to_array(betamap, norb)
-                    _calculate_dvec2(alpha_array, beta_array, norb,
-                                     nalpha, nbeta, sector.coeff, dvec1)
+                    _calculate_dvec2(alpha_array, beta_array, norb, nalpha,
+                                     nbeta, sector.coeff, dvec1)
                 else:
                     for i in range(norb):
                         for j in range(norb):
@@ -798,6 +805,7 @@ class FqeDataSet:
             D^{J}_{ij} = \\sum_I \\langle J|a^\\dagger_i a_j|I \\rangle C_I
 
         """
+
         def to_array(maps, norb):
             nstate = len(maps[(0,)])
             arrays = numpy.zeros((norb, nstate, 3), dtype=numpy.int32)
@@ -860,15 +868,14 @@ class FqeDataSet:
                         for i in range(norb):
                             for sourcea, targeta, paritya in alphamap[(i,)]:
                                 paritya *= (-1)**nalpha
-                                for sourceb, targetb, parityb in betamap[(jorb -
-                                                                          norb,)]:
+                                for sourceb, targetb, parityb in betamap[(
+                                        jorb - norb,)]:
                                     work = sector.coeff[sourcea, sourceb]
                                     dvec1[i, targeta,
                                           targetb] += work * paritya * parityb
         return dvec
 
-    def _calculate_coeff_with_dvec(self,
-                                   dvec: Dict[Tuple[int, int], 'Nparray']
+    def _calculate_coeff_with_dvec(self, dvec: Dict[Tuple[int, int], 'Nparray']
                                   ) -> Dict[Tuple[int, int], 'Nparray']:
         """Generate
 
@@ -876,6 +883,7 @@ class FqeDataSet:
             C_I = \\sum_J \\langle I|a^\\dagger_i a_j|J \\rangle D^J_{ij}
 
         """
+
         def to_array(maps, norb):
             nstate = len(maps[(0,)])
             arrays = numpy.zeros((norb, nstate, 3), dtype=numpy.int32)
@@ -914,15 +922,14 @@ class FqeDataSet:
             # <0| b^+ a |dvec>
             if nalpha + 1 <= norb and nbeta - 1 >= 0:
                 dvec1 = dvec[(nalpha + 1, nbeta - 1)]
-                (alphamap,
-                 betamap) = sector.get_fcigraph().find_mapping(1, -1)
+                (alphamap, betamap) = sector.get_fcigraph().find_mapping(1, -1)
                 if fqe.settings.use_accelerated_code:
                     alpha_array = to_array(alphamap, norb)
                     beta_array = to_array(betamap, norb)
                     for i in range(norb):
                         for j in range(norb):
-                            _calculate_coeff1(alpha_array, beta_array, norb,
-                                              i, j, nalpha, nbeta, dvec1, out0)
+                            _calculate_coeff1(alpha_array, beta_array, norb, i,
+                                              j, nalpha, nbeta, dvec1, out0)
                 else:
                     for i in range(norb):
                         for j in range(norb):
@@ -935,15 +942,14 @@ class FqeDataSet:
             # <0| a^+ b | dvec>
             if nalpha - 1 >= 0 and nbeta + 1 <= norb:
                 dvec1 = dvec[(nalpha - 1, nbeta + 1)]
-                (alphamap,
-                 betamap) = sector.get_fcigraph().find_mapping(-1, 1)
+                (alphamap, betamap) = sector.get_fcigraph().find_mapping(-1, 1)
                 if fqe.settings.use_accelerated_code:
                     alpha_array = to_array(alphamap, norb)
                     beta_array = to_array(betamap, norb)
                     for i in range(norb):
                         for j in range(norb):
-                            _calculate_coeff2(alpha_array, beta_array, norb,
-                                              i, j, nalpha, nbeta, dvec1, out0)
+                            _calculate_coeff2(alpha_array, beta_array, norb, i,
+                                              j, nalpha, nbeta, dvec1, out0)
                 else:
                     for i in range(norb):
                         for j in range(norb):

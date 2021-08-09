@@ -103,4 +103,3 @@ def switch_broken_symmetry(string: str) -> str:
         new = string
 
     return new.rstrip()
-

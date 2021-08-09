@@ -15,14 +15,15 @@ if __name__ == "__main__":
 
     cProfile.run('cirq_wfn = fqe.to_cirq(fqe_wfn, binarycode=binarycode)',
                  'fqe_to_cirq.profile')
-    cProfile.run('fqe_wfn_from_cirq = fqe.from_cirq(cirq_wfn, thresh=1e-7, '
-                 'binarycode=binarycode)', 'fqe_from_cirq.profile')
+    cProfile.run(
+        'fqe_wfn_from_cirq = fqe.from_cirq(cirq_wfn, thresh=1e-7, '
+        'binarycode=binarycode)', 'fqe_from_cirq.profile')
     # fqe_wfn_from_cirq.print_wfn()
     # fqe_wfn.print_wfn()
     # print(cirq_wfn)
     # print(cirq_wfn[numpy.nonzero(cirq_wfn)].T)
-    assert(numpy.allclose(fqe.to_cirq(fqe_wfn_from_cirq,
-                                      binarycode=binarycode), cirq_wfn))
+    assert (numpy.allclose(
+        fqe.to_cirq(fqe_wfn_from_cirq, binarycode=binarycode), cirq_wfn))
 
     import pstats
     profile = pstats.Stats('fqe_to_cirq.profile')

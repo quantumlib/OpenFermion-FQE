@@ -32,8 +32,8 @@ def permBetween(orig: List[Any], perm: List[Any]) -> int:
         p0 = orig[ii]
         p1 = perm[ii]
         if p0 != p1:
-            sii = perm[ii:].index(p0) + ii          # Find position in perm
-            perm[ii], perm[sii] = p0, p1           # Swap in perm
+            sii = perm[ii:].index(p0) + ii  # Find position in perm
+            perm[ii], perm[sii] = p0, p1  # Swap in perm
             swaps += 1
     return swaps % 2
 
@@ -134,8 +134,9 @@ def test_configuration_key_intersection():
     configs0 = [(10, 0), (3, 1), (5, -1)]
     configs1 = [(2, 0), (3, 1), (3, -1)]
     configs2 = [(10, 0), (3, 1), (3, -1)]
-    assert [(3, 1)] == util.configuration_key_intersection(
-                              configs0, configs1, configs2)
+    assert [
+        (3, 1)
+    ] == util.configuration_key_intersection(configs0, configs1, configs2)
 
 
 def test_bitstring_groundstate():
@@ -175,12 +176,12 @@ def test_qubit_config_sector():
     zero = 0
     one = 1
     lowstate = [
-        zero, zero, one, zero, zero, zero, zero, zero, zero, zero, zero,
-        zero, zero, zero, zero, zero
+        zero, zero, one, zero, zero, zero, zero, zero, zero, zero, zero, zero,
+        zero, zero, zero, zero
     ]
     highstate = [
-        zero, zero, zero, zero, zero, zero, zero, zero, one, zero, zero,
-        zero, zero, zero, zero, zero
+        zero, zero, zero, zero, zero, zero, zero, zero, one, zero, zero, zero,
+        zero, zero, zero, zero
     ]
     ref = [
         numpy.array(lowstate, dtype=numpy.int32),
@@ -334,7 +335,7 @@ def test_tensors_equal():
     tensor2 = { '0' : numpy.zeros((2,2), dtype=numpy.complex128), \
                 '1' : numpy.ones((2,2), dtype=numpy.complex128) }
 
-    tensor3 = { '0' : numpy.zeros((2,2), dtype=numpy.complex128) }
+    tensor3 = {'0': numpy.zeros((2, 2), dtype=numpy.complex128)}
     assert util.tensors_equal(tensor1, tensor1)
     assert not util.tensors_equal(tensor1, tensor2)
     assert not util.tensors_equal(tensor1, tensor3)

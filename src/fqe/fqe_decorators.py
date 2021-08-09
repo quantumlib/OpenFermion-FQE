@@ -305,8 +305,8 @@ def process_rank2_matrix(mat: numpy.ndarray, norb: int,
         return gso_hamiltonian.GSOHamiltonian(tuple([mat]), e_0=e_0)
 
     if numpy.allclose(mat[:norb, :norb], mat[norb:, norb:]):
-        return restricted_hamiltonian.RestrictedHamiltonian((mat[:norb, :norb],),
-                                                            e_0=e_0)
+        return restricted_hamiltonian.RestrictedHamiltonian(
+            (mat[:norb, :norb],), e_0=e_0)
 
     return sso_hamiltonian.SSOHamiltonian(tuple([mat]), e_0=e_0)
 
@@ -328,10 +328,12 @@ def check_diagonal_coulomb(mat: numpy.ndarray) -> bool:
     numpy.fill_diagonal(test, 0.0)
     return not numpy.any(test)
 
+
 def wrap_rdm(rdm):
     """Decorator to convert parameters to `Wavefunction.rdm()` \
        to FQE internal classes.
     """
+
     @wraps(rdm)
     def symmetry_process(self, string, brawfn=None):
         if self.conserve_spin() and not self.conserve_number():

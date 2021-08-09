@@ -21,19 +21,18 @@ from numpy.ctypeslib import ndpointer
 
 from fqe.lib import lib_fqe
 
+
 def _count_bits(string: int):
     func = lib_fqe.count_bits
     func.argtypes = [c_ulonglong]
     return func(c_ulonglong(string))
 
+
 def _get_occupation(string: int):
     func = lib_fqe.get_occupation
     out = numpy.zeros((64,), dtype=numpy.int32)
     func.argtypes = [
-        ndpointer(
-            dtype=numpy.int32,
-            flags=('C_CONTIGUOUS', 'ALIGNED')
-        ),
+        ndpointer(dtype=numpy.int32, flags=('C_CONTIGUOUS', 'ALIGNED')),
         c_ulonglong
     ]
     count = func(out, string)
@@ -43,11 +42,7 @@ def _get_occupation(string: int):
 def _lexicographic_bitstring_generator(out, norb: int, nele: int):
     func = lib_fqe.lexicographic_bitstring_generator
     func.argtypes = [
-        ndpointer(
-            dtype=numpy.uint64,
-            flags=('C_CONTIGUOUS', 'ALIGNED')
-        ),
-        c_int,
+        ndpointer(dtype=numpy.uint64, flags=('C_CONTIGUOUS', 'ALIGNED')), c_int,
         c_int
     ]
     func(out, norb, nele)

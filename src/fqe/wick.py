@@ -33,8 +33,8 @@ Mapping = Tuple[List[Tuple[str, str]], List[Tuple[str, bool, int]], float]
 if TYPE_CHECKING:
     from numpy import ndarray as Nparray
 
-def wick(target: str,
-         data: List['Nparray'],
+
+def wick(target: str, data: List['Nparray'],
          spinfree: Optional[bool] = True) -> 'Nparray':
     """
     Original and target are written in a similar notation to OpenFermion
@@ -198,9 +198,8 @@ def wick(target: str,
     return out
 
 
-def wickfill(target: 'Nparray', source: Optional['Nparray'],
-             indices: List[int], factor: float, delta: List[Tuple[int, int]]
-             ) -> 'Nparray':
+def wickfill(target: 'Nparray', source: Optional['Nparray'], indices: List[int],
+             factor: float, delta: List[Tuple[int, int]]) -> 'Nparray':
     """
     This function is an internal utility that fills in custom RDMs using
     particle RDMs. The result of Wick's theorem is passed as lists (indices

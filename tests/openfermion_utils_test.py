@@ -37,6 +37,7 @@ def test_ascending_index_order_inorder():
                                                         order='inorder')
     assert f_ops == test
 
+
 def test_ascending_index_order():
     """Transformations in openfermion return FermionOperators from highest
     index to the lowest index.  Occationally we would like to reverse this.
@@ -47,6 +48,7 @@ def test_ascending_index_order():
         f_ops = openfermion_utils.ascending_index_order(key, ops.terms[key])
     assert f_ops == test
 
+
 def test_bit_to_fermion_creation_alpha():
     """Spin index conversetion between the fqe and opernfermion is that
     alpha/up fermions are indicated by index*2. bit 1 is index 0 for up
@@ -54,6 +56,7 @@ def test_bit_to_fermion_creation_alpha():
     """
     assert openfermion_utils.bit_to_fermion_creation(1, 'up') == \
                       FermionOperator('0^', 1.0)
+
 
 def test_bit_to_fermion_creation_beta():
     """Spin index conversetion between the fqe and opernfermion is that
@@ -63,23 +66,26 @@ def test_bit_to_fermion_creation_beta():
     assert openfermion_utils.bit_to_fermion_creation(1, 'down') == \
                       FermionOperator('1^', 1.0)
 
+
 def test_bit_to_fermion_creation_spinless():
     """Spinless particles are converted directly into their occupation index.
     """
     assert openfermion_utils.bit_to_fermion_creation(1) == \
                       FermionOperator('0^', 1.0)
 
+
 def test_bit_to_fermion_creation_null():
     """Empty bitstrings will return None.
     """
     assert openfermion_utils.bit_to_fermion_creation(0) is None
 
+
 def test_bit_to_fermion_creation_error():
     """Bad options for indexes should raise an error
     """
     with pytest.raises(ValueError):
-        openfermion_utils.bit_to_fermion_creation(1,
-                      spin='around')
+        openfermion_utils.bit_to_fermion_creation(1, spin='around')
+
 
 def test_bit_to_fermion_creation_order():
     """Return the representation of a bitstring as FermionOperators acting
@@ -88,6 +94,7 @@ def test_bit_to_fermion_creation_order():
     bit = (1 << 6) + 31
     assert openfermion_utils.bit_to_fermion_creation(bit) == \
                       FermionOperator('0^ 1^ 2^ 3^ 4^ 6^', 1.0)
+
 
 def test_fqe_to_fermion_operator():
     """Convert the fqe representation to openfermion operators.
@@ -108,7 +115,7 @@ def test_fqe_to_fermion_operator():
     ]
 
     data = numpy.array([[coeff[0]], [coeff[1]], [coeff[2]], [coeff[3]]],
-                        dtype=numpy.complex128)
+                       dtype=numpy.complex128)
 
     test = FermionOperator('0^ 1^', coeff[0])
     test += FermionOperator('0^ 3^', coeff[1])
@@ -121,11 +128,13 @@ def test_fqe_to_fermion_operator():
     ops = openfermion_utils.fqe_to_fermion_operator(wfn)
     assert list(ops.terms.keys()) == list(test.terms.keys())
     for term in ops.terms:
-        assert round(abs(ops.terms[term]-test.terms[term]), 7) == 0
+        assert round(abs(ops.terms[term] - test.terms[term]), 7) == 0
+
 
 def test_fqe_to_fermion_operator_sparse():
     """Convert the fqe representation to openfermion operators.
     """
+
     def _calc_coeff(val):
         return round(val / numpy.sqrt(26.0), 7) + .0j
 
@@ -137,7 +146,7 @@ def test_fqe_to_fermion_operator_sparse():
     ]
 
     data = numpy.array([[coeff[0]], [coeff[1]], [coeff[2]], [coeff[3]]],
-                        dtype=numpy.complex128)
+                       dtype=numpy.complex128)
 
     test = FermionOperator('0^ 1^', coeff[0])
     test += FermionOperator('2^ 1^', coeff[2])
@@ -149,7 +158,8 @@ def test_fqe_to_fermion_operator_sparse():
     ops = openfermion_utils.fqe_to_fermion_operator(wfn)
     assert list(ops.terms.keys()) == list(test.terms.keys())
     for term in ops.terms:
-        assert round(abs(ops.terms[term]-test.terms[term]), 7) == 0
+        assert round(abs(ops.terms[term] - test.terms[term]), 7) == 0
+
 
 def test_convert_qubit_wfn_to_fqe_syntax():
     """Reexpress a qubit wavefunction in terms of Fermion Operators
@@ -167,13 +177,15 @@ def test_convert_qubit_wfn_to_fqe_syntax():
     assert list(ops.terms.keys()) == list(test.terms.keys())
     # Test Values
     for i in ops.terms:
-        assert round(abs(ops.terms[i]-test.terms[i]), 7) == 0
+        assert round(abs(ops.terms[i] - test.terms[i]), 7) == 0
+
 
 def test_determinant_to_ops_null():
     """A determinant with no occupation should return None type.
     """
     assert openfermion_utils.determinant_to_ops(0, 0) == \
                       FermionOperator('', 1.0)
+
 
 def test_determinant_to_ops_alpha():
     """A singly occupied determinant should just have a single creation
@@ -182,6 +194,7 @@ def test_determinant_to_ops_alpha():
     assert openfermion_utils.determinant_to_ops(1, 0) == \
                       FermionOperator('0^', 1.0)
 
+
 def test_determinant_to_ops_beta():
     """A singly occupied determinant should just have a single creation
     operator in it.
@@ -189,11 +202,13 @@ def test_determinant_to_ops_beta():
     assert openfermion_utils.determinant_to_ops(0, 1) == \
                       FermionOperator('1^', 1.0)
 
+
 def test_determinant_to_ops():
     """Convert a determinant to openfermion ops
     """
     test_ops = FermionOperator('0^ 2^ 4^ 1^ 3^', 1.0)
     assert openfermion_utils.determinant_to_ops(7, 3) == test_ops
+
 
 def test_determinant_to_ops_inorder():
     """If spin case is not necessary to distinguish in the representation
@@ -201,6 +216,7 @@ def test_determinant_to_ops_inorder():
     """
     test_ops = FermionOperator('0^ 1^ 2^ 3^ 4^', 1.0)
     assert openfermion_utils.determinant_to_ops(7, 3, inorder=True) == test_ops
+
 
 def test_fci_fermion_operator_representation():
     """If we don't already have a wavefunction object to build from we can
@@ -219,6 +235,7 @@ def test_fci_fermion_operator_representation():
     ops = openfermion_utils.fci_fermion_operator_representation(3, 3, 1)
     assert ops == test
 
+
 def test_fci_qubit_representation():
     """If we don't already have a wavefunction object to build from we can
     just specify the parameters and build the FermionOperator string.
@@ -236,6 +253,7 @@ def test_fci_qubit_representation():
     ops = openfermion_utils.fci_qubit_representation(3, 3, 1)
     assert ops == test
 
+
 def test_fermion_operator_to_bitstring():
     """Interoperability between OpenFermion and the FQE necessitates that
     we can convert between the representations.
@@ -247,6 +265,7 @@ def test_fermion_operator_to_bitstring():
     for term in ops.terms:
         result = openfermion_utils.fermion_operator_to_bitstring(term)
         assert test == list(result)
+
 
 def test_fermion_opstring_to_bitstring():
     """Interoperability between OpenFermion and the FQE necessitates that
@@ -260,6 +279,7 @@ def test_fermion_opstring_to_bitstring():
     for val in result:
         assert val in test
 
+
 def test_largest_operator_index():
     """Find a largest operator index from the input operator.
     """
@@ -267,7 +287,8 @@ def test_largest_operator_index():
           FermionOperator('2^ 5^', 2. + .0j) + \
           FermionOperator('8^ 9^', 3. + .0j)
     maxe, maxo = openfermion_utils.largest_operator_index(ops)
-    assert maxe == 8 and maxo == 9 
+    assert maxe == 8 and maxo == 9
+
 
 def test_ladder_op():
     """Make sure that our qubit ladder operators are the same as the jw
@@ -277,6 +298,7 @@ def test_ladder_op():
     annihilate = jordan_wigner(FermionOperator('10', 1. + .0j))
     assert create == openfermion_utils.ladder_op(10, 1)
     assert annihilate == openfermion_utils.ladder_op(10, 0)
+
 
 def test_update_operator_coeff():
     """Update the coefficients of an operator string
@@ -290,6 +312,7 @@ def test_update_operator_coeff():
 
     openfermion_utils.update_operator_coeff(ops, coeff)
     assert ops == test
+
 
 def test_split_openfermion_tensor():
     """Split a FermionOperator string into terms based on the length
@@ -308,6 +331,7 @@ def test_split_openfermion_tensor():
     assert ops2 == split[2]
     assert ops3 == split[3]
 
+
 def test_moleculardata_to_restricted_hamiltonian():
     """
     Convert an OpenFermion MolecularData object to a
@@ -319,9 +343,9 @@ def test_moleculardata_to_restricted_hamiltonian():
     charge = 0
     multiplicity = 1
     molecule = MolecularData(geometry=geometry,
-                              basis='sto-3g',
-                              charge=charge,
-                              multiplicity=multiplicity)
+                             basis='sto-3g',
+                             charge=charge,
+                             multiplicity=multiplicity)
     molecule.one_body_integrals = h1e
     molecule.two_body_integrals = numpy.einsum('ijlk', -2 * h2e)
     molecule.nuclear_repulsion = 0

@@ -206,7 +206,6 @@ class Wavefunction:
             out._civec[key] = civec.empty_copy()
         return out
 
-
     def _copy_beta_inversion(self) -> 'Wavefunction':
         """Return a copy of the wavefunction with the beta particle and hole
         inverted.
@@ -221,8 +220,9 @@ class Wavefunction:
         param = []
         maxb = min(norb, nele)
         minb = nele - maxb
-        param = [[nele, nele - nbeta * 2, norb]
-                 for nbeta in range(minb, maxb + 1)]
+        param = [
+            [nele, nele - nbeta * 2, norb] for nbeta in range(minb, maxb + 1)
+        ]
 
         inverted = Wavefunction(param, broken=['spin'])
 
@@ -655,8 +655,7 @@ class Wavefunction:
                     bstring = int(ibstring)
                     occstr = [
                         '.' for _ in range(
-                            max(astring.bit_length(),
-                                bstring.bit_length()))
+                            max(astring.bit_length(), bstring.bit_length()))
                     ]
                     docc = astring & bstring
 
@@ -953,10 +952,11 @@ class Wavefunction:
         return perm, low, upp, current
 
     @wrap_time_evolve
-    def time_evolve(self,
-                    time: float,
-                    hamil: Union['fqe_operator.FqeOperator', 'hamiltonian.Hamiltonian'],
-                    inplace: bool = False) -> 'Wavefunction':
+    def time_evolve(
+            self,
+            time: float,
+            hamil: Union['fqe_operator.FqeOperator', 'hamiltonian.Hamiltonian'],
+            inplace: bool = False) -> 'Wavefunction':
         """Perform time evolution of the wavefunction given Fermion Operators
         either as raw operations or wrapped up in a Hamiltonian.
 
@@ -1027,8 +1027,7 @@ class Wavefunction:
 
                 diag, vij = hamil.iht(time)
 
-                final_wfn = work_wfn._evolve_diagonal_coulomb_inplace(
-                    diag, vij)
+                final_wfn = work_wfn._evolve_diagonal_coulomb_inplace(diag, vij)
 
             else:
 
@@ -1067,9 +1066,8 @@ class Wavefunction:
 
         return wfn
 
-    def _evolve_diagonal_coulomb_inplace(self,
-                                 diag: numpy.ndarray,
-                                 vij: numpy.ndarray) -> 'Wavefunction':
+    def _evolve_diagonal_coulomb_inplace(self, diag: numpy.ndarray,
+                                         vij: numpy.ndarray) -> 'Wavefunction':
         """Evolve a diagonal coulomb Hamiltonian on the wavefunction and store the
         result inplace.  (Not in-place version is no longer used and thus has been
         removed).
@@ -1085,9 +1083,8 @@ class Wavefunction:
         """
 
         for key, sector in self._civec.items():
-            self._civec[key].coeff = sector.evolve_diagonal_coulomb(diag,
-                                                                    vij,
-                                                                    inplace=True)
+            self._civec[key].coeff = sector.evolve_diagonal_coulomb(
+                diag, vij, inplace=True)
         return self
 
     def expectationValue(
@@ -1127,8 +1124,7 @@ class Wavefunction:
 
     def _apply_individual_nbody(self,
                                 hamil: 'sparse_hamiltonian.SparseHamiltonian',
-                                base: 'Wavefunction' = None
-                               ) -> 'Wavefunction':
+                                base: 'Wavefunction' = None) -> 'Wavefunction':
         """
         Applies an individual n-body operator to the wave function self.
 
@@ -1179,9 +1175,8 @@ class Wavefunction:
             ssectors = self._number_sectors()
             nsectors = out._number_sectors()
             for skey, nsector in nsectors.items():
-                nsector.apply_individual_nbody_accumulate(coeff, ssectors[skey],
-                                                          daga, undaga,
-                                                          dagb, undagb)
+                nsector.apply_individual_nbody_accumulate(
+                    coeff, ssectors[skey], daga, undaga, dagb, undagb)
         return out
 
     def _evolve_individual_nbody(self,
@@ -1293,7 +1288,7 @@ class Wavefunction:
                     osector = nsector.evolve_individual_nbody(time, coeff0, daga, \
                                                               undaga, dagb, undagb)
                     for (nalpha, nbeta), osec in osector.sectors().items():
-                        out._civec[(nalpha+nbeta, nalpha-nbeta)] = osec
+                        out._civec[(nalpha + nbeta, nalpha - nbeta)] = osec
         return out
 
     def _apply_few_nbody(self, hamil: 'sparse_hamiltonian.SparseHamiltonian'

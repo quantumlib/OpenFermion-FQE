@@ -20,6 +20,7 @@ import numpy
 from fqe.hamiltonians import hamiltonian
 from fqe.util import tensors_equal
 
+
 class GSOHamiltonian(hamiltonian.Hamiltonian):
     """The GSO Hamiltonian is characterized by having no distinct structure
     in the elements beyond being hermitian. An example is a relativistic
@@ -156,4 +157,3 @@ class GSOHamiltonian(hamiltonian.Hamiltonian):
             numpy.ndarray: Transformed one-body Hamiltonian as a numpy.ndarray.
         """
         return trans.conj().T @ self._tensor[2] @ trans
-

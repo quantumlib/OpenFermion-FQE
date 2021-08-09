@@ -29,12 +29,9 @@ from openfermion.testing.testing_utils import (
 
 import fqe
 from fqe.hamiltonians.restricted_hamiltonian import RestrictedHamiltonian
-from fqe.algorithm.low_rank import (
-    evolve_fqe_givens,
-    evolve_fqe_givens_sector,
-    evolve_fqe_diagonal_coulomb,
-    double_factor_trotter_evolution
-)
+from fqe.algorithm.low_rank import (evolve_fqe_givens, evolve_fqe_givens_sector,
+                                    evolve_fqe_diagonal_coulomb,
+                                    double_factor_trotter_evolution)
 
 
 def evolve_wf_givens(wfn: np.ndarray, u: np.ndarray) -> np.ndarray:
@@ -195,18 +192,18 @@ def test_fqe_givens():
     assert np.allclose(givens_fqe_wfn.rdm("i^ j^ k l"),
                        final_wfn_test2.rdm("i^ j^ k l"))
 
+
 def test_fqe_givens_raises():
     """ Make sure evolve_fqe_givens raises an exception on incorrect input.
     """
     fqe_wfn = fqe.Wavefunction([[2, 2, 2]])
-    u = np.zeros((2,2), dtype=np.complex128)
+    u = np.zeros((2, 2), dtype=np.complex128)
     with pytest.raises(ValueError):
         fqe_wfn = evolve_fqe_givens_sector(fqe_wfn, u, sector="test")
 
-    u = np.zeros((3,3), dtype=np.complex128)
+    u = np.zeros((3, 3), dtype=np.complex128)
     with pytest.raises(ValueError):
         fqe_wfn = evolve_fqe_givens_sector(fqe_wfn, u)
-
 
 
 def test_charge_charge_evolution():

@@ -21,7 +21,10 @@ def pytest_addoption(parser):
     Add additional options for running C or Python tests only.
     """
     parser.addoption("--c-only", action="store_true", help="Run C tests only")
-    parser.addoption("--python-only", action="store_true", help="Run Python tests only")
+    parser.addoption("--python-only",
+                     action="store_true",
+                     help="Run Python tests only")
+
 
 def pytest_generate_tests(metafunc):
     """
@@ -29,7 +32,8 @@ def pytest_generate_tests(metafunc):
     command line options
     """
 
-    if metafunc.config.getoption("--c-only") and metafunc.config.getoption("--python-only"):
+    if metafunc.config.getoption("--c-only") and metafunc.config.getoption(
+            "--python-only"):
         raise RuntimeError("Error: --c-only and --python-only options " \
           "are mutually exclusive.")
 
