@@ -24,6 +24,7 @@ from tests.unittest_data.build_hamiltonian import build_H1, build_H2,\
 from tests.unittest_data.fqe_data_set_loader import FqeDataSetLoader
 import pytest
 
+
 def test_init_sectors():
     data1 = fqe_data.FqeData(2, 0, 2)
     data2 = fqe_data.FqeData(2, 2, 2)
@@ -37,6 +38,7 @@ def test_init_sectors():
     assert set(sectors.keys()) == set([(2, 0), (1, 1)])
     for sec in sectors.values():
         assert numpy.allclose(sec.coeff, val)
+
 
 def test_empty_copy():
     data1 = fqe_data.FqeData(2, 0, 2)
@@ -53,6 +55,7 @@ def test_empty_copy():
     assert set(sectors.keys()) == set([(2, 0), (1, 1)])
     for sec in sectors.values():
         assert numpy.allclose(sec.coeff, 0.0)
+
 
 def test_ax_plus_y_scale_fill():
     data1 = fqe_data.FqeData(2, 0, 2)
@@ -72,17 +75,18 @@ def test_ax_plus_y_scale_fill():
     coeff = 1.2 + 0.5j
     dataseta.ax_plus_y(coeff, datasetb)
     for sec in dataseta._data.values():
-        assert numpy.allclose(sec.coeff, 1.0 + coeff*2.3)
+        assert numpy.allclose(sec.coeff, 1.0 + coeff * 2.3)
     for sec in datasetb._data.values():
         assert numpy.allclose(sec.coeff, 2.3)
 
     dataseta.scale(coeff)
     for sec in dataseta._data.values():
-        assert numpy.allclose(sec.coeff, coeff * (1.0 + coeff*2.3))
+        assert numpy.allclose(sec.coeff, coeff * (1.0 + coeff * 2.3))
 
     dataseta.fill(coeff)
     for sec in dataseta._data.values():
         assert numpy.allclose(sec.coeff, coeff)
+
 
 def test_apply_error():
     data = fqe_data.FqeData(0, 0, 0)
@@ -96,6 +100,7 @@ def test_apply_error():
     arr = numpy.empty(0)
     with pytest.raises(ValueError):
         set1.apply((arr, arr, arr, arr, arr))
+
 
 def test_apply1_inplace():
     norb = 2
@@ -112,6 +117,7 @@ def test_apply1_inplace():
         tsec = tsectors[x]
         osec = osectors[x]
         assert numpy.allclose(tsec.coeff, osec.coeff)
+
 
 def test_apply1(c_or_python):
     """Test applications of 1-particle operator"""
@@ -130,6 +136,7 @@ def test_apply1(c_or_python):
         rsec = rsectors[x]
         osec = osectors[x]
         assert numpy.allclose(rsec.coeff, osec.coeff)
+
 
 def test_apply12(c_or_python):
     """Test applications of 1,2-particle operators"""
@@ -150,6 +157,7 @@ def test_apply12(c_or_python):
         osec = osectors[x]
         assert numpy.allclose(rsec.coeff, osec.coeff)
 
+
 def test_apply123(c_or_python):
     """Test applications of 1,2,3-particle operators"""
     fqe.settings.use_accelerated_code = c_or_python
@@ -169,6 +177,7 @@ def test_apply123(c_or_python):
         rsec = rsectors[x]
         osec = osectors[x]
         assert numpy.allclose(rsec.coeff, osec.coeff)
+
 
 def test_apply1234(c_or_python):
     """Test applications of 1,2,3,4-particle operators"""
@@ -191,6 +200,7 @@ def test_apply1234(c_or_python):
         osec = osectors[x]
         assert numpy.allclose(rsec.coeff, osec.coeff)
 
+
 def test_apply1_onecolumn(c_or_python):
     """Test applications of 1-particle operator column-by-column"""
     fqe.settings.use_accelerated_code = c_or_python
@@ -201,10 +211,10 @@ def test_apply1_onecolumn(c_or_python):
     test = loader.get_fqe_data_set()
     h1 = build_H1(norb, full=True)
     ref = loader.get_href('1')
-    h10 = numpy.zeros((2*norb, 2*norb))
+    h10 = numpy.zeros((2 * norb, 2 * norb))
     h10[:, 0] = h1[:, 0]
     out1 = test.apply((h10,))
-    for i in range(1, 2*norb):
+    for i in range(1, 2 * norb):
         h1x = numpy.zeros(h10.shape)
         h1x[:, i] = h1[:, i]
         out1.ax_plus_y(1, test.apply((h1x,)))
@@ -214,6 +224,7 @@ def test_apply1_onecolumn(c_or_python):
         rsec = rsectors[x]
         osec = osectors[x]
         assert numpy.allclose(rsec.coeff, osec.coeff)
+
 
 def test_rdm1(c_or_python):
     """Test computation of 1-RDM"""
@@ -226,6 +237,7 @@ def test_rdm1(c_or_python):
     od1 = test.rdm1()
     rd1 = loader.get_rdm(1)
     assert numpy.allclose(rd1, od1)
+
 
 def test_rdm12(c_or_python):
     """Test computation of 1- and 2-RDM"""
@@ -240,6 +252,7 @@ def test_rdm12(c_or_python):
     rd2 = loader.get_rdm(2)
     assert numpy.allclose(rd1, od1)
     assert numpy.allclose(rd2, od2)
+
 
 def test_rdm123(c_or_python):
     """Test computation of 1-, 2- and 3-RDM"""
@@ -256,6 +269,7 @@ def test_rdm123(c_or_python):
     assert numpy.allclose(rd1, od1)
     assert numpy.allclose(rd2, od2)
     assert numpy.allclose(rd3, od3)
+
 
 def test_rdm1234(c_or_python):
     """Test computation of 1-, 2-, 3- and 4-RDM"""
@@ -275,6 +289,7 @@ def test_rdm1234(c_or_python):
     assert numpy.allclose(rd3, od3)
     assert numpy.allclose(rd4, od4)
 
+
 def test_indv_nbody(c_or_python):
     """Test application of an individual N-body operator"""
     fqe.settings.use_accelerated_code = c_or_python
@@ -288,14 +303,14 @@ def test_indv_nbody(c_or_python):
     dagb = [0]
     undagb = [0]
     ref = loader.get_indv_ref(daga, undaga, dagb, undagb)
-    out = test.apply_individual_nbody(
-        complex(1), daga, undaga, dagb, undagb)
+    out = test.apply_individual_nbody(complex(1), daga, undaga, dagb, undagb)
     rsectors = ref.sectors()
     osectors = out.sectors()
     for x in rsectors.keys():
         rsec = rsectors[x]
         osec = osectors[x]
         assert numpy.allclose(rsec.coeff, osec.coeff)
+
 
 def test_evolve_indv_nbody(c_or_python):
     """Test application of an individual N-body operator"""
@@ -310,8 +325,8 @@ def test_evolve_indv_nbody(c_or_python):
     dagb = [0]
     undagb = [0]
     ref = loader.get_ievo_ref(daga, undaga, dagb, undagb)
-    out = test.evolve_individual_nbody(
-        0.1, complex(1), daga, undaga, dagb, undagb)
+    out = test.evolve_individual_nbody(0.1, complex(1), daga, undaga, dagb,
+                                       undagb)
     rsectors = ref.sectors()
     osectors = out.sectors()
     for x in rsectors.keys():

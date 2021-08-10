@@ -1,4 +1,4 @@
- #   Copyright 2020 Google LLC
+#   Copyright 2020 Google LLC
 
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@ from fqe.wavefunction import Wavefunction
 from tests.unittest_data import build_wfn
 from fqe.algorithm.algorithm_util import valdemaro_reconstruction
 
+
 def test_valdemaro_reconstruction():
     nele = 4
     norb = 3
@@ -31,4 +32,4 @@ def test_valdemaro_reconstruction():
     rdm3 = 6 * valdemaro_reconstruction(tpdm / 2, nele)
     rdm3_reference = wfn.sector((nele, s_z)).get_three_pdm()
 
-    assert numpy.allclose(rdm3, rdm3_reference,rtol=1e-3, atol=4e-3)
+    assert numpy.allclose(rdm3, rdm3_reference, rtol=1e-3, atol=4e-3)

@@ -19,6 +19,7 @@ import numpy
 from fqe.hamiltonians import hamiltonian
 from fqe.util import tensors_equal
 
+
 class DiagonalCoulomb(hamiltonian.Hamiltonian):
     """The diagonal coulomb Hamiltonian is characterized as being a two-body
     operator with a specific structure such that it is the product of two

@@ -11,6 +11,7 @@ class FqeDataLoader:
     """ FqeDataLoader provides an interface to load reference data for
     unit testing.
     """
+
     def __init__(self, nalpha, nbeta, norb):
         """
         Args:
@@ -29,7 +30,7 @@ class FqeDataLoader:
         fi = os.path.join(self.file_path, "ci" + self.nstr + ".npy")
         cr = numpy.fromfile(fr).reshape(self.data.coeff.shape)
         ci = numpy.fromfile(fi).reshape(self.data.coeff.shape)
-        self.data.coeff = cr + 1.j*ci
+        self.data.coeff = cr + 1.j * ci
 
     def get_fqe_data(self):
         """Return a copy of the FqeData object"""
@@ -48,7 +49,7 @@ class FqeDataLoader:
         fi = os.path.join(self.file_path, "ci" + self.nstr + "_dc.npy")
         cr = numpy.fromfile(fr).reshape(self.data.coeff.shape)
         ci = numpy.fromfile(fi).reshape(self.data.coeff.shape)
-        return cr + 1.j*ci
+        return cr + 1.j * ci
 
     def get_harray(self, order):
         filename = os.path.join(self.file_path,
@@ -63,7 +64,7 @@ class FqeDataLoader:
                           "ci" + self.nstr + "_" + hstr + ".npy")
         cr = numpy.fromfile(fr).reshape(self.data.coeff.shape)
         ci = numpy.fromfile(fi).reshape(self.data.coeff.shape)
-        return cr + 1.j*ci
+        return cr + 1.j * ci
 
     def get_indv_ref(self, daga, undaga, dagb, undagb):
         nstr = self.nstr
@@ -71,15 +72,15 @@ class FqeDataLoader:
         sundaga = ''.join([str(uda) for uda in undaga])
         sdagb = ''.join([str(db) for db in dagb])
         sundagb = ''.join([str(udb) for udb in undagb])
-        fr = os.path.join(self.file_path,
-            "cr" + nstr + "indv" + sdaga + "_" + sundaga
-            + "_" + sdagb + "_" + sundagb + ".npy")
-        fi = os.path.join(self.file_path,
-            "ci" + nstr + "indv" + sdaga + "_" + sundaga
-            + "_" + sdagb + "_" + sundagb + ".npy")
+        fr = os.path.join(
+            self.file_path, "cr" + nstr + "indv" + sdaga + "_" + sundaga + "_" +
+            sdagb + "_" + sundagb + ".npy")
+        fi = os.path.join(
+            self.file_path, "ci" + nstr + "indv" + sdaga + "_" + sundaga + "_" +
+            sdagb + "_" + sundagb + ".npy")
         cr = numpy.fromfile(fr).reshape(self.data.coeff.shape)
         ci = numpy.fromfile(fi).reshape(self.data.coeff.shape)
-        return cr + 1.j*ci
+        return cr + 1.j * ci
 
     def get_rdm(self, order):
         fr = os.path.join(self.file_path,
@@ -89,4 +90,4 @@ class FqeDataLoader:
         shape = tuple([self.norb] * order * 2)
         dr = numpy.fromfile(fr).reshape(shape)
         di = numpy.fromfile(fi).reshape(shape)
-        return dr + 1.j*di
+        return dr + 1.j * di

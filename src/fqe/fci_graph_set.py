@@ -121,7 +121,7 @@ class FciGraphSet:
         dnb = jsec.nbeta() - isec.nbeta()
 
         def make_mapping_each_set(istrings, dnv, norb, nele):
-            nsize = int(special.binom(norb-dnv, nele-dnv))
+            nsize = int(special.binom(norb - dnv, nele - dnv))
             msize = int(special.binom(norb, dnv))
 
             mapping_down = numpy.zeros((msize, nsize, 3), dtype=numpy.uint64)
@@ -141,8 +141,9 @@ class FciGraphSet:
                     parity = (count_bits_above(source, ops[-1]) * len(ops))
                     target = unset_bit(source, ops[-1])
                     for iop in reversed(range(len(ops) - 1)):
-                        parity += ((iop + 1) * count_bits_between(
-                            source, ops[iop], ops[iop + 1]))
+                        parity += (
+                            (iop + 1) *
+                            count_bits_between(source, ops[iop], ops[iop + 1]))
                         target = unset_bit(target, ops[iop])
 
                     mapping_down[anni, count, :] = source, target, parity
@@ -152,7 +153,7 @@ class FciGraphSet:
             return mapping_down, mapping_up
 
         def _postprocess(spinmap, dnv, index0, index1):
-            transformed : Spinmap = {}
+            transformed: Spinmap = {}
 
             assert spinmap.shape[0] == int(special.binom(norb, dnv))
             combmap = lexicographic_bitstring_generator(dnv, norb)
@@ -172,13 +173,17 @@ class FciGraphSet:
             (iasec, jasec) = (isec, jsec) if dna < 0 else (jsec, isec)
             if fqe.settings.use_accelerated_code:
                 ndowna, nupa = _make_mapping_each_set(iasec.string_alpha_all(),
-                                                      abs(dna), norb, iasec.nalpha())
+                                                      abs(dna), norb,
+                                                      iasec.nalpha())
             else:
                 ndowna, nupa = make_mapping_each_set(iasec.string_alpha_all(),
-                                                     abs(dna), norb, iasec.nalpha())
+                                                     abs(dna), norb,
+                                                     iasec.nalpha())
 
-            downa = _postprocess(ndowna, abs(dna), iasec.index_alpha_all(), jasec.index_alpha_all())
-            upa = _postprocess(nupa, abs(dna), jasec.index_alpha_all(), iasec.index_alpha_all())
+            downa = _postprocess(ndowna, abs(dna), iasec.index_alpha_all(),
+                                 jasec.index_alpha_all())
+            upa = _postprocess(nupa, abs(dna), jasec.index_alpha_all(),
+                               iasec.index_alpha_all())
 
             if dna > 0:
                 downa, upa = upa, downa
@@ -189,13 +194,17 @@ class FciGraphSet:
             (ibsec, jbsec) = (isec, jsec) if dnb < 0 else (jsec, isec)
             if fqe.settings.use_accelerated_code:
                 ndownb, nupb = _make_mapping_each_set(ibsec.string_beta_all(),
-                                                      abs(dnb), norb, ibsec.nbeta())
+                                                      abs(dnb), norb,
+                                                      ibsec.nbeta())
             else:
                 ndownb, nupb = make_mapping_each_set(ibsec.string_beta_all(),
-                                                     abs(dnb), norb, ibsec.nbeta())
+                                                     abs(dnb), norb,
+                                                     ibsec.nbeta())
 
-            downb = _postprocess(ndownb, abs(dnb), ibsec.index_beta_all(), jbsec.index_beta_all())
-            upb = _postprocess(nupb, abs(dnb), jbsec.index_beta_all(), ibsec.index_beta_all())
+            downb = _postprocess(ndownb, abs(dnb), ibsec.index_beta_all(),
+                                 jbsec.index_beta_all())
+            upb = _postprocess(nupb, abs(dnb), jbsec.index_beta_all(),
+                               ibsec.index_beta_all())
 
             if dnb > 0:
                 downb, upb = upb, downb

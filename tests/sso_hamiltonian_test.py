@@ -35,7 +35,7 @@ def test_sso():
     with pytest.raises(TypeError):
         sso_hamiltonian.SSOHamiltonian("test")
     with pytest.raises(ValueError):
-        sso_hamiltonian.SSOHamiltonian((numpy.zeros((2, 2, 2)), ))
+        sso_hamiltonian.SSOHamiltonian((numpy.zeros((2, 2, 2)),))
 
     tensors = test.tensors()
     assert numpy.allclose(tensors[0], h1e)
@@ -45,7 +45,7 @@ def test_sso():
     diag2 = test.transform(trans)
     assert numpy.allclose(diag, diag2)
     numpy.fill_diagonal(diag, 0.0)
-    assert numpy.allclose(diag, 0.0) 
+    assert numpy.allclose(diag, 0.0)
 
     time = 3.4
     iht = test.iht(time)
@@ -54,6 +54,7 @@ def test_sso():
     h2e = numpy.random.rand(norb, norb, norb, norb).astype(numpy.complex128)
     test2 = sso_hamiltonian.SSOHamiltonian((h1e, h2e))
     assert not test2.quadratic()
+
 
 def test_equality():
     """ Test the equality operator """

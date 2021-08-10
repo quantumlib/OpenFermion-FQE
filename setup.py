@@ -27,12 +27,14 @@ from distutils.command.build_ext import build_ext
 from setuptools import setup, find_packages, Extension
 from Cython.Build import cythonize
 
+
 class CustomBuildOptions(build_ext):
     """
     Build_ext subclass that handles custom per-compiler build options.
     Overrides build_extensions function which detects the compiler and architecture
     and adapts the compiling and linking flags accordingly.
     """
+
     def initialize_options(self):
         # default compile options for various compilers and architectures.
         # Supported compilers should be listed in the dictionary below with keys
@@ -59,7 +61,8 @@ class CustomBuildOptions(build_ext):
                         (compiler, " ".join(self.compile_flags.keys()))
         return error_message
 
-    def __add_compile_flags(self, compile_flags: List[str], link_flags: List[str]):
+    def __add_compile_flags(self, compile_flags: List[str],
+                            link_flags: List[str]):
         for ext in self.extensions:
             ext.extra_compile_args = compile_flags
             ext.extra_link_args = link_flags
@@ -112,6 +115,7 @@ class CustomBuildOptions(build_ext):
         self.__add_compile_flags(compile_flags, link_flags)
         super().build_extensions()
 
+
 def version_number(path: str) -> str:
     """Get the FQE version number from the src directory
     """
@@ -160,33 +164,34 @@ def main() -> None:
     ]
     srcs = [os.path.join(libdir, cf) for cf in cfiles]
     libraries = []
-    extensions = [Extension("fqe.lib.libfqe", srcs,
-                            include_dirs=[libdir],
-                            library_dirs=[libdir],
-                            libraries=libraries,
-                            language='c')]
+    extensions = [
+        Extension("fqe.lib.libfqe",
+                  srcs,
+                  include_dirs=[libdir],
+                  library_dirs=[libdir],
+                  libraries=libraries,
+                  language='c')
+    ]
 
     cythonfiles = ["_fqe_data.pyx"]
     srcs = [os.path.join(libdir, cf) for cf in cythonfiles]
     extensions.append(Extension("fqe.lib.fqe_data", srcs, language='c'))
 
-    setup(
-        name='fqe',
-        version=__version__,
-        author='The OpenFermion FQE Developers',
-        author_email='help@openfermion.org',
-        url='http://www.openfermion.org',
-        description='OpenFermion Fermionic Quantum Emulator',
-        ext_modules=cythonize(extensions,
-                              compiler_directives={'language_level': "3"}),
-        long_description=long_description,
-        long_description_content_type="text/markdown",
-        install_requires=requirements,
-        license='Apache 2',
-        packages=find_packages(where='src'),
-        package_dir={'': 'src'},
-        cmdclass = {'build_ext': CustomBuildOptions }
-        )
+    setup(name='fqe',
+          version=__version__,
+          author='The OpenFermion FQE Developers',
+          author_email='help@openfermion.org',
+          url='http://www.openfermion.org',
+          description='OpenFermion Fermionic Quantum Emulator',
+          ext_modules=cythonize(extensions,
+                                compiler_directives={'language_level': "3"}),
+          long_description=long_description,
+          long_description_content_type="text/markdown",
+          install_requires=requirements,
+          license='Apache 2',
+          packages=find_packages(where='src'),
+          package_dir={'': 'src'},
+          cmdclass={'build_ext': CustomBuildOptions})
 
 
 main()

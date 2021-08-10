@@ -22,10 +22,10 @@ import numpy
 from numpy import ndarray as Nparray
 from scipy import special
 
-
 from fqe.lib.bitstring import _lexicographic_bitstring_generator, _count_bits, \
                               _get_occupation
 import fqe.settings
+
 
 def gbit_index(str0: int) -> Generator[int, None, None]:
     """Generator for returning integers that associate each bit in sequence with
@@ -73,6 +73,7 @@ def integer_index(string: int) -> 'Nparray':
     else:
         return numpy.array(list(gbit_index(int(string)))).astype(numpy.int32)
 
+
 def reverse_integer_index(occ: List[int]) -> int:
     """Reverse of the integer index function above. This function generates an
     bitstring that correspoinds to the list passed as an argument.
@@ -115,6 +116,7 @@ def lexicographic_bitstring_generator(nele: int, norb: int) -> 'Nparray':
         for comb in combinations(range(norb), nele):
             out.append(reverse_integer_index(list(comb)))
         return numpy.array(sorted(out), dtype=numpy.uint64)
+
 
 def count_bits(string: int) -> int:
     """Count the bit value in a bistring
@@ -231,4 +233,3 @@ def show_bits(string: int, nbits: int = 16) -> str:
         str: string representation of the bit string
     """
     return str(bin(int(string))[2:].zfill(nbits))
-

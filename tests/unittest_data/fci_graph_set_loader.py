@@ -24,6 +24,6 @@ def loader(np, nalpha, nbeta, norb):
     filename = "set{:02d}{:02d}{:02d}{:02d}.pickle".format(
         np, nalpha, nbeta, norb)
     datadir = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                                           'fci_graph_set')
+                           'fci_graph_set')
     with open(os.path.join(datadir, filename), 'rb') as f:
         return pickle.load(f)

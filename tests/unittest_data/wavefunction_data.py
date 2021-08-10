@@ -16,7 +16,8 @@
 import os
 import pickle
 
-datadir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'wavefunction')
+datadir = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                       'wavefunction')
 
 
 def loader(param, key):

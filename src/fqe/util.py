@@ -104,7 +104,7 @@ def bubblesort(arr: List[Any]) -> int:
 
 
 def configuration_key_union(*argv: KeysView[Tuple[int, int]]
-                            ) -> List[Tuple[int, int]]:
+                           ) -> List[Tuple[int, int]]:
     """Given a list of configuration keys, build a list which is the union of
     all configuration keys in the list
 
@@ -123,7 +123,7 @@ def configuration_key_union(*argv: KeysView[Tuple[int, int]]
 
 
 def configuration_key_intersection(*argv: List[Tuple[int, int]]
-                                   ) -> List[Tuple[int, int]]:
+                                  ) -> List[Tuple[int, int]]:
     """Return the intersection of the passed configuration key lists.
 
     Args:
@@ -397,7 +397,8 @@ def rand_wfn(adim: int, bdim: int) -> numpy.ndarray:
     return wfn
 
 
-def map_broken_symmetry(s_z: int, norb: int) -> Dict[Tuple[int, int], Tuple[int, int]]:
+def map_broken_symmetry(s_z: int,
+                        norb: int) -> Dict[Tuple[int, int], Tuple[int, int]]:
     """Create a map between spin broken and number broken wavefunctions.
     Args:
         s_z (int): quantum number s_z
@@ -527,6 +528,7 @@ def vdot(wfn1: 'wavefunction.Wavefunction',
             wfn2.get_coeff(config).flat)
     return ipval
 
+
 def tensors_equal(tensor1: Dict[int, numpy.ndarray], \
                     tensor2: Dict[int, numpy.ndarray]) -> bool:
     """ Comparison function for two tensors (dictionaries as used in
@@ -547,8 +549,7 @@ def tensors_equal(tensor1: Dict[int, numpy.ndarray], \
     """
     if tensor1.keys() != tensor2.keys():
         return False
-    for (k,v), (k2,v2) in zip(tensor1.items(), tensor2.items()):
+    for (k, v), (k2, v2) in zip(tensor1.items(), tensor2.items()):
         if k != k2 or not numpy.all(v == v2):
             return False
     return True
-

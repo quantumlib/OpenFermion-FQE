@@ -124,7 +124,8 @@ def davidsonliu(
             start_time = time.time()
             overlaps = []
             for idx in range(len(guess_vecs)):
-                overlaps.append(guess_vecs[idx].conj().T @ preconditioned_residual)
+                overlaps.append(
+                    guess_vecs[idx].conj().T @ preconditioned_residual)
             for idx in range(len(guess_vecs)):
                 preconditioned_residual -= overlaps[idx] * guess_vecs[idx]
             if verbose:
@@ -349,6 +350,10 @@ def davidson_diagonalization(
         # guess_vecs = [guess_wfn1, guess_wfn2]
 
     # run FQE-DL
-    dl_w, dl_v = davidsonliu_fqe(hamiltonian, nroots, guess_vecs,
-                                 nele=nele, sz=sz, norb=norb)
+    dl_w, dl_v = davidsonliu_fqe(hamiltonian,
+                                 nroots,
+                                 guess_vecs,
+                                 nele=nele,
+                                 sz=sz,
+                                 norb=norb)
     return dl_w, dl_v

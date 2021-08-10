@@ -20,6 +20,7 @@ import pytest
 from fqe import bitstring
 import fqe.settings
 
+
 def test_bit_integer_index_val():
     """The index of bits should start at 0.
     """
@@ -30,6 +31,7 @@ def test_bit_integer_index_val():
     assert next(_gbiti) == 1
     assert next(_gbiti) == 3
 
+
 def test_bit_integer_index_list(c_or_python):
     """Make sure sequential integers are returned for a full bitstring
     """
@@ -39,12 +41,14 @@ def test_bit_integer_index_list(c_or_python):
     biti_list = bitstring.integer_index(start)
     assert (biti_list == test_list).all()
 
+
 def test_lexicographic_bitstring_generator_init(c_or_python):
     """Check that the returned array is empty when arguments are wrong
     """
     fqe.settings.use_accelerated_code = c_or_python
     with pytest.raises(ValueError):
         bitstring.lexicographic_bitstring_generator(4, 1)
+
 
 def test_lexicographic_bitstring_generator_list(c_or_python):
     """lexicographic bitstrings for a single bit should be the set of binary
@@ -55,6 +59,7 @@ def test_lexicographic_bitstring_generator_list(c_or_python):
     _gbitl = bitstring.lexicographic_bitstring_generator(1, 10)
     assert numpy.array_equal(_gbitl, test_list)
 
+
 def test_lexicographic_bitstring_generator_order(c_or_python):
     """Here is a use case of the lexicographic bitstring routine.
     """
@@ -64,12 +69,14 @@ def test_lexicographic_bitstring_generator_order(c_or_python):
     _gbitl = bitstring.lexicographic_bitstring_generator(2, 6)
     assert numpy.array_equal(_gbitl, test_list)
 
+
 def test_count_bits(c_or_python):
     """Return the number of set bits in the bitstring
     """
     fqe.settings.use_accelerated_code = c_or_python
     assert bitstring.count_bits(0) == 0
     assert bitstring.count_bits(1 + 2 + 4 + 8 + 32) == 5
+
 
 def test_basic_bit_function():
     """Return the number of set bits in the bitstring

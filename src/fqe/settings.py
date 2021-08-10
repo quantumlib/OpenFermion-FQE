@@ -15,6 +15,8 @@
 Global settings for FQE.
 """
 from enum import Flag
+
+
 class CodePath(Flag):
     """
     Enum for available code paths.
@@ -22,7 +24,8 @@ class CodePath(Flag):
     C = True
     PYTHON = False
 
-available_code_paths = ( CodePath.PYTHON, CodePath.C )
+
+available_code_paths = (CodePath.PYTHON, CodePath.C)
 """
 Tuple providing information about the availability of the
 C and Python codepaths, depending on the setup/compilation

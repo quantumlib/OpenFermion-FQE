@@ -15,8 +15,6 @@
 """
 #pylint: disable=protected-access
 
-
-
 import numpy
 from numpy import linalg
 import pytest
@@ -38,17 +36,19 @@ from fqe.util import tensors_equal
 
 import fqe
 
+
 def test_fqe_control_dot_vdot():
     """Find the dot product of two wavefunctions.
     """
     wfn1 = fqe.get_number_conserving_wavefunction(4, 8)
     wfn1.set_wfn(strategy='ones')
     wfn1.normalize()
-    assert round(abs(fqe.vdot(wfn1, wfn1)-1. + .0j), 7) == 0
-    assert round(abs(fqe.dot(wfn1, wfn1)-1. + .0j), 7) == 0
+    assert round(abs(fqe.vdot(wfn1, wfn1) - 1. + .0j), 7) == 0
+    assert round(abs(fqe.dot(wfn1, wfn1) - 1. + .0j), 7) == 0
     wfn1.set_wfn(strategy='random')
     wfn1.normalize()
-    assert round(abs(fqe.vdot(wfn1, wfn1)-1. + .0j), 7) == 0
+    assert round(abs(fqe.vdot(wfn1, wfn1) - 1. + .0j), 7) == 0
+
 
 def test_Wavefunction():
     """Test free function that construct a Wavefunction object
@@ -59,6 +59,7 @@ def test_Wavefunction():
         assert key in wfn2._civec
         assert sector.coeff.shape == wfn2._civec[key].coeff.shape
 
+
 def test_initialize_new_wavefunction():
     """Test initialization of the new wavefunction
     """
@@ -68,6 +69,7 @@ def test_initialize_new_wavefunction():
     wfn = fqe.get_wavefunction(nele, m_s, norb)
     assert isinstance(wfn, wavefunction.Wavefunction)
 
+
 def test_initialize_new_wavefunctions_multi():
     """Test initialization of the new wavefunction with multiple parameters
     """
@@ -75,6 +77,7 @@ def test_initialize_new_wavefunctions_multi():
     wfns = fqe.get_wavefunction_multiple(multiple)
     for wfn in wfns:
         assert isinstance(wfn, wavefunction.Wavefunction)
+
 
 def test_time_evolve():
     """Test time_evolve of a wavefunction
@@ -92,6 +95,7 @@ def test_time_evolve():
         assert sector.coeff.shape == wfn2._civec[key].coeff.shape
         assert numpy.allclose(sector.coeff, wfn2._civec[key].coeff)
 
+
 def test_apply():
     """Test time_evolve of a wavefunction
     """
@@ -107,6 +111,7 @@ def test_apply():
         assert sector.coeff.shape == wfn2._civec[key].coeff.shape
         assert numpy.allclose(sector.coeff, wfn2._civec[key].coeff)
 
+
 def test_expectationValue():
     """Test time_evolve of a wavefunction
     """
@@ -118,6 +123,7 @@ def test_expectationValue():
     ex1 = fqe.expectationValue(wfn1, op)
     ex2 = wfn2.expectationValue(op)
     assert numpy.isclose(ex1, ex2)
+
 
 def test_apply_generated_unitary():
     """Test applying generated unitary transformation
@@ -145,6 +151,7 @@ def test_apply_generated_unitary():
         err = linalg.norm(diff)
         assert err < 1.e-8
 
+
 def test_cirq_interop(c_or_python):
     """Check the transition from a line qubit and back.
     """
@@ -161,6 +168,7 @@ def test_cirq_interop(c_or_python):
     wfn = fqe.from_cirq(work, thresh=1.0e-7, binarycode=bc)
     test = fqe.to_cirq(wfn, binarycode=bc)
     assert numpy.allclose(test, work)
+
 
 def test_get_spin_conserving_wavefunction():
     """ Test get_spin_conserving_wavefunction
@@ -202,6 +210,7 @@ def test_get_number_conserving_wavefunction():
     ref_sectors = {(2, 2), (2, 0), (2, -2)}
     assert ref_sectors == set(wfn_spin.sectors())
 
+
 def test_operator_constructors():
     """ Creation of FQE-operators
     """
@@ -210,11 +219,13 @@ def test_operator_constructors():
     assert isinstance(fqe.get_time_reversal_operator(), TimeReversalOp)
     assert isinstance(fqe.get_number_operator(), NumberOperator)
 
+
 def test_get_hamiltonian_from_openfermion_raises():
     """ Check the type check of get_hamiltonian_from_openfermion()
     """
     with pytest.raises(AssertionError):
         fqe.get_hamiltonian_from_openfermion([])
+
 
 def test_get_hamiltonian_from_openfermion():
     """ Check get_hamiltonian_from_openfermion()
@@ -226,16 +237,18 @@ def test_get_hamiltonian_from_openfermion():
     test2 = build_hamiltonian(ops, norb=norb, conserve_number=False)
     assert test == test2
 
+
 def test_get_diagonal_hamiltonian():
     """ Check whether get_diagonal_hamiltonian returns the same value as its
         underlying function is supposed to return.
     """
-    diag = numpy.zeros((5, ), dtype=numpy.complex128)
+    diag = numpy.zeros((5,), dtype=numpy.complex128)
     e_0 = -4.2
     test = diagonal_hamiltonian.Diagonal(diag, e_0)
     test2 = fqe.get_diagonal_hamiltonian(diag, e_0)
 
     assert test == test2
+
 
 def test_get_diagonal_coulomb():
     """ Check whether get_diagonal_coulomb returns the same value as its
@@ -247,6 +260,7 @@ def test_get_diagonal_coulomb():
     test2 = fqe.get_diagonalcoulomb_hamiltonian(diag, e_0)
 
     assert test == test2
+
 
 @pytest.mark.parametrize("hamiltonian, get_function", \
               [ (sso_hamiltonian.SSOHamiltonian, fqe.get_sso_hamiltonian),
@@ -265,6 +279,7 @@ def test_get_hamiltonians(hamiltonian, get_function):
     test2 = get_function((h1e,))
 
     assert test == test2
+
 
 def test_get_sparse_hamiltonian():
     oper = FermionOperator('0 0^')

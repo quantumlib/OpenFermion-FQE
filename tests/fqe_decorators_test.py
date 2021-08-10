@@ -44,6 +44,7 @@ from fqe.wavefunction import Wavefunction
 
 from fqe import to_cirq, from_cirq
 
+
 def test_basic_split():
     """Test spliting the fermion operators for a simple case.
     """
@@ -51,6 +52,7 @@ def test_basic_split():
     test_ops = normal_ordered(test_ops)
     terms, _ = split_openfermion_tensor(test_ops)
     assert FermionOperator('1^ 1', -1.0) == terms[2]
+
 
 def test_split_rank2468():
     """Split up to rank four operators
@@ -65,6 +67,7 @@ def test_split_rank2468():
     for rank in range(2, 9, 2):
         assert ops[rank] == terms[rank]
 
+
 def test_odd_rank_error():
     """Check that odd rank operators are not processed
     """
@@ -74,6 +77,7 @@ def test_odd_rank_error():
     for rank in range(2):
         with pytest.raises(ValueError):
             split_openfermion_tensor(ops[rank])
+
 
 def test_fermionops_tomatrix():
     """Check if fermionops_tomatrix raises required exceptions
@@ -95,15 +99,18 @@ def test_fermionops_tomatrix():
     with pytest.raises(ValueError):
         fermionops_tomatrix(ops, norb)
 
+
 def test_process_rank2_matrix():
     numpy.random.seed(seed=409)
     raw = numpy.random.rand(8, 8) + 1.j * numpy.random.rand(8, 8)
     with pytest.raises(ValueError):
         process_rank2_matrix(raw, 0)
 
+
 def test_check_diagonal_coulomb():
     mat = numpy.random.rand(4, 4, 4, 4)
     assert not check_diagonal_coulomb(mat)
+
 
 def test_transform_to_spin_broken():
     """Check the conversion between number and spin broken
@@ -119,11 +126,13 @@ def test_transform_to_spin_broken():
     test = normal_ordered(transform_to_spin_broken(in_ops))
     assert ref_ops == test
 
+
 def test_fail_empty_hamiltonian():
     """Check that all cases of hamiltonian objects are built
     """
     with pytest.raises(TypeError):
         build_hamiltonian(0)
+
 
 def test_general_hamiltonian():
     ops = FermionOperator('1^ 4^ 0 3', 1.0) \
@@ -141,16 +150,18 @@ def test_general_hamiltonian():
     assert ham._tensor[4][5, 2, 6, 0] == -0.5
     assert ham._tensor[4][6, 0, 5, 2] == -0.5
 
+
 def test_sparse_hamiltonian():
     ops = FermionOperator('5^ 1^ 3^ 2 0 1', 1.0 - 1.j) \
           + FermionOperator('1^ 0^ 2^ 3 1 5', 1.0 + 1.j)
     ham = build_hamiltonian(ops)
     assert isinstance(ham, sparse_hamiltonian.SparseHamiltonian)
-    sparse = [((-1+1j), [(1, 0), (0, 0)], [(2, 1), (1, 1), (0, 1), (0, 0)]),
-              ((-1-1j), [(1, 1), (0, 1)], [(0, 1), (2, 0), (1, 0), (0, 0)])]
+    sparse = [((-1 + 1j), [(1, 0), (0, 0)], [(2, 1), (1, 1), (0, 1), (0, 0)]),
+              ((-1 - 1j), [(1, 1), (0, 1)], [(0, 1), (2, 0), (1, 0), (0, 0)])]
     for i, data in enumerate(ham._operators):
         assert abs(data[0] - sparse[i][0]) < 1.0e-8
         assert data[1:2] == sparse[i][1:2]
+
 
 def test_diagonal_hamiltonian():
     ops = FermionOperator('1^ 1', 1.0) \
@@ -160,7 +171,8 @@ def test_diagonal_hamiltonian():
     ham = build_hamiltonian(ops)
     assert isinstance(ham, diagonal_hamiltonian.Diagonal)
     assert (ham.diag_values() == numpy.array([0.0, 2.0, 4.0, 1.0, 3.0, 0.0],
-                                             dtype=numpy.complex128)).all() 
+                                             dtype=numpy.complex128)).all()
+
 
 def test_gso_hamiltonian():
     ops = FermionOperator()
@@ -171,11 +183,13 @@ def test_gso_hamiltonian():
             ops += FermionOperator(opstr, coeff)
     ham = build_hamiltonian(ops)
     assert isinstance(ham, gso_hamiltonian.GSOHamiltonian)
-    ref = numpy.array([[0.1+0.j, 0.3+0.j, 0.2+0.j, 0.4+0.j],
-                       [0.3+0.j, 0.9+0.j, 0.6+0.j, 1.2+0.j],
-                       [0.2+0.j, 0.6+0.j, 0.4+0.j, 0.8+0.j],
-                       [0.4+0.j, 1.2+0.j, 0.8+0.j, 1.6+0.j]], dtype=numpy.complex128)
+    ref = numpy.array([[0.1 + 0.j, 0.3 + 0.j, 0.2 + 0.j, 0.4 + 0.j],
+                       [0.3 + 0.j, 0.9 + 0.j, 0.6 + 0.j, 1.2 + 0.j],
+                       [0.2 + 0.j, 0.6 + 0.j, 0.4 + 0.j, 0.8 + 0.j],
+                       [0.4 + 0.j, 1.2 + 0.j, 0.8 + 0.j, 1.6 + 0.j]],
+                      dtype=numpy.complex128)
     assert numpy.allclose(ham._tensor[2], ref)
+
 
 def test_restricted_hamiltonian():
     ops = FermionOperator()
@@ -188,9 +202,10 @@ def test_restricted_hamiltonian():
             ops += FermionOperator(opstr, coeff)
     ham = build_hamiltonian(ops)
     assert isinstance(ham, restricted_hamiltonian.RestrictedHamiltonian)
-    ref = numpy.array([[0.1+0.j, 0.3+0.j],
-                       [0.3+0.j, 0.9+0.j]], dtype=numpy.complex128)
+    ref = numpy.array([[0.1 + 0.j, 0.3 + 0.j], [0.3 + 0.j, 0.9 + 0.j]],
+                      dtype=numpy.complex128)
     assert numpy.allclose(ham._tensor[2], ref)
+
 
 def test_sso_hamiltonian():
     ops = FermionOperator()
@@ -204,11 +219,13 @@ def test_sso_hamiltonian():
             ops += FermionOperator(opstr, coeff)
     ham = build_hamiltonian(ops)
     assert isinstance(ham, sso_hamiltonian.SSOHamiltonian)
-    ref = numpy.array([[0.1 +0.j, 0.3 +0.j, 0.  +0.j, 0.  +0.j],
-                       [0.3 +0.j, 0.9 +0.j, 0.  +0.j, 0.  +0.j],
-                       [0.  +0.j, 0.  +0.j, 0.15+0.j, 0.45+0.j],
-                       [0.  +0.j, 0.  +0.j, 0.45+0.j, 1.35+0.j]], dtype=numpy.complex128)
+    ref = numpy.array([[0.1 + 0.j, 0.3 + 0.j, 0. + 0.j, 0. + 0.j],
+                       [0.3 + 0.j, 0.9 + 0.j, 0. + 0.j, 0. + 0.j],
+                       [0. + 0.j, 0. + 0.j, 0.15 + 0.j, 0.45 + 0.j],
+                       [0. + 0.j, 0. + 0.j, 0.45 + 0.j, 1.35 + 0.j]],
+                      dtype=numpy.complex128)
     assert numpy.allclose(ham._tensor[2], ref)
+
 
 def test_diagonal_coulomb_hamiltonian():
     ops = FermionOperator()
@@ -217,8 +234,7 @@ def test_diagonal_coulomb_hamiltonian():
     index = [0, 2, 1, 3]
     for i in range(norb):
         for j in range(norb):
-            opstring = str(i) + '^ ' + str(j) + '^ ' + str(
-                i) + ' ' + str(j)
+            opstring = str(i) + '^ ' + str(j) + '^ ' + str(i) + ' ' + str(j)
             value = 0.001 * (index[i] + 1) * (index[j] + 1)
             ops += FermionOperator(opstring, value)
             ref[index[i], index[j]] -= value * 0.5
@@ -227,6 +243,7 @@ def test_diagonal_coulomb_hamiltonian():
     ham = build_hamiltonian(ops)
     assert isinstance(ham, diagonal_coulomb.DiagonalCoulomb)
     assert numpy.allclose(ham._tensor[2], ref)
+
 
 def test_build_hamiltonian_number_broken():
     """Check build_hamiltonian in the number-broken case 
@@ -239,16 +256,17 @@ def test_build_hamiltonian_number_broken():
     ref_ops += FermionOperator('0^ 2^ 1 3', 2.0)
     ref_ops += FermionOperator('7^ 1^ 6 5', 3.0)
 
-    in_ops += hermitian_conjugated(in_ops) 
-    ham1 = build_hamiltonian(in_ops, conserve_number=False) 
+    in_ops += hermitian_conjugated(in_ops)
+    ham1 = build_hamiltonian(in_ops, conserve_number=False)
 
-    ref_ops += hermitian_conjugated(ref_ops) 
+    ref_ops += hermitian_conjugated(ref_ops)
     ham2 = build_hamiltonian(ref_ops, conserve_number=True)
     for key in ham1._tensor.keys():
         assert key in ham2._tensor.keys()
         assert numpy.allclose(ham1._tensor[key], ham2._tensor[key])
     assert not ham1.conserve_number()
     assert ham2.conserve_number()
+
 
 def test_evolve_spinful_fermionop():
     """
@@ -274,6 +292,7 @@ def test_evolve_spinful_fermionop():
     test_state = wfn.time_evolve(dt, op_to_apply)
     numpy.testing.assert_almost_equal(test_state.get_coeff((2, 0)),
                                       new_state_wfn.get_coeff((2, 0)))
+
 
 def test_apply_spinful_fermionop():
     """
@@ -307,14 +326,15 @@ def test_apply_spinful_fermionop():
     assert numpy.allclose(test_state.get_coeff((2, 0)),
                           new_state_wfn.get_coeff((2, 0)))
 
+
 def test_rdm_fermionop():
     numpy.random.seed(seed=409)
     wfn = Wavefunction([[2, 0, 2]])
     wfn.set_wfn(strategy='random')
     wfn.normalize()
     rdm1 = wfn.rdm('i^ j')
-    ref = numpy.array([[ 0.64858462+0.j        , -0.39651606-0.67039465j],
-                       [-0.39651606+0.67039465j,  1.35141538+0.j        ]])
+    ref = numpy.array([[0.64858462 + 0.j, -0.39651606 - 0.67039465j],
+                       [-0.39651606 + 0.67039465j, 1.35141538 + 0.j]])
     numpy.testing.assert_almost_equal(rdm1, ref)
 
 
@@ -324,15 +344,23 @@ def test_rdm_fermionop_broken():
     wfn.set_wfn(strategy='random')
     wfn.normalize()
     rdm1 = wfn.rdm('i^ j')
-    ref = numpy.array([[ 0.68460237+0.j        ,  0.1763499 +0.14853599j,
-                         0.12581489+0.07549915j, -0.02583937-0.03371479j],
-                       [ 0.1763499 -0.14853599j,  0.43412586+0.j        ,
-                        -0.19017178-0.0074684j ,  0.02792504-0.12677385j],
-                       [ 0.12581489-0.07549915j, -0.19017178+0.0074684j ,
-                         0.60527581+0.j        , -0.08557504+0.18551942j],
-                       [-0.02583937+0.03371479j,  0.02792504+0.12677385j,
-                        -0.08557504-0.18551942j,  0.27599596+0.j        ]])
+    ref = numpy.array([[
+        0.68460237 + 0.j, 0.1763499 + 0.14853599j, 0.12581489 + 0.07549915j,
+        -0.02583937 - 0.03371479j
+    ],
+                       [
+                           0.1763499 - 0.14853599j, 0.43412586 + 0.j,
+                           -0.19017178 - 0.0074684j, 0.02792504 - 0.12677385j
+                       ],
+                       [
+                           0.12581489 - 0.07549915j, -0.19017178 + 0.0074684j,
+                           0.60527581 + 0.j, -0.08557504 + 0.18551942j
+                       ],
+                       [
+                           -0.02583937 + 0.03371479j, 0.02792504 + 0.12677385j,
+                           -0.08557504 - 0.18551942j, 0.27599596 + 0.j
+                       ]])
     numpy.testing.assert_almost_equal(rdm1, ref)
 
     assert abs(wfn.rdm('0^ 1^') \
-        - (0.12581488681522182+0.07549915168581758j)) < 1.0e-8 
+        - (0.12581488681522182+0.07549915168581758j)) < 1.0e-8

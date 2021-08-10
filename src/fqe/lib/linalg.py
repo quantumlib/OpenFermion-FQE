@@ -22,6 +22,7 @@ from numpy import ndarray as Nparray
 
 from fqe.lib import lib_fqe, c_double_complex
 
+
 def _zimatadd(outp: 'Nparray', inp: 'Nparray', alpha: complex):
     """Wrapper to C function `zimatadd`.
 
@@ -43,16 +44,12 @@ def _zimatadd(outp: 'Nparray', inp: 'Nparray', alpha: complex):
     func.argtypes = [
         c_int,
         c_int,
-        ndpointer(
-            shape=(dim1, dim2),
-            dtype=numpy.complex128,
-            flags=('C_CONTIGUOUS', 'ALIGNED')
-        ),
-        ndpointer(
-            shape=(dim2, dim1),
-            dtype=numpy.complex128,
-            flags=('C_CONTIGUOUS', 'ALIGNED')
-        ),
+        ndpointer(shape=(dim1, dim2),
+                  dtype=numpy.complex128,
+                  flags=('C_CONTIGUOUS', 'ALIGNED')),
+        ndpointer(shape=(dim2, dim1),
+                  dtype=numpy.complex128,
+                  flags=('C_CONTIGUOUS', 'ALIGNED')),
         c_double_complex,
     ]
 
@@ -77,18 +74,13 @@ def _transpose(outp: 'Nparray', inp: 'Nparray'):
     dim1, dim2 = outp.shape
 
     func.argtypes = [
-        c_int,
-        c_int,
-        ndpointer(
-            shape=(dim1, dim2),
-            dtype=numpy.complex128,
-            flags=('C_CONTIGUOUS', 'ALIGNED')
-        ),
-        ndpointer(
-            shape=(dim2, dim1),
-            dtype=numpy.complex128,
-            flags=('C_CONTIGUOUS', 'ALIGNED')
-        )
+        c_int, c_int,
+        ndpointer(shape=(dim1, dim2),
+                  dtype=numpy.complex128,
+                  flags=('C_CONTIGUOUS', 'ALIGNED')),
+        ndpointer(shape=(dim2, dim1),
+                  dtype=numpy.complex128,
+                  flags=('C_CONTIGUOUS', 'ALIGNED'))
     ]
 
     func(outp.shape[0], outp.shape[1], outp, inp)

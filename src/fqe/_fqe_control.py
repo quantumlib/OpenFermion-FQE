@@ -94,8 +94,7 @@ def apply_generated_unitary(
                                        spec_lim=spec_lim)
 
 
-def get_spin_conserving_wavefunction(s_z: int,
-                                     norb: int) -> 'Wavefunction':
+def get_spin_conserving_wavefunction(s_z: int, norb: int) -> 'Wavefunction':
     """Return a wavefunction which has s_z conserved
 
     Args:
@@ -120,8 +119,7 @@ def get_spin_conserving_wavefunction(s_z: int,
     return wavefunction.Wavefunction(param, broken=['number'])
 
 
-def get_number_conserving_wavefunction(nele: int, norb: int
-                                      ) -> 'Wavefunction':
+def get_number_conserving_wavefunction(nele: int, norb: int) -> 'Wavefunction':
     """Build a wavefunction
 
     Args:
@@ -142,9 +140,9 @@ def get_number_conserving_wavefunction(nele: int, norb: int
     return wavefunction.Wavefunction(param, broken=['spin'])
 
 
-def Wavefunction(param: List[List[int]],  # pylint: disable=function-redefined
-                 broken: Optional[Union[List[str], str]] = None
-                 ) -> 'Wavefunction':
+def Wavefunction(  # type: ignore # pylint: disable=function-redefined
+        param: List[List[int]],
+        broken: Optional[Union[List[str], str]] = None) -> 'Wavefunction':
     """Initialize a wavefunction through the fqe namespace
 
     Args:
@@ -239,8 +237,7 @@ def to_cirq_old(wfn: 'Wavefunction') -> numpy.ndarray:
 
 
 def to_cirq(wfn: 'Wavefunction',
-            binarycode: Optional['BinaryCode'] = None
-            ) -> numpy.ndarray:
+            binarycode: Optional['BinaryCode'] = None) -> numpy.ndarray:
     """Interoperability between cirq and the openfermion-fqe.  This takes an
     FQE wavefunction and returns a cirq compatible wavefunction based on the
     information stored within.
@@ -268,7 +265,9 @@ def to_cirq(wfn: 'Wavefunction',
     else:
         return to_cirq_old(wfn)
 
-def from_cirq(state: numpy.ndarray, thresh: float,
+
+def from_cirq(state: numpy.ndarray,
+              thresh: float,
               binarycode: Optional['BinaryCode'] = None) -> 'Wavefunction':
     """Interoperability between cirq and the openfermion-fqe.  This takes a
     cirq wavefunction and creates an FQE wavefunction object initialized with
@@ -313,8 +312,7 @@ def apply(ops: Union['hamiltonian.Hamiltonian', 'FermionOperator'],
 
 def expectationValue(wfn: 'Wavefunction',
                      ops: Union['hamiltonian.Hamiltonian', 'FermionOperator'],
-                     brawfn: Optional['Wavefunction'] = None
-                    ) -> complex:
+                     brawfn: Optional['Wavefunction'] = None) -> complex:
     """Return the expectation value for the passed operator and wavefunction
 
     Args:
@@ -552,4 +550,3 @@ def get_sso_hamiltonian(tensors: Tuple[numpy.ndarray, ...],
             spin-orbital Hamiltonian
     """
     return sso_hamiltonian.SSOHamiltonian(tensors, e_0=e_0)
-

@@ -133,4 +133,3 @@ class Hamiltonian(metaclass=ABCMeta):
             numpy.ndarray: Transformed one-body Hamiltonian as a numpy.ndarray.
         """
         return numpy.empty(0)
-

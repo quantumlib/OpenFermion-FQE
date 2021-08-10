@@ -110,7 +110,8 @@ def from_cirq_old(wfn: 'Wavefunction', state: numpy.ndarray) -> None:
             wfn[(val[0], val[1])] = val[2]
 
 
-def from_cirq(wfn: 'Wavefunction', state: numpy.ndarray,
+def from_cirq(wfn: 'Wavefunction',
+              state: numpy.ndarray,
               binarycode: Optional['BinaryCode'] = None) -> None:
     """For each availble FqeData structure, find the projection onto the cirq
     wavefunction and set the coefficients to the proper value.

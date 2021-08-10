@@ -46,7 +46,8 @@ def test_general_hamiltonian():
     with pytest.raises(TypeError):
         general_hamiltonian.General("test")
     with pytest.raises(ValueError):
-        general_hamiltonian.General((numpy.zeros((2, 2, 2)), ))
+        general_hamiltonian.General((numpy.zeros((2, 2, 2)),))
+
 
 def test_equality():
     """ Test the equality operator """

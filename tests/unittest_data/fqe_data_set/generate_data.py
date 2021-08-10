@@ -34,8 +34,15 @@ def _write_fqe_data(nelec, norb, suffix, abspath, data):
         sector.coeff.imag.tofile(cifile)
 
 
-def generate_data(nelec, norb, diag=True, maxn=2, maxrdm=0,
-                  daga=[], undaga=[], dagb=[], undagb=[]):
+def generate_data(nelec,
+                  norb,
+                  diag=True,
+                  maxn=2,
+                  maxrdm=0,
+                  daga=[],
+                  undaga=[],
+                  dagb=[],
+                  undagb=[]):
     dstr = "{:02d}{:02d}".format(nelec, norb)
     abspath = os.path.abspath(__file__)
     abspath = abspath.replace("generate_data.py", "set" + dstr)
@@ -45,7 +52,7 @@ def generate_data(nelec, norb, diag=True, maxn=2, maxrdm=0,
         os.mkdir(abspath)
 
     # use a fixed random seed
-    seed = 134570 + norb*100 + nelec
+    seed = 134570 + norb * 100 + nelec
     rng = numpy.random.default_rng(seed)
 
     _data = dict()
@@ -61,7 +68,7 @@ def generate_data(nelec, norb, diag=True, maxn=2, maxrdm=0,
 
         cr.tofile(crfile)
         ci.tofile(cifile)
-        sector.coeff = cr + 1.j*ci
+        sector.coeff = cr + 1.j * ci
         _data[(nalpha, nbeta)] = sector
     test = FqeDataSet(nelec, norb, _data)
 
@@ -133,8 +140,8 @@ def generate_data(nelec, norb, diag=True, maxn=2, maxrdm=0,
 
     if daga or undaga or dagb or undagb:
         # apply individual N-body operator
-        out = test.apply_individual_nbody(
-            complex(1), daga, undaga, dagb, undagb)
+        out = test.apply_individual_nbody(complex(1), daga, undaga, dagb,
+                                          undagb)
         sdaga = "".join([str(da) for da in daga])
         sundaga = "".join([str(uda) for uda in undaga])
         sdagb = "".join([str(db) for db in dagb])
@@ -143,8 +150,8 @@ def generate_data(nelec, norb, diag=True, maxn=2, maxrdm=0,
         _write_fqe_data(nelec, norb, suffix, abspath, out)
 
         # evolve with individual N-body operator
-        test.evolve_inplace_individual_nbody(
-            0.1, complex(1), daga, undaga, dagb, undagb)
+        test.evolve_inplace_individual_nbody(0.1, complex(1), daga, undaga,
+                                             dagb, undagb)
         suffix = "ievo" + sdaga + "_" + sundaga + "_" + sdagb + "_" + sundagb
         _write_fqe_data(nelec, norb, suffix, abspath, test)
 
@@ -152,8 +159,14 @@ def generate_data(nelec, norb, diag=True, maxn=2, maxrdm=0,
 def regenerate_reference_data():
     """ Regenerates the reference data
     """
-    generate_data(2, 2, maxn=4, maxrdm=4,
-                  daga=[0], undaga=[1], dagb=[0], undagb=[0])
+    generate_data(2,
+                  2,
+                  maxn=4,
+                  maxrdm=4,
+                  daga=[0],
+                  undaga=[1],
+                  dagb=[0],
+                  undagb=[0])
 
 
 if __name__ == "__main__":

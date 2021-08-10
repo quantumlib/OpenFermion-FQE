@@ -13,9 +13,9 @@
 #   limitations under the License.
 """Unit tests for fqe utils."""
 
-
 from fqe.fqe_ops import fqe_ops_utils
 import pytest
+
 
 def test_validate_rdm_string():
     """Check that the string passed in to rdm access is valid."""
@@ -44,6 +44,7 @@ def test_validate_rdm_string():
     assert fqe_ops_utils.validate_rdm_string(rdm2) == "tensor"
     assert fqe_ops_utils.validate_rdm_string(rdm3) == "tensor"
     assert fqe_ops_utils.validate_rdm_string(rdm4) == "tensor"
+
 
 def test_switch_broken():
     """Test that the strings properly switch between number and spin broken

@@ -30,13 +30,13 @@ def test_sparse():
     assert not test.is_individual()
 
     terms = test.terms()
-    assert terms == [(-1.0, [(0, 1), (0, 0)], []),
-                     (-1.0, [], [(0, 1), (0, 0)])] 
+    assert terms == [(-1.0, [(0, 1), (0, 0)], []), (-1.0, [], [(0, 1), (0, 0)])]
 
     ham = test.terms_hamiltonian()
     assert len(ham) == 2
     assert isinstance(ham[0], sparse_hamiltonian.SparseHamiltonian)
     assert ham[1].terms()[0] == (-1.0, [], [(0, 1), (0, 0)])
+
 
 def test_sparse_from_string():
     test = sparse_hamiltonian.SparseHamiltonian('1^ 0')
@@ -51,6 +51,7 @@ def test_sparse_from_string():
     assert terms[1:] == iterms[1:]
     assert abs(terms[0] * (-1j) * time - iterms[0]) < 1.0e-8
 
+
 def test_dim_error():
     """Test if SparseHamiltonian raises an error if dim() is accessed
     """
@@ -58,6 +59,7 @@ def test_dim_error():
     test = sparse_hamiltonian.SparseHamiltonian(oper)
     with pytest.raises(NotImplementedError):
         d = test.dim()
+
 
 def test_equality():
     """ Test the equality operator """

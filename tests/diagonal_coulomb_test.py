@@ -17,6 +17,7 @@ import numpy
 
 from fqe.hamiltonians import diagonal_coulomb
 
+
 def test_diagonal_coulomb():
     """Test some of the functions in DiagonalCoulomb."""
     norb = 5
@@ -32,8 +33,8 @@ def test_diagonal_coulomb():
 
     diag2 = numpy.empty((norb, norb, norb, norb), dtype=numpy.complex128)
     for i in range(norb):
-      for j in range(norb):
-        diag2[i, j, i, j] = 1.0
+        for j in range(norb):
+            diag2[i, j, i, j] = 1.0
     test2 = diagonal_coulomb.DiagonalCoulomb(diag2)
     assert test.dim() == norb
 
@@ -50,7 +51,6 @@ def test_equality():
     assert not (test == 1)
 
     diag2 = numpy.zeros((5, 5), dtype=numpy.complex128)
-    diag2[0,1] = 1.0
+    diag2[0, 1] = 1.0
     test2 = diagonal_coulomb.DiagonalCoulomb(diag2, e_0)
     assert test != test2
-

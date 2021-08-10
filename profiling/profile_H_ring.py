@@ -19,9 +19,7 @@ fqe_wf.set_wfn(strategy='hartree-fock')
 fqe_wf.normalize()
 
 hamiltonian = fqe.get_restricted_hamiltonian(
-    (h1, numpy.einsum("ijlk", -0.5 * h2)),
-    e_0=molecule.nuclear_repulsion
-)
+    (h1, numpy.einsum("ijlk", -0.5 * h2)), e_0=molecule.nuclear_repulsion)
 initial_energy = fqe_wf.expectationValue(hamiltonian)
 
 print(f'Initial Energy: {initial_energy}')

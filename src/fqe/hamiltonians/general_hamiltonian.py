@@ -20,6 +20,7 @@ import numpy
 from fqe.hamiltonians import hamiltonian
 from fqe.util import tensors_equal
 
+
 class General(hamiltonian.Hamiltonian):
     """The General Hamiltonian is the most general dense hamiltonian object
     supported and has no unique considerations.

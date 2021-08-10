@@ -165,9 +165,9 @@ class SparseHamiltonian(hamiltonian.Hamiltonian):
             out._operators[index] = (-coeff * 1.0j * time, alpha, beta)
         return out
 
-    def terms(self) -> List[Tuple[complex,
-                                  List[Tuple[int, int]],
-                                  List[Tuple[int, int]]]]:
+    def terms(
+            self
+    ) -> List[Tuple[complex, List[Tuple[int, int]], List[Tuple[int, int]]]]:
         """
         Returns:
             List[Tuple[complex, List[Tuple[int, int]], List[Tuple[int, int]]]]:

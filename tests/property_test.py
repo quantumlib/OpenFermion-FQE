@@ -31,6 +31,7 @@ from fqe.fqe_ops.fqe_ops import (
 
 from tests.unittest_data import build_lih_data, build_nh_data
 
+
 def test_lih_energy():
     """Checking total energy with LiH
     """
@@ -47,7 +48,8 @@ def test_lih_energy():
                 raw_data={(nele, nalpha - nbeta): lih_ground})
 
     ecalc = wfn.expectationValue(elec_hamil)
-    assert round(abs(eref-ecalc), 8) == 0
+    assert round(abs(eref - ecalc), 8) == 0
+
 
 def test_lih_dipole():
     """Calculate the LiH dipole
@@ -74,6 +76,7 @@ def test_lih_dipole():
         err = abs(calc_dip[card] - dip_ref[card])
         assert err < 1.e-5
 
+
 def test_lih_ops():
     """Check the value of the operators on LiH
     """
@@ -89,11 +92,11 @@ def test_lih_ops():
                 raw_data={(nele, nalpha - nbeta): lih_ground})
 
     operator = S2Operator()
-    assert round(abs(wfn.expectationValue(operator)-0. + 0.j), 7) == 0
+    assert round(abs(wfn.expectationValue(operator) - 0. + 0.j), 7) == 0
     operator = SzOperator()
-    assert round(abs(wfn.expectationValue(operator)-0. + 0.j), 7) == 0
+    assert round(abs(wfn.expectationValue(operator) - 0. + 0.j), 7) == 0
     operator = TimeReversalOp()
-    assert round(abs(wfn.expectationValue(operator)-1. + 0.j), 7) == 0
+    assert round(abs(wfn.expectationValue(operator) - 1. + 0.j), 7) == 0
     operator = NumberOperator()
-    assert round(abs(wfn.expectationValue(operator)-4. + 0.j), 7) == 0
-    assert round(abs(wfn.expectationValue(operator, wfn)-4. + 0.j), 7) == 0
+    assert round(abs(wfn.expectationValue(operator) - 4. + 0.j), 7) == 0
+    assert round(abs(wfn.expectationValue(operator, wfn) - 4. + 0.j), 7) == 0

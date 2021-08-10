@@ -41,7 +41,7 @@ def test_gso():
     diag2 = test.transform(trans)
     assert numpy.allclose(diag, diag2)
     numpy.fill_diagonal(diag, 0.0)
-    assert numpy.allclose(diag, 0.0) 
+    assert numpy.allclose(diag, 0.0)
 
     time = 3.4
     iht = test.iht(time)
@@ -54,7 +54,8 @@ def test_gso():
     with pytest.raises(TypeError):
         gso_hamiltonian.GSOHamiltonian("test")
     with pytest.raises(ValueError):
-        gso_hamiltonian.GSOHamiltonian((numpy.zeros((2, 2, 2)), ))
+        gso_hamiltonian.GSOHamiltonian((numpy.zeros((2, 2, 2)),))
+
 
 def test_equality():
     """ Test the equality operator """

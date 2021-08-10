@@ -25,6 +25,7 @@ from fqe.fqe_ops.fqe_ops import (
 )
 from fqe import wavefunction
 
+
 def test_ops_general():
     """Check general properties of the fqe_ops."""
     s_2 = S2Operator()
@@ -51,6 +52,7 @@ def test_ops_general():
     with pytest.raises(ValueError):
         t_r.contract(wfn, wfn)
 
+
 def test_number_operator():
     num = NumberOperator()
     wfn = wavefunction.Wavefunction([[4, 2, 4], [4, 0, 4]])
@@ -59,12 +61,14 @@ def test_number_operator():
     num_expec = num.contract(wfn, wfn)
     assert numpy.isclose(num_expec, 4)
 
+
 def test_S2Operator():
     s2 = S2Operator()
     wfn = wavefunction.Wavefunction([[2, 2, 4]])
     wfn[3, 0] = 1.0
     s2_expec = s2.contract(wfn, wfn)
     assert numpy.isclose(s2_expec, 2)
+
 
 def test_SzOperator():
     sz = SzOperator()
@@ -73,6 +77,7 @@ def test_SzOperator():
     wfn.normalize()
     sz_expec = sz.contract(wfn, wfn)
     assert numpy.isclose(sz_expec, 1)
+
 
 def test_TimeReversalOp():
     tr = TimeReversalOp()

@@ -17,8 +17,8 @@ if __name__ == '__main__':
                 for l in range(norb):
                     for m in range(norb):
                         for n in range(norb):
-                            h3e_spa[i, j, k, l, m, n] += (i + l) * (
-                                j + m) * (k + n) * 0.002
+                            h3e_spa[i, j, k, l, m, n] += (i + l) * (j + m) * (
+                                k + n) * 0.002
 
     wfn = Wavefunction([[nel, sz, norb]])
     wfn.set_wfn(strategy='random')
