@@ -25,8 +25,8 @@ import math
 from typing import (Any, Callable, cast, Dict, KeysView, List, Optional, Tuple,
                     Union)
 
-import numpy
 import pickle
+import numpy
 from scipy import linalg
 from scipy.special import factorial, jv
 
