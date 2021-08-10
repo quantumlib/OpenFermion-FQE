@@ -26,6 +26,7 @@ from typing import (Any, Callable, cast, Dict, KeysView, List, Optional, Tuple,
                     Union)
 
 import numpy
+import pickle
 from scipy import linalg
 from scipy.special import factorial, jv
 
@@ -726,7 +727,7 @@ class Wavefunction:
               it is saved in the current working directory.
         """
         with open(os.path.join(path, filename), 'r+b') as wfnfile:
-            wfn_data = numpy.load(wfnfile, allow_pickle=True)
+            wfn_data = pickle.load(wfnfile)
 
         self._symmetry_map = wfn_data[0]
         self._conserved = wfn_data[1]
@@ -755,7 +756,7 @@ class Wavefunction:
             wfn_data.append([key, self._civec[key]])
 
         with open(os.path.join(path, filename), 'w+b') as wfnfile:
-            numpy.save(wfnfile, wfn_data, allow_pickle=True)
+            pickle.dump(wfn_data, wfnfile)
 
     def scale(self, sval: complex) -> None:
         """ Scale each configuration space by the value sval
