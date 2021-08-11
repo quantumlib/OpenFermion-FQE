@@ -112,13 +112,15 @@ class LowRankTrotter:
         Get Givens angles and DiagonalHamiltonian to simulate squared one-body.
 
         The goal here will be to prepare to simulate evolution under
-        :math:`(\sum_{pq} h_{pq} a^\dagger_p a_q)^2` by decomposing as
-        :math:`R e^{-i \sum_{pq} V_{pq} n_p n_q} R^\dagger' where
+        :math:`(\sum_{pq} h_{pq} a^{\dagger}_p a_q)^2` by decomposing as
+        :math:`R e^{-i \sum_{pq} V_{pq} n_p n_q} R^\dagger` where
         :math:`R` is a basis transformation matrix.
 
         Args:
             eigenvalues: eigenvalues of 2nd quantized op
+
             one_body_squares: one-body-ops to square
+
             threshold: cutoff threshold.
                 TODO: WARNING: THIS IS NOT USED CURRENTLY
 
@@ -151,6 +153,7 @@ class LowRankTrotter:
         Args:
             first_factor_cutoff: First factorization cumulative eigenvalue
                 cutoff.
+
             second_factor_cutoff: Second factorization cumulative error cutoff.
 
         Returns:

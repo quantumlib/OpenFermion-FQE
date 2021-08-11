@@ -29,9 +29,12 @@ def evolve_fqe_givens_sector(wfn: Wavefunction, u: np.ndarray,
 
     Args:
         wfn: FQE Wavefunction on n-orbitals
+
         u: (n x n) unitary matrix.
+
         sector: Optional either 'alpha' or 'beta' indicating which sector
                 to rotate
+
     Returns:
         New evolved wfn object.
     """
@@ -42,7 +45,7 @@ def evolve_fqe_givens_sector(wfn: Wavefunction, u: np.ndarray,
     else:
         raise ValueError("Bad section variable.  Either (alpha) or (beta)")
 
-    if not np.isclose(u.shape[0], wfn.norb()):
+    if u.shape[0] != wfn.norb():
         raise ValueError(
             "unitary is not specified for the correct number of orbitals")
 
@@ -78,52 +81,18 @@ def evolve_fqe_givens_sector(wfn: Wavefunction, u: np.ndarray,
 
 def evolve_fqe_givens(wfn: Wavefunction, u: np.ndarray) -> Wavefunction:
     """Evolve a wavefunction by u generated from a 1-body Hamiltonian.
-
+       Evolve both alpha and beta sectors.
     Args:
         wfn: 2^{n} x 1 vector.
+
         u: (n//2 x n//2) unitary matrix.
 
     Returns:
         New evolved wfn object.
     """
-    rotations, diagonal = givens_decomposition_square(u.copy())
-    # Iterate through each layer and time evolve by the appropriate
-    # fermion operators
-    for layer in rotations:
-        for givens in layer:
-            i, j, theta, phi = givens
-            if not np.isclose(phi, 0):
-                op = of.FermionOperator(((2 * j, 1), (2 * j, 0)),
-                                        coefficient=-phi)
-                wfn = wfn.time_evolve(1.0, op)
-                op = of.FermionOperator(((2 * j + 1, 1), (2 * j + 1, 0)),
-                                        coefficient=-phi)
-                wfn = wfn.time_evolve(1.0, op)
-            if not np.isclose(theta, 0):
-                op = of.FermionOperator(
-                    ((2 * i, 1),
-                     (2 * j, 0)), coefficient=-1j * theta) + of.FermionOperator(
-                         ((2 * j, 1), (2 * i, 0)), coefficient=1j * theta)
-                wfn = wfn.time_evolve(1.0, op)
-                op = of.FermionOperator(
-                    ((2 * i + 1, 1), (2 * j + 1, 0)),
-                    coefficient=-1j * theta) + of.FermionOperator(
-                        ((2 * j + 1, 1), (2 * i + 1, 0)),
-                        coefficient=1j * theta)
-                wfn = wfn.time_evolve(1.0, op)
-
-    # evolve the last diagonal phases
-    for idx, final_phase in enumerate(diagonal):
-        if not np.isclose(final_phase, 1.0):
-            op = of.FermionOperator(((2 * idx, 1), (2 * idx, 0)),
-                                    -np.angle(final_phase))
-            wfn = wfn.time_evolve(1.0, op)
-            op = of.FermionOperator(((2 * idx + 1, 1), (2 * idx + 1, 0)),
-                                    -np.angle(final_phase))
-            wfn = wfn.time_evolve(1.0, op)
-
+    wfn = evolve_fqe_givens_sector(wfn, u, sector='alpha')
+    wfn = evolve_fqe_givens_sector(wfn, u, sector='beta')
     return wfn
-
 
 def evolve_fqe_givens_unrestricted(wfn: Wavefunction,
                                    u: np.ndarray) -> Wavefunction:
@@ -131,6 +100,7 @@ def evolve_fqe_givens_unrestricted(wfn: Wavefunction,
 
     Args:
         wfn: 2^{n} x 1 vector.
+
         u: (n x n) unitary matrix.
 
     Returns:
@@ -171,7 +141,9 @@ def evolve_fqe_charge_charge_unrestricted(wfn: Wavefunction,
 
     Args:
         wfn: fqe_wf with sdim = n
+
         vij_mat: List[(n x n] matrices
+
         time: evolution time.
 
     Returns:
@@ -196,7 +168,9 @@ def evolve_fqe_charge_charge_alpha_beta(wfn: Wavefunction,
 
     Args:
         wfn: fqe_wf with sdim = n
+
         vij_mat: List[(n x n] matrices n is the spatial orbital rank
+
         time: evolution time.
 
     Returns:
@@ -223,7 +197,9 @@ def evolve_fqe_charge_charge_sector(wfn: Wavefunction,
 
     Args:
         wfn: fqe_wf with sdim = n
+
         vij_mat: List[(n x n] matrices n is the spatial orbital rank
+
         time: evolution time.
 
     Returns:
@@ -247,15 +223,17 @@ def evolve_fqe_charge_charge_sector(wfn: Wavefunction,
     return wfn
 
 
-def evolve_fqe_diagaonal_coulomb(wfn: Wavefunction, vij_mat: np.ndarray,
-                                 time=1) -> Wavefunction:
+def evolve_fqe_diagonal_coulomb(wfn: Wavefunction, vij_mat: np.ndarray,
+                                time=1) -> Wavefunction:
     r"""Utility for testing evolution of a full 2^{n} wavefunction via
 
     :math:`exp{-i time * \sum_{i,j, sigma, tau}v_{i, j}n_{i\sigma}n_{j\tau}}.`
 
     Args:
         wfn: 2^{n} x 1 vector.
+
         vij_mat: List[(n//2 x n//2)] matrices
+
         time: evolution time.
 
     Returns:
@@ -275,16 +253,19 @@ def double_factor_trotter_evolution(initial_wfn: Wavefunction,
 
     Args:
         initial_wfn: Initial wavefunction to evolve.
+
         basis_change_unitaries: List L + 1 unitaries. The first
             unitary is U1 :math:`e^{-iTdt}` where T is the one-electron
             component of the evolution.  he remaining unitaries are
             :math:`U_{i}U_{i-1}^{\dagger}.` All unitaries are expressed with
             respect to the number of spatial basis functions.
+
         vij_mats: list matrices of rho-rho interactions where
             i, j indices of the matrix index the :math:`n_{i} n_{j}` integral.
             Evolution is performed with respect to :math:`n_{i\sigma} n_{j\tau}`
             where sigma and tau are up or down electron spins--a total of 4
             Hamiltonian terms per i, j term.
+
         deltat: evolution time prefactor for all v_ij Hamiltonians.
 
     Returns:
@@ -296,9 +277,9 @@ def double_factor_trotter_evolution(initial_wfn: Wavefunction,
 
     intermediate_wfn = evolve_fqe_givens(initial_wfn, basis_change_unitaries[0])
     for step in range(1, len(basis_change_unitaries)):
-        intermediate_wfn = evolve_fqe_diagaonal_coulomb(intermediate_wfn,
-                                                        vij_mats[step - 1],
-                                                        deltat)
+        intermediate_wfn = evolve_fqe_diagonal_coulomb(intermediate_wfn,
+                                                       vij_mats[step - 1],
+                                                       deltat)
         intermediate_wfn = evolve_fqe_givens(intermediate_wfn,
                                              basis_change_unitaries[step])
 

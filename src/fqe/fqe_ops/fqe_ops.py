@@ -11,8 +11,9 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
-"""Defines the number operator, S^2 operator, Sz operator, and time-reveral
-operator."""
+"""Defines the number operator, :math:`S^2` operator, :math:`S_z` operator, \
+   and time-reversal operator.
+"""
 
 import copy
 from typing import TYPE_CHECKING
@@ -35,20 +36,27 @@ class NumberOperator(fqe_operator.FqeOperator):
         operator according to its representation.
 
         Args:
-            brastate: Wavefunction on the bra side.
-            ketstate: Wavefunction on the ket side.
+            brastate (Wavefunction): Wavefunction on the bra side.
+
+            ketstate (Wavefunction): Wavefunction on the ket side.
         """
         out = copy.deepcopy(ketstate)
         for _, sector in out._civec.items():
             sector.scale(sector.nalpha() + sector.nbeta())
         return vdot(brastate, out)
 
-    def representation(self):
-        """Returns the representation of the number operator, which is 'N'."""
+    def representation(self) -> str:
+        """
+        Returns:
+            (str): the representation of the number operator, which is 'N'.
+        """
         return "N"
 
-    def rank(self):
-        """Returns the rank of the number operator."""
+    def rank(self) -> int:
+        """
+        Returns:
+            (int): the rank of the number operator. Always 2
+        """
         return 2
 
 
@@ -61,20 +69,27 @@ class S2Operator(fqe_operator.FqeOperator):
         operator according to its representation.
 
         Args:
-            brastate: Wavefunction on the bra side.
-            ketstate: Wavefunction on the ket side.
+            brastate (Wavefunction): Wavefunction on the bra side.
+
+            ketstate (Wavefunction): Wavefunction on the ket side.
         """
         out = copy.deepcopy(ketstate)
         for _, sector in out._civec.items():
             sector.apply_inplace_s2()
         return vdot(brastate, out)
 
-    def representation(self):
-        """Returns the representation of the operator."""
+    def representation(self) -> str:
+        """
+        Returns:
+            (str): the representation of the operator, which is s_2
+        """
         return "s_2"
 
-    def rank(self):
-        """Returns rank of the operator."""
+    def rank(self) -> int:
+        """
+        Returns:
+            (int): rank of the operator. Always 2
+        """
         return 2
 
 
@@ -87,20 +102,28 @@ class SzOperator(fqe_operator.FqeOperator):
         operator according to its representation.
 
         Args:
-            brastate: Wavefunction on the bra side.
-            ketstate: Wavefunction on the ket side.
+            brastate (Wavefunction): Wavefunction on the bra side.
+
+            ketstate (Wavefunction): Wavefunction on the ket side.
         """
         out = copy.deepcopy(ketstate)
         for _, sector in out._civec.items():
             sector.scale((sector.nalpha() - sector.nbeta()) * 0.5)
         return vdot(brastate, out)
 
-    def representation(self):
-        """Returns the representation of the Sz operator."""
+    def representation(self) -> str:
+        """
+        Returns:
+            (str): the representation of the :math:`S_z` operator, \
+                   which is "s_z"
+        """
         return "s_z"
 
-    def rank(self):
-        """Returns the rank of the Sz operator."""
+    def rank(self) -> int:
+        """
+        Returns:
+            (int): the rank of the :math:`S_z` operator. Always 2
+        """
         return 2
 
 
@@ -116,8 +139,9 @@ class TimeReversalOp(fqe_operator.FqeOperator):
         operator according to its representation.
 
         Args:
-            brastate: Wavefunction on the bra side.
-            ketstate: Wavefunction on the ket side.
+            brastate (Wavefunction): Wavefunction on the bra side.
+
+            ketstate (Wavefunction): Wavefunction on the ket side.
         """
         out = copy.deepcopy(ketstate)
         for (nele, nab), sector in out._civec.items():
@@ -142,10 +166,16 @@ class TimeReversalOp(fqe_operator.FqeOperator):
                 sector.coeff = sector.coeff.T.conj()
         return vdot(brastate, out)
 
-    def representation(self):
-        """Returns the representation of the operator."""
+    def representation(self) -> str:
+        """
+        Returns:
+            (str): the representation of the operator, which is T
+        """
         return "T"
 
-    def rank(self):
-        """Returns the rank of the operator."""
+    def rank(self) -> int:
+        """
+        Returns:
+            (int): the rank of the operator. Always 2
+        """
         return 2

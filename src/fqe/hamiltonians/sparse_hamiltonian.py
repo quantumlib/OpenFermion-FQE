@@ -42,10 +42,12 @@ class SparseHamiltonian(hamiltonian.Hamiltonian):
         """Initializes a SparseHamiltonian.
 
         Args:
-            operators: Operator with a coefficient in the FermionOperator
-                       format.
-            conserve_spin: Whether or not to conserve the Sz symmetry.
-            e_0: Scalar part of the Hamiltonian.
+            operators (FermionOperator or str): Operator with a coefficient \
+                in the FermionOperator format.
+
+            conserve_spin (bool): Whether or not to conserve the Sz symmetry.
+
+            e_0 (complex): Scalar part of the Hamiltonian.
         """
         if isinstance(operators, str):
             ops = FermionOperator(operators, 1.0)
@@ -84,6 +86,22 @@ class SparseHamiltonian(hamiltonian.Hamiltonian):
                 beta_out.append((beta[0] // 2, beta[1]))
             self._operators.append((coeff * phase, alpha_out, beta_out))
 
+    def __eq__(self, other: object) -> bool:
+        """ Comparison operator
+
+        Args:
+            other: SparseHamiltonian to be compared against
+
+        Returns:
+            True if equal, otherwise False
+        """
+        if not isinstance(other, SparseHamiltonian):
+            return NotImplemented
+        else:
+            return self.e_0() == other.e_0() \
+                and self._conserve_spin == other._conserve_spin \
+                and self._operators == other._operators
+
     def dim(self):
         """Dim is the orbital dimension of the Hamiltonian arrays.
         This function should not be used with SparseHamiltonian
@@ -91,16 +109,24 @@ class SparseHamiltonian(hamiltonian.Hamiltonian):
         raise NotImplementedError
 
     def rank(self) -> int:
-        """Returns the rank of the largest tensor."""
+        """
+        Returns:
+            (int): the rank of the largest tensor.
+        """
         return self._rank
 
     def nterms(self) -> int:
-        """Returns the number of non-zero elements in the Hamiltonian."""
+        """
+        Returns:
+            (int): the number of non-zero elements in the Hamiltonian.
+        """
         return len(self._operators)
 
     def is_individual(self) -> bool:
-        """Returns if this Hamiltonian consists of an individual operator
-        plus its Hermitian conjugate.
+        """
+        Returns:
+            (bool): True if this Hamiltonian consists of an individual \
+                operator plus its Hermitian conjugate.
         """
         nterm = 0
         for (_, alpha, beta) in self._operators:
@@ -128,7 +154,10 @@ class SparseHamiltonian(hamiltonian.Hamiltonian):
         """Return the matrices of the Hamiltonian prepared for time evolution.
 
         Args:
-            time: The time step.
+            time (float): The time step.
+
+        Returns:
+            SparseHamiltonian: Hamiltonian to be used in time evolution
         """
         out = copy.deepcopy(self)
         for index in range(len(out._operators)):
@@ -136,12 +165,22 @@ class SparseHamiltonian(hamiltonian.Hamiltonian):
             out._operators[index] = (-coeff * 1.0j * time, alpha, beta)
         return out
 
-    def terms(self):
-        """Returns the operators that comprise the SparseHamiltonian."""
+    def terms(
+            self
+    ) -> List[Tuple[complex, List[Tuple[int, int]], List[Tuple[int, int]]]]:
+        """
+        Returns:
+            List[Tuple[complex, List[Tuple[int, int]], List[Tuple[int, int]]]]:
+                the operators that comprise the SparseHamiltonian.
+        """
         return self._operators
 
     def terms_hamiltonian(self) -> List['SparseHamiltonian']:
-        """Returns a list of all SparseHamiltonian operator terms."""
+        """
+        Returns:
+            List['SparseHamiltonian']: a list of terms where each of the terms is \
+                represented as a SparseHamiltonian.
+        """
         out = []
         for current in self._operators:
             tmp = copy.deepcopy(self)

@@ -15,10 +15,10 @@
 
 from typing import Dict, Tuple
 
-import numpy as np
+import numpy
 
+from fqe.util import tensors_equal
 from fqe.hamiltonians import hamiltonian
-
 
 class RestrictedHamiltonian(hamiltonian.Hamiltonian):
     """The Restricted Hamiltonian is characterized by having identical alpha
@@ -27,26 +27,28 @@ class RestrictedHamiltonian(hamiltonian.Hamiltonian):
     """
 
     def __init__(self,
-                 tensors: Tuple[np.ndarray, ...],
+                 tensors: Tuple[numpy.ndarray, ...],
                  e_0: complex = 0.0 + 0.0j) -> None:
         """Initializes a RestrictedHamiltonian.
 
         Arguments:
-            tensors: Variable length tuple containg between one and four
-                     numpy.arrays of increasing rank. The tensors contain the
-                     n-body hamiltonian elements in the spin-free form.
-                     Therefore, the size of each dimension is the number of
-                     spatial orbitals.  Tensors up to the highest order must be
-                     included even if the lower terms are full of zeros.
-            e_0: Scalar potential associated with the Hamiltonian.
+            tensors (Tuple[numpy.ndarray, ...]): Variable length tuple containg \
+                between one and four numpy.arrays of increasing rank. \
+                The tensors contain the n-body hamiltonian elements in the \
+                spin-free form.  Therefore, the size of each dimension is \
+                the number of spatial orbitals.
+
+            e_0 (complex): Scalar potential associated with the Hamiltonian.
         """
         super().__init__(e_0=e_0)
-        self._tensor: Dict[int, np.ndarray] = {}
+        self._tensor: Dict[int, numpy.ndarray] = {}
 
         for rank, matrix in enumerate(tensors):
-            if not (isinstance(rank, int) and isinstance(matrix, np.ndarray)):
+            if not (isinstance(rank, int) and
+                    isinstance(matrix, numpy.ndarray)):
                 raise TypeError("tensors should be a tuple of numpy.ndarray")
-            assert (matrix.ndim % 2) == 0
+            if matrix.ndim % 2:
+                raise ValueError("input tensor has an odd rank")
 
             self._tensor[2 * (rank + 1)] = matrix
 
@@ -60,38 +62,70 @@ class RestrictedHamiltonian(hamiltonian.Hamiltonian):
 
         self._dim = list(self._tensor.values())[0].shape[0]
 
+    def __eq__(self, other: object) -> bool:
+        """ Comparison operator
+        Args:
+            other: RestrictedHamiltonian to be compared against
+
+        Returns:
+            (bool): True if equal, otherwise False
+        """
+        if not isinstance(other, RestrictedHamiltonian):
+            return NotImplemented
+        else:
+            return  self.e_0() == other.e_0() \
+                and tensors_equal(self._tensor, other._tensor)
+
     def dim(self) -> int:
-        """Returns the orbital dimension of the Hamiltonian arrays."""
+        """
+        Returns:
+            (int): the orbital dimension of the Hamiltonian arrays.
+        """
         return self._dim
 
-    def rank(self):
-        """Returns the rank of the largest tensor."""
+    def rank(self) -> int:
+        """
+        Returns:
+            (int): the rank of the largest tensor.
+        """
         return 2 * len(self._tensor)
 
-    def tensor(self, rank: int) -> np.ndarray:
+    def tensor(self, rank: int) -> numpy.ndarray:
         """Returns a single nbody tensor based on its rank.
 
         Args:
-            rank: Indexes the single nbody tensor to return.
+            rank (int): rank of the single nbody tensor to return.
+
+        Returns:
+            numpy.ndarray: corresponding numpy array
         """
         return self._tensor[rank]
 
-    def tensors(self) -> Tuple[np.ndarray, ...]:
-        """Returns all tensors in order of their rank."""
+    def tensors(self) -> Tuple[numpy.ndarray, ...]:
+        """
+        Returns:
+            Tuple[numpy.ndarray, ...]: all tensors in order of their rank.
+        """
         out = []
         for rank in range(len(self._tensor)):
             out.append(self._tensor[2 * (rank + 1)])
         return tuple(out)
 
     def quadratic(self) -> bool:
-        """Returns True if the Hamiltonian is quadratic, else False."""
+        """
+        Returns:
+            bool: whether or not the Hamiltonian is quadratic.
+        """
         return self._quadratic
 
-    def iht(self, time: float) -> Tuple[np.ndarray, ...]:
-        """Return the matrices of the Hamiltonian prepared for time evolution.
+    def iht(self, time: float) -> Tuple[numpy.ndarray, ...]:
+        """Returns the matrices of the Hamiltonian prepared for time evolution.
 
         Args:
-            time: The time step.
+            time (float): time associated with the time propagation
+
+        Returns:
+            Tuple[numpy.ndarray, ...]: tuple of arrays to be used in time propagation
         """
         iht_mat = []
         for rank in range(len(self._tensor)):
@@ -99,23 +133,23 @@ class RestrictedHamiltonian(hamiltonian.Hamiltonian):
 
         return tuple(iht_mat)
 
-    def calc_diag_transform(self) -> np.ndarray:
-        """Performs a unitary digaonlizing transformation of the one-body term
+    def calc_diag_transform(self) -> numpy.ndarray:
+        """Performs a unitary digaonlizing transformation of the one body term
         and returns that transformation.
-        """
-        _, trans = np.linalg.eigh(self._tensor[2])
-        return trans
-
-    def transform(self, trans: np.ndarray) -> np.ndarray:
-        """Tranform the one body term using the provided matrix.
-
-        Note: Care must be taken that this function does not transform the
-        higher-body terms even if they exist.
-
-        Args:
-            trans: Unitary transformation.
 
         Returns:
-            Transformed one-body Hamiltonian as a numpy.ndarray.
+            numpy.ndarray: unitary transformation matrix
+        """
+        _, trans = numpy.linalg.eigh(self._tensor[2])
+        return trans
+
+    def transform(self, trans: numpy.ndarray) -> numpy.ndarray:
+        """Tranforms the one body term using the provided matrix.
+
+        Args:
+            trans (numpy.ndarray): Unitary transformation.
+
+        Returns:
+            numpy.ndarray: Transformed one-body Hamiltonian as a numpy.ndarray.
         """
         return trans.conj().T @ self._tensor[2] @ trans

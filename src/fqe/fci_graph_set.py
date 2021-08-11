@@ -17,13 +17,26 @@
 
 from itertools import combinations
 
-from typing import Dict, List, Set, Tuple
+from typing import Dict, List, Set, Tuple, TYPE_CHECKING
+
+import numpy
+import scipy
+from scipy import special
+
+import fqe.settings
 from fqe.fci_graph import FciGraph
 from fqe.util import alpha_beta_electrons
 from fqe.bitstring import integer_index, count_bits_between
-from fqe.bitstring import count_bits_above, unset_bit
+from fqe.bitstring import count_bits_above, unset_bit, reverse_integer_index
+from fqe.bitstring import lexicographic_bitstring_generator
 
-Spinmap = Dict[Tuple[int, ...], List[Tuple[int, int, int]]]
+from fqe.lib.fci_graph import _make_mapping_each_set
+from fqe.lib.bitstring import _lexicographic_bitstring_generator
+
+if TYPE_CHECKING:
+    from numpy import ndarray as Nparray
+
+Spinmap = Dict[Tuple[int, ...], 'Nparray']
 
 
 class FciGraphSet:
@@ -40,18 +53,20 @@ class FciGraphSet:
         params are the same as Wavefunction.
 
         Args:
-            maxparticle (int) - the maximum particle number difference up to which \
+            maxparticle (int): the maximum particle number difference up to which \
                 the sectors are to be linked
 
-            maxspin (int) - the maximum spin number difference up to which the \
+            maxspin (int): the maximum spin number difference up to which the \
                 sectors are to be linked
 
-            params (List[List[int]]) - a list of parameter lists.  The parameter \
+            params (List[List[int]]): a list of parameter lists.  The parameter \
                 lists are comprised of
 
-                p[0] (int) - number of particles;
-                p[1] (int) - z component of spin angular momentum;
-                p[2] (int) - number of spatial orbitals
+                p[0] (int): number of particles;
+
+                p[1] (int): z component of spin angular momentum;
+
+                p[2] (int): number of spatial orbitals
 
         """
         self._dataset: Dict[Tuple[int, int], 'FciGraph'] = {}
@@ -64,9 +79,9 @@ class FciGraphSet:
                 nalpha, nbeta = alpha_beta_electrons(param[0], param[1])
                 self._dataset[(nalpha,
                                nbeta)] = FciGraph(nalpha, nbeta, param[2])
-            self.link()
+            self._link()
 
-    def link(self) -> None:
+    def _link(self) -> None:
         """
         Links between all of the sectors in the self._dataset
         """
@@ -85,10 +100,10 @@ class FciGraphSet:
         Add an FciGraph object to self._dataset and links it against all the exisiting sectors.
 
         Args:
-            graph (FciGraph) - a FciGraph object to be appended
+            graph (FciGraph): a FciGraph object to be appended
         """
         self._dataset[(graph.nalpha(), graph.nbeta())] = graph
-        self.link()
+        self._link()
 
     def _sectors_link(self, isec: 'FciGraph', jsec: 'FciGraph') -> None:
         """
@@ -96,76 +111,106 @@ class FciGraphSet:
         stored in the FciGraph objects.
 
         Args:
-            isec (FciGraph) - one of the FciGraph objects to be linked
+            isec (FciGraph): one of the FciGraph objects to be linked
 
-            jsec (FciGraph) - the other FciGraph objects to be linked
+            jsec (FciGraph): the other FciGraph objects to be linked
         """
+        norb = isec.norb()
         assert isec.norb() == jsec.norb()
         dna = jsec.nalpha() - isec.nalpha()
         dnb = jsec.nbeta() - isec.nbeta()
 
-        def make_mapping_each(istrings, iindex, jindex, dnv):
-            mapping_down = {}
-            mapping_up = {}
-            for source in istrings:
-                # print()
-                # print("Source ", source, np.binary_repr(source, width=isec.norb()))
-                # print("1s-pos in Source ", integer_index(source))
+        def make_mapping_each_set(istrings, dnv, norb, nele):
+            nsize = int(special.binom(norb - dnv, nele - dnv))
+            msize = int(special.binom(norb, dnv))
 
-                # lower the source to the target and keep track of parity
-                # this allows us to get the <Target|a_{i}...|source> as +- 1
-                comb = combinations(integer_index(source), dnv)
-                for ops in comb:
-                    # print("bits to be removed ", ops)
-                    parity = (count_bits_above(source, ops[-1]) * len(ops)) % 2
+            mapping_down = numpy.zeros((msize, nsize, 3), dtype=numpy.uint64)
+            mapping_up = numpy.zeros((msize, nsize, 3), dtype=numpy.uint64)
+
+            combmap = lexicographic_bitstring_generator(dnv, norb)
+            assert combmap.size == msize
+            for anni in range(msize):
+                mask = int(combmap[anni])
+                ops = integer_index(mask)
+
+                count = 0
+                for isource in istrings:
+                    source = int(isource)
+                    if ((source & mask) ^ mask) != 0:
+                        continue
+                    parity = (count_bits_above(source, ops[-1]) * len(ops))
                     target = unset_bit(source, ops[-1])
                     for iop in reversed(range(len(ops) - 1)):
-                        # print("inside removing bit", ops[iop])
-                        parity += ((iop + 1) * count_bits_between(
-                            source, ops[iop], ops[iop + 1])) % 2
+                        parity += (
+                            (iop + 1) *
+                            count_bits_between(source, ops[iop], ops[iop + 1]))
                         target = unset_bit(target, ops[iop])
 
-                    # print("Target ", target, np.binary_repr(target, width=isec.norb()), "parity", parity)
-                    source_index = iindex[source]
-                    target_index = jindex[target]
-                    factor = (-1)**parity
-
-                    key = tuple(ops)
-                    if key not in mapping_down:
-                        mapping_down[key] = []
-                        mapping_up[key] = []
-                    mapping_down[key].append(
-                        (source_index, target_index, factor))
-                    mapping_up[key].append((target_index, source_index, factor))
+                    mapping_down[anni, count, :] = source, target, parity
+                    mapping_up[anni, count, :] = target, source, parity
+                    count += 1
+                assert count == nsize
             return mapping_down, mapping_up
 
-        upa: Spinmap = {}
-        upb: Spinmap = {}
-        downa: Spinmap = {}
-        downb: Spinmap = {}
+        def _postprocess(spinmap, dnv, index0, index1):
+            transformed: Spinmap = {}
+
+            assert spinmap.shape[0] == int(special.binom(norb, dnv))
+            combmap = lexicographic_bitstring_generator(dnv, norb)
+
+            for index in range(spinmap.shape[0]):
+                out = numpy.zeros(spinmap.shape[1:], dtype=numpy.int32)
+                for i in range(out.shape[0]):
+                    out[i, 0] = index0[spinmap[index, i, 0]]
+                    out[i, 1] = index1[spinmap[index, i, 1]]
+                    out[i, 2] = -1 if spinmap[index, i, 2] % 2 else 1
+
+                key = tuple(integer_index(int(combmap[index])))
+                transformed[key] = out
+            return transformed
 
         if dna != 0:
             (iasec, jasec) = (isec, jsec) if dna < 0 else (jsec, isec)
-            downa, upa = make_mapping_each(iasec.string_alpha_all(),
-                                           iasec.index_alpha_all(),
-                                           jasec.index_alpha_all(), abs(dna))
+            if fqe.settings.use_accelerated_code:
+                ndowna, nupa = _make_mapping_each_set(iasec.string_alpha_all(),
+                                                      abs(dna), norb,
+                                                      iasec.nalpha())
+            else:
+                ndowna, nupa = make_mapping_each_set(iasec.string_alpha_all(),
+                                                     abs(dna), norb,
+                                                     iasec.nalpha())
+
+            downa = _postprocess(ndowna, abs(dna), iasec.index_alpha_all(),
+                                 jasec.index_alpha_all())
+            upa = _postprocess(nupa, abs(dna), jasec.index_alpha_all(),
+                               iasec.index_alpha_all())
+
             if dna > 0:
                 downa, upa = upa, downa
+        else:
+            upa, downa = {}, {}
 
         if dnb != 0:
             (ibsec, jbsec) = (isec, jsec) if dnb < 0 else (jsec, isec)
-            downb, upb = make_mapping_each(ibsec.string_beta_all(),
-                                           ibsec.index_beta_all(),
-                                           jbsec.index_beta_all(), abs(dnb))
+            if fqe.settings.use_accelerated_code:
+                ndownb, nupb = _make_mapping_each_set(ibsec.string_beta_all(),
+                                                      abs(dnb), norb,
+                                                      ibsec.nbeta())
+            else:
+                ndownb, nupb = make_mapping_each_set(ibsec.string_beta_all(),
+                                                     abs(dnb), norb,
+                                                     ibsec.nbeta())
+
+            downb = _postprocess(ndownb, abs(dnb), ibsec.index_beta_all(),
+                                 jbsec.index_beta_all())
+            upb = _postprocess(nupb, abs(dnb), jbsec.index_beta_all(),
+                               ibsec.index_beta_all())
+
             if dnb > 0:
                 downb, upb = upb, downb
+        else:
+            upb, downb = {}, {}
 
         assert upa != {} or upb != {}
         isec.insert_mapping(dna, dnb, (downa, downb))
         jsec.insert_mapping(-dna, -dnb, (upa, upb))
-
-
-if __name__ == "__main__":
-    import numpy as np
-    params = [[3, 3, 6], [3, 1, 6], [3, -1, 6], [2, 0, 6]]
-    test = FciGraphSet(3, 3, params)

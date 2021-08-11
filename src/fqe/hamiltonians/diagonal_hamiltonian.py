@@ -16,7 +16,7 @@
 import copy
 from typing import TYPE_CHECKING
 
-import numpy as np
+import numpy
 
 from fqe.hamiltonians import hamiltonian
 
@@ -36,15 +36,16 @@ class Diagonal(hamiltonian.Hamiltonian):
     such Hamiltonians can be written as
 
     .. math::
-        \\hat{H} =  = E_0 + \\sum_r h_{rr} a_r^\\dagger a_r
+        \\hat{H} = E_0 + \\sum_r h_{rr} a_r^\\dagger a_r
     """
 
     def __init__(self, hdiag: 'Nparray', e_0: complex = 0.0 + 0.0j) -> None:
         """
         Args:
-            hdiag: A rank-1 numpy.array that contains the diagonal part of the
-                   1-body Hamiltonian elements.
-            e_0: Scalar potential associated with the Hamiltonian.
+            hdiag (Nparray): A rank-1 numpy.array that contains the diagonal \
+                part of the 1-body Hamiltonian elements.
+
+            e_0 (complex): Scalar potential associated with the Hamiltonian.
         """
 
         super().__init__(e_0=e_0)
@@ -56,31 +57,63 @@ class Diagonal(hamiltonian.Hamiltonian):
         self._hdiag = hdiag
         self._dim = self._hdiag.shape[0]
 
+    def __eq__(self, other: object) -> bool:
+        """ Comparison operator
+        Args:
+            other (object): Diagonal Hamiltonian to be compared against
+
+        Returns:
+            (bool): True if equal, otherwise False
+        """
+        if not isinstance(other, Diagonal):
+            return NotImplemented
+        else:
+            return self.e_0() == other.e_0() \
+                and all(self._hdiag == other._hdiag)
+
     def dim(self) -> int:
-        """Returns the orbital dimension of the Hamiltonian arrays."""
+        """
+        Returns:
+            (int): the orbital dimension of the Hamiltonian arrays.
+        """
         return self._dim
 
     def rank(self) -> int:
-        """Returns the rank of the largest tensor."""
+        """
+        Returns:
+            (int): the rank of the largest tensor. This is always 2
+        """
         return 2
 
     def diagonal(self) -> bool:
-        """Returns whether or not the Hamiltonian is diagonal."""
+        """
+        Returns:
+            (bool) whether the Hamiltonian is diagonal. Always True
+        """
         return True
 
     def quadratic(self) -> bool:
-        """Returns whether or not the Hamiltonian is quadratic."""
+        """
+        Returns:
+            (bool): whether the Hamiltonian is quadratic. Alaways True
+        """
         return True
 
-    def diag_values(self) -> np.ndarray:
-        """Returns the diagonal values packed into a single dimension."""
+    def diag_values(self) -> 'Nparray':
+        """
+        Returns:
+            Nparray: the diagonal values packed into a single dimension.
+        """
         return self._hdiag
 
     def iht(self, time: float) -> 'Diagonal':
         """Returns the matrices of the Hamiltonian prepared for time evolution.
 
         Args:
-            time: The time step.
+            time (float): The time step.
+
+        Returns:
+            Diagonal: the Diagonal object to be used in time evolution
         """
         out = copy.deepcopy(self)
         out._hdiag *= -1.0j * time

@@ -13,29 +13,19 @@
 #   limitations under the License.
 """Defines the base Hamiltonian class for OpenFermion-FQE."""
 
-# TODO:
 #  The base class Hamiltonian currently support dense and sparse hamiltonians.
 #  All the code is funtional but there may be some minor type errors with
 #  type hinting as sparse and dense return different types in a few places.
-#  This will be corrected in a future version.
 
 from abc import ABCMeta, abstractmethod
-from typing import Any, Tuple
+from typing import Any, Tuple, Dict
 
-import numpy as np
+import numpy
 
 
 class Hamiltonian(metaclass=ABCMeta):
     """Abstract class to mediate the functions of Hamiltonian with the
     emulator.
-
-    TODO(ncrubin): Has the point below already been accomplisehd via
-     DiagonalHamiltonian, DiagonalCoulombHamiltonian, GSOHamiltonian, etc?
-     -
-     Since the structure of the Hamiltonian may contain symmetries
-     which can greatly speed up operations that act up on the object, defining
-     unique classes for each case can be a key towards making the code more
-     efficient.
     """
 
     def __init__(self, e_0: complex = 0.0 + 0.0j):
@@ -49,38 +39,62 @@ class Hamiltonian(metaclass=ABCMeta):
 
     @abstractmethod
     def dim(self) -> int:
-        """Returns the orbital dimension of the Hamiltonian arrays."""
+        """
+        Returns:
+            (int): the orbital dimension of the Hamiltonian arrays.
+        """
         return 0
 
-    def calc_diag_transform(self) -> np.ndarray:
+    def calc_diag_transform(self) -> numpy.ndarray:
         """Performs a unitary digaonlizing transformation of the one-body term
         and returns that transformation.
+
+        Returns:
+            (numpy.ndarray): Matrix representation of the transformation
         """
-        return np.empty(0)
+        return numpy.empty(0)
 
     @abstractmethod
     def rank(self) -> int:
-        """Returns the rank of the largest tensor."""
+        """
+        Returns:
+            (int): the rank of the largest tensor
+        """
         return 0
 
     def quadratic(self) -> bool:
-        """Returns True if the Hamiltonian is quadratic, else False."""
+        """
+        Returns:
+            (bool): True if the Hamiltonian is quadratic, else False.
+        """
         return False
 
     def diagonal(self) -> bool:
-        """Returns True if the Hamiltonian is diagonal, else False."""
+        """
+        Returns:
+            (bool): True if the Hamiltonian is diagonal, else False.
+        """
         return False
 
     def diagonal_coulomb(self) -> bool:
-        """Returns True if the Hamiltonian is diagonal coloumb, else False."""
+        """
+        Returns:
+            (bool): True if the Hamiltonian is diagonal coloumb, else False
+        """
         return False
 
     def conserve_number(self) -> bool:
-        """Returns True if the Hamiltonian is number conserving, else False."""
+        """
+        Returns:
+            (bool): True if the Hamiltonian is number conserving, else False
+        """
         return self._conserve_number
 
     def e_0(self):
-        """Returns the scalar potential of the Hamiltonian."""
+        """
+        Returns:
+            (complex): the scalar potential of the Hamiltonian
+        """
         return self._e_0
 
     def iht(self, time: float) -> Any:
@@ -88,18 +102,25 @@ class Hamiltonian(metaclass=ABCMeta):
 
         Args:
             time: The time step.
+
+        Returns:
+            Tuple[numpy.ndarray, ...]: tuple of arrays to be used in time \
+                propagation
         """
         return tuple()
 
-    def tensors(self) -> Tuple[np.ndarray, ...]:
-        """Returns all tensors in order of their rank."""
+    def tensors(self) -> Tuple[numpy.ndarray, ...]:
+        """
+        Returns:
+            Tuple[numpy.ndarray, ...]: tuple of tensors
+        """
         return tuple()
 
-    def diag_values(self) -> np.ndarray:
+    def diag_values(self) -> numpy.ndarray:
         """Returns the diagonal values packed into a single dimension."""
-        return np.empty(0)
+        return numpy.empty(0)
 
-    def transform(self, trans: np.ndarray) -> np.ndarray:
+    def transform(self, trans: numpy.ndarray) -> numpy.ndarray:
         """Tranform the one body term using the provided matrix.
 
         Note: Care must be taken that this function does not transform the
@@ -109,6 +130,6 @@ class Hamiltonian(metaclass=ABCMeta):
             trans: Unitary transformation.
 
         Returns:
-            Transformed one-body Hamiltonian as a numpy.ndarray.
+            numpy.ndarray: Transformed one-body Hamiltonian as a numpy.ndarray.
         """
-        return np.empty(0)
+        return numpy.empty(0)
