@@ -314,27 +314,37 @@ void lm_apply_array1_column_alpha(double complex *coeff,
                                   const double complex *h1e,
                                   const int icol,
                                   const struct blasfunctions * blasfunc) {
-  const int ONE = 1;
-#pragma omp parallel for schedule(static)
-  for (int a = 0; a < nexc0; ++a) {
-    double complex *output = coeff + index[a] * lenb;
-    for (int i = 0; i < nexc1; ++i) {
-      const int *cexc = exc + 3 * (i + nexc1 * a);
-      const int source = cexc[0];
-      const int ishift = cexc[1];
-      const int parity = cexc[2];
+  const int nbin = (lenb - 1) / ZAXPY_STRIDE + 1;
+#pragma omp parallel for schedule(static) collapse(2)
+  for (int nbatch = 0; nbatch < nbin; ++nbatch) {
+    for (int a = 0; a < nexc0; ++a) {
+      const int clenb = MIN(ZAXPY_STRIDE, lenb - nbatch * ZAXPY_STRIDE);
+      double complex *ccoeff = coeff + nbatch * ZAXPY_STRIDE;
+      double complex *output = ccoeff + index[a] * lenb;
+      for (int i = 0; i < nexc1; ++i) {
+        const int *cexc = exc + 3 * (i + nexc1 * a);
+        const int source = cexc[0];
+        const int ishift = cexc[1];
+        const int parity = cexc[2];
 
-      const double complex *input = coeff + source * lenb;
+        const double complex *input = ccoeff + source * lenb;
 
-      const double complex pref = parity * h1e[ishift];
-      blasfunc->zaxpy(&lenb, &pref, input, &ONE, output, &ONE);
+        const double complex pref = parity * h1e[ishift];
+        const int ONE = 1;
+        blasfunc->zaxpy(&clenb, &pref, input, &ONE, output, &ONE);
+      }
     }
   }
   const double complex prefac = 1.0 + h1e[icol];
-#pragma omp parallel for schedule(static)
-  for (int i = 0; i < nexc2; ++i) {
-    const int target = exc2[i];
-    blasfunc->zscal(&lenb, &prefac, coeff + target * lenb, &ONE);
+#pragma omp parallel for schedule(static) collapse(2)
+  for (int nbatch = 0; nbatch < nbin; ++nbatch) {
+    for (int i = 0; i < nexc2; ++i) {
+      const int clenb = MIN(ZAXPY_STRIDE, lenb - nbatch * ZAXPY_STRIDE);  
+      double complex *ccoeff = coeff + nbatch * ZAXPY_STRIDE;
+      const int target = exc2[i];
+      const int ONE = 1;
+      blasfunc->zscal(&clenb, &prefac, ccoeff + target * lenb, &ONE);
+    }
   }
 }
 
