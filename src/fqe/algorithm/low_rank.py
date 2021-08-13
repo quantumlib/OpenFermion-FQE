@@ -58,7 +58,7 @@ def evolve_fqe_givens_sector(wfn: Wavefunction, u: np.ndarray,
             if not np.isclose(phi, 0):
                 op = of.FermionOperator(
                     ((2 * j + sigma, 1), (2 * j + sigma, 0)), coefficient=-phi)
-                wfn = wfn.time_evolve(1.0, op)
+                wfn = wfn.time_evolve(1.0, op, inplace=True)
             if not np.isclose(theta, 0):
                 op = of.FermionOperator(((2 * i + sigma, 1),
                                          (2 * j + sigma, 0)),
@@ -66,7 +66,7 @@ def evolve_fqe_givens_sector(wfn: Wavefunction, u: np.ndarray,
                      of.FermionOperator(((2 * j + sigma, 1),
                                          (2 * i + sigma, 0)),
                                         coefficient=1j * theta)
-                wfn = wfn.time_evolve(1.0, op)
+                wfn = wfn.time_evolve(1.0, op, inplace=True)
 
     # evolve the last diagonal phases
     for idx, final_phase in enumerate(diagonal):
@@ -74,7 +74,7 @@ def evolve_fqe_givens_sector(wfn: Wavefunction, u: np.ndarray,
             op = of.FermionOperator(
                 ((2 * idx + sigma, 1), (2 * idx + sigma, 0)),
                 -np.angle(final_phase))
-            wfn = wfn.time_evolve(1.0, op)
+            wfn = wfn.time_evolve(1.0, op, inplace=True)
 
     return wfn
 
@@ -114,20 +114,20 @@ def evolve_fqe_givens_unrestricted(wfn: Wavefunction,
             i, j, theta, phi = givens
             if not np.isclose(phi, 0):
                 op = of.FermionOperator(((j, 1), (j, 0)), coefficient=-phi)
-                wfn = wfn.time_evolve(1.0, op)
+                wfn = wfn.time_evolve(1.0, op, inplace=True)
             if not np.isclose(theta, 0):
                 op = of.FermionOperator(
                     ((i, 1),
                      (j, 0)), coefficient=-1j * theta) + of.FermionOperator(
                          ((j, 1), (i, 0)), coefficient=1j * theta)
-                wfn = wfn.time_evolve(1.0, op)
+                wfn = wfn.time_evolve(1.0, op, inplace=True)
 
     # evolve the last diagonal phases
     for idx, final_phase in enumerate(diagonal):
         if not np.isclose(final_phase, 1.0):
             op = of.FermionOperator(((idx, 1), (idx, 0)),
                                     -np.angle(final_phase))
-            wfn = wfn.time_evolve(1.0, op)
+            wfn = wfn.time_evolve(1.0, op, inplace=True)
 
     return wfn
 
@@ -155,7 +155,7 @@ def evolve_fqe_charge_charge_unrestricted(wfn: Wavefunction,
             continue
         fop = of.FermionOperator(((p, 1), (p, 0), (q, 1), (q, 0)),
                                  coefficient=vij_mat[p, q])
-        wfn = wfn.time_evolve(time, fop)
+        wfn = wfn.time_evolve(time, fop, inplace=True)
     return wfn
 
 
@@ -183,7 +183,7 @@ def evolve_fqe_charge_charge_alpha_beta(wfn: Wavefunction,
         fop = of.FermionOperator(
             ((2 * p, 1), (2 * p, 0), (2 * q + 1, 1), (2 * q + 1, 0)),
             coefficient=vij_mat[p, q])
-        wfn = wfn.time_evolve(time, fop)
+        wfn = wfn.time_evolve(time, fop, inplace=True)
     return wfn
 
 
@@ -219,7 +219,7 @@ def evolve_fqe_charge_charge_sector(wfn: Wavefunction,
         fop = of.FermionOperator(((2 * p + sigma, 1), (2 * p + sigma, 0),
                                   (2 * q + sigma, 1), (2 * q + sigma, 0)),
                                  coefficient=vij_mat[p, q])
-        wfn = wfn.time_evolve(time, fop)
+        wfn = wfn.time_evolve(time, fop, inplace=True)
     return wfn
 
 
@@ -240,7 +240,7 @@ def evolve_fqe_diagonal_coulomb(wfn: Wavefunction, vij_mat: np.ndarray,
         New evolved 2^{n} x 1 vector
     """
     dc_ham = DiagonalCoulomb(vij_mat)
-    return wfn.time_evolve(time, dc_ham)
+    return wfn.time_evolve(time, dc_ham, inplace=True)
 
 
 def double_factor_trotter_evolution(initial_wfn: Wavefunction,

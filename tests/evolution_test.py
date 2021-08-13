@@ -116,9 +116,10 @@ def test_diagonal_evolution():
     assert numpy.abs(linalg.norm(reference - computed)) < 1.e-8
 
 
-def test_quadratic_both_conserved():
+def test_quadratic_both_conserved(c_or_python):
     """Test time evolution with a Hamiltonian that conserves both spin and number
     """
+    fqe.settings.use_accelerated_code = c_or_python
     norb = 4
     h1e = numpy.zeros((norb, norb), dtype=numpy.complex128)
     for i in range(norb):
@@ -317,9 +318,10 @@ def test_evolve_diagonal_coulomb():
     assert err < 1.e-8
 
 
-def test_diagonal_spin():
+def test_diagonal_spin(c_or_python):
     """Evolution of diagonal hamiltonian with different spin components
     """
+    fqe.settings.use_accelerated_code = c_or_python
     norb = 4
     nalpha = 2
     nbeta = 2
