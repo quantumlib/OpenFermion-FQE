@@ -24,17 +24,10 @@ from numpy import ndarray as Nparray
 from fqe.lib import lib_fqe
 
 
-def _detect_cirq_sectors(state: Nparray,
-                         thresh: float,
-                         param: Nparray,
-                         norb: int,
-                         nlena: int,
-                         nlenb: int,
-                         cirq_aid: Nparray,
-                         cirq_bid: Nparray,
-                         anumb: Nparray,
-                         bnumb: Nparray
-                        ) -> None:
+def _detect_cirq_sectors(state: Nparray, thresh: float, param: Nparray,
+                         norb: int, nlena: int, nlenb: int, cirq_aid: Nparray,
+                         cirq_bid: Nparray, anumb: Nparray,
+                         bnumb: Nparray) -> None:
     func = lib_fqe.detect_cirq_sectors
 
     func.argtypes = [

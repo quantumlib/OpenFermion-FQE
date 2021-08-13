@@ -163,7 +163,7 @@ def test_cirq_interop(c_or_python):
     numpy.divide(work, norm, out=work)
     wfn = fqe.from_cirq(work, thresh=1.0e-7)
     sec = [(1, -1), (1, 1), (2, -2), (2, 0), (2, 2), (3, -1), (3, 1)]
-    assert set(sec) == set(wfn._civec.keys()) 
+    assert set(sec) == set(wfn._civec.keys())
     test = fqe.to_cirq(wfn)
     assert numpy.allclose(test, work)
 

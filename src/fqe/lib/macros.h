@@ -34,6 +34,6 @@ void * safe_calloc_helper(long long s, size_t t, const char *typ,
 #define MAX_ORBS sizeof(uint64_t)*8
 
 // the number of elements in a batch when computing ZAXPY
-#define ZAXPY_STRIDE 750
+#define ZAXPY_STRIDE 450
 
 #endif  // SRC_FQE_LIB_MACROS_H_

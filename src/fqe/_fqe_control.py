@@ -331,8 +331,8 @@ def from_cirq(state: numpy.ndarray,
     param = numpy.zeros((2 * norb + 1, 2 * norb + 1), dtype=numpy.int32)
 
     if fqe.settings.use_accelerated_code:
-        _detect_cirq_sectors(state, thresh, param, norb, nlena, nlenb,
-                             cirq_aid, cirq_bid, anumb, bnumb)
+        _detect_cirq_sectors(state, thresh, param, norb, nlena, nlenb, cirq_aid,
+                             cirq_bid, anumb, bnumb)
     else:
         for aid in range(nlena):
             c_aid = cirq_aid[aid]
@@ -344,7 +344,9 @@ def from_cirq(state: numpy.ndarray,
                 bnum = bnumb[bid]
                 param[anum + bnum, anum - bnum + norb] = 1
 
-    sectors = [[pnum, sz - norb, norb] for pnum, sz in zip(*numpy.nonzero(param))]
+    sectors = [
+        [pnum, sz - norb, norb] for pnum, sz in zip(*numpy.nonzero(param))
+    ]
 
     wfn = wavefunction.Wavefunction(sectors)
     transform.from_cirq(wfn, state, binarycode)
