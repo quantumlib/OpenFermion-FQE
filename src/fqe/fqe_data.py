@@ -1482,10 +1482,25 @@ class FqeData:
         matT = mat.T.copy()
         index, exc, diag = self._core._map_to_deexc_alpha_icol()
 
-        for icol in range(norb):
-            _lm_apply_array1_alpha_column(self.coeff, matT[icol, :],
-                                          index[icol], exc[icol], diag[icol],
-                                          self.lena(), self.lenb(), icol)
+        if fqe.settings.use_accelerated_code:
+            for icol in range(norb):
+                _lm_apply_array1_alpha_column(self.coeff, matT[icol, :],
+                                              index[icol], exc[icol],
+                                              diag[icol], self.lena(),
+                                              self.lenb(), icol)
+        else:
+            na, ne = exc.shape[1:3]
+            na2 = diag.shape[1]
+            for icol in range(norb):
+                for a in range(na):
+                    target = index[icol, a]
+                    for e in range(ne):
+                        source, ishift, parity = exc[icol, a, e]
+                        self.coeff[target, :] += parity * matT[
+                            icol, ishift] * self.coeff[source, :]
+                for a2 in range(na2):
+                    target = diag[icol, a2]
+                    self.coeff[target, :] *= (1 + matT[icol, icol])
 
     def apply_columns_recursive_inplace(self, mat1: 'Nparray',
                                         mat2: 'Nparray') -> None:
