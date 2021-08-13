@@ -315,7 +315,6 @@ void lm_apply_array1_column_alpha(double complex *coeff,
                                   const int icol,
                                   const struct blasfunctions * blasfunc) {
   const int nbin = (lenb - 1) / ZAXPY_STRIDE + 1;
-//#pragma omp parallel for schedule(static) collapse(2)
   for (int nbatch = 0; nbatch < nbin; ++nbatch) {
 #pragma omp parallel for schedule(static)
     for (int a = 0; a < nexc0; ++a) {
@@ -335,10 +334,7 @@ void lm_apply_array1_column_alpha(double complex *coeff,
         blasfunc->zaxpy(&clenb, &pref, input, &ONE, output, &ONE);
       }
     }
-  }
-  const double complex prefac = 1.0 + h1e[icol];
-//#pragma omp parallel for schedule(static) collapse(2)
-  for (int nbatch = 0; nbatch < nbin; ++nbatch) {
+    const double complex prefac = 1.0 + h1e[icol];
 #pragma omp parallel for schedule(static)
     for (int i = 0; i < nexc2; ++i) {
       const int clenb = MIN(ZAXPY_STRIDE, lenb - nbatch * ZAXPY_STRIDE);  
