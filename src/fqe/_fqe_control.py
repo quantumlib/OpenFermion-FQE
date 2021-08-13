@@ -24,15 +24,17 @@ import numpy
 
 from openfermion.transforms.opconversions import jordan_wigner
 from openfermion.ops import FermionOperator, BinaryCode
-from openfermion import normal_ordered
+from openfermion import normal_ordered, up_index, down_index
 
 import fqe.settings
 from fqe.util import qubit_particle_number_index_spin
 from fqe import util
 from fqe.cirq_utils import qubit_wavefunction_from_vacuum
-from fqe.lib.cirq_utils import detect_cirq_sectors
+from fqe.lib.cirq_utils import _detect_cirq_sectors
 from fqe import transform
 from fqe import wavefunction
+from fqe.bitstring import integer_index
+
 from fqe.openfermion_utils import fqe_to_fermion_operator
 from fqe.fqe_ops.fqe_ops import (
     NumberOperator,
@@ -286,8 +288,65 @@ def from_cirq(state: numpy.ndarray,
     Returns:
         openfermion-fqe.Wavefunction
     """
-    params = detect_cirq_sectors(state, thresh, binarycode)
-    wfn = wavefunction.Wavefunction(params)
+    # first detect non-zero sectors
+
+    nqubit = int(numpy.log2(state.size))
+    norb = nqubit // 2
+
+    nlena = 2**norb
+    nlenb = 2**norb
+
+    # occupations of all possible alpha and beta strings
+    aoccs = [[up_index(x) for x in integer_index(astr)] for astr in range(nlena)
+            ]
+    boccs = [
+        [down_index(x) for x in integer_index(bstr)] for bstr in range(nlenb)
+    ]
+
+    # Since cirq starts counting from the leftmost bit in a bitstring
+    pow_of_two = 2**(nqubit - numpy.arange(nqubit, dtype=numpy.int64) - 1)
+    if binarycode is None:
+        # cirq index for each alpha or beta string
+        cirq_aid = numpy.array([pow_of_two[aocc].sum() for aocc in aoccs])
+        cirq_bid = numpy.array([pow_of_two[bocc].sum() for bocc in boccs])
+    else:
+
+        def occ_to_cirq_ids(occs):
+            cirq_ids = numpy.zeros(len(aoccs), dtype=numpy.int64)
+            for ii, occ in enumerate(occs):
+                of_state = numpy.zeros(nqubit, dtype=int)
+                of_state[occ] = 1
+                # Encode the occupation state to the qbit spin state
+                cirq_state = numpy.mod(binarycode.encoder.dot(of_state), 2)
+                cirq_ids[ii] = numpy.dot(pow_of_two, cirq_state)
+            return cirq_ids
+
+        # cirq index for each alpha or beta string
+        cirq_aid = occ_to_cirq_ids(aoccs)
+        cirq_bid = occ_to_cirq_ids(boccs)
+
+    # Number of alpha or beta electrons for each alpha or beta string
+    anumb = numpy.array([len(x) for x in aoccs], dtype=numpy.int32)
+    bnumb = numpy.array([len(x) for x in boccs], dtype=numpy.int32)
+    param = numpy.zeros((2 * norb + 1, 2 * norb + 1), dtype=numpy.int32)
+
+    if fqe.settings.use_accelerated_code:
+        _detect_cirq_sectors(state, thresh, param, norb, nlena, nlenb,
+                             cirq_aid, cirq_bid, anumb, bnumb)
+    else:
+        for aid in range(nlena):
+            c_aid = cirq_aid[aid]
+            anum = anumb[aid]
+            for bid in range(nlenb):
+                c_id = c_aid ^ cirq_bid[bid]
+                if abs(state[c_id]) < thresh:
+                    continue
+                bnum = bnumb[bid]
+                param[anum + bnum, anum - bnum + norb] = 1
+
+    sectors = [[pnum, sz - norb, norb] for pnum, sz in zip(*numpy.nonzero(param))]
+
+    wfn = wavefunction.Wavefunction(sectors)
     transform.from_cirq(wfn, state, binarycode)
     return wfn
 

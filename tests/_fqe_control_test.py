@@ -157,9 +157,13 @@ def test_cirq_interop(c_or_python):
     """
     fqe.settings.use_accelerated_code = c_or_python
     work = numpy.random.rand(16).astype(numpy.complex128)
+    work[0] = 0.0 + 0.0j
+    work[15] = 0.0 + 0.0j
     norm = numpy.sqrt(numpy.vdot(work, work))
     numpy.divide(work, norm, out=work)
     wfn = fqe.from_cirq(work, thresh=1.0e-7)
+    sec = [(1, -1), (1, 1), (2, -2), (2, 0), (2, 2), (3, -1), (3, 1)]
+    assert set(sec) == set(wfn._civec.keys()) 
     test = fqe.to_cirq(wfn)
     assert numpy.allclose(test, work)
 
