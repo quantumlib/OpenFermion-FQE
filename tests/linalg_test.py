@@ -15,11 +15,18 @@
 
 import pytest
 import numpy
+import fqe
 from fqe.lib.linalg import _zimatadd, _transpose
+from fqe.settings import CodePath
 
 
-def test_zimatadd():
+def test_zimatadd(c_or_python):
     """Testing zimatadd"""
+    if c_or_python == CodePath.PYTHON:
+        # No test needed for python
+        return
+
+    fqe.settings.use_accelerated_code = c_or_python
     data = numpy.random.rand(3, 2) + 1.j * numpy.random.rand(3, 2)
     out = numpy.random.rand(2, 3) + 1.j * numpy.random.rand(2, 3)
     factor = 1.2 + 2.3j
@@ -32,8 +39,13 @@ def test_zimatadd():
         _zimatadd(out2, data, factor)
 
 
-def test_transpose():
+def test_transpose(c_or_python):
     """Testing zimatadd"""
+    if c_or_python == CodePath.PYTHON:
+        # No test needed for python
+        return
+
+    fqe.settings.use_accelerated_code = c_or_python
     data = numpy.random.rand(3, 2) + 1.j * numpy.random.rand(3, 2)
     out = numpy.random.rand(2, 3) + 1.j * numpy.random.rand(2, 3)
     _transpose(out, data)

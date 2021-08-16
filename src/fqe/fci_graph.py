@@ -239,7 +239,8 @@ class FciGraph:
 
             # cast to numpy arrays
             return {
-                k: numpy.asarray(v, dtype=numpy.int32) for k, v in out.items()
+                k: numpy.asarray(v, dtype=numpy.int32).reshape(-1, 3)
+                for k, v in out.items()
             }
 
     def alpha_map(self, iorb: int, jorb: int) -> List[Tuple[int, int, int]]:

@@ -322,7 +322,8 @@ def test_nbody_evolve():
     assert (ref - out).norm() < 1.e-8
 
 
-def test_quadratic_evolve():
+def test_quadratic_evolve(c_or_python):
+    fqe.settings.use_accelerated_code = c_or_python
     norb = 4
     nalpha = 2
     nbeta = 2
@@ -584,9 +585,10 @@ def test_number_sectors(param):
     'apply_array', 'apply_sparse', 'apply_diagonal', 'apply_quadratic',
     'apply_dc'
 ]])
-def test_apply(param, kind):
+def test_apply(c_or_python, param, kind):
     """Checks _apply_array through the apply API
     """
+    fqe.settings.use_accelerated_code = c_or_python
     test = loader(param, 'wfn')
     reference_data = loader(param, kind)
     hamil = reference_data['hamil']
