@@ -14,7 +14,6 @@ dist/
 downloads/
 eggs/
 .eggs/
-#lib/
 lib64/
 parts/
 sdist/
@@ -119,3 +118,6 @@ dmypy.json
 
 # ignore profiling files
 *.profile
+
+# specific Cython temp file generated at install
+src/fqe/lib/_fqe_data.c

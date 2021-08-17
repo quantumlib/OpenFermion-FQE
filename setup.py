@@ -194,4 +194,5 @@ def main() -> None:
           cmdclass={'build_ext': CustomBuildOptions})
 
 
-main()
+if __name__ == "__main__":
+    main()
