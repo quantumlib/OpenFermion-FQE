@@ -289,7 +289,7 @@ def from_cirq(state: numpy.ndarray,
         openfermion-fqe.Wavefunction
     """
     # first detect non-zero sectors
-
+    state = state.astype(numpy.complex128)
     nqubit = int(numpy.log2(state.size))
     norb = nqubit // 2
 
