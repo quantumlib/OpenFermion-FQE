@@ -13,6 +13,7 @@
 #   limitations under the License.
 """Functions for time-evolving a wavefunction."""
 from itertools import product
+import copy
 
 import numpy as np
 
@@ -52,13 +53,14 @@ def evolve_fqe_givens_sector(wfn: Wavefunction, u: np.ndarray,
     rotations, diagonal = givens_decomposition_square(u.copy())
     # Iterate through each layer and time evolve by the appropriate
     # fermion operators
+    out = copy.deepcopy(wfn)
     for layer in rotations:
         for givens in layer:
             i, j, theta, phi = givens
             if not np.isclose(phi, 0):
                 op = of.FermionOperator(
                     ((2 * j + sigma, 1), (2 * j + sigma, 0)), coefficient=-phi)
-                wfn = wfn.time_evolve(1.0, op, inplace=True)
+                out = out.time_evolve(1.0, op, inplace=True)
             if not np.isclose(theta, 0):
                 op = of.FermionOperator(((2 * i + sigma, 1),
                                          (2 * j + sigma, 0)),
@@ -66,7 +68,7 @@ def evolve_fqe_givens_sector(wfn: Wavefunction, u: np.ndarray,
                      of.FermionOperator(((2 * j + sigma, 1),
                                          (2 * i + sigma, 0)),
                                         coefficient=1j * theta)
-                wfn = wfn.time_evolve(1.0, op, inplace=True)
+                out = out.time_evolve(1.0, op, inplace=True)
 
     # evolve the last diagonal phases
     for idx, final_phase in enumerate(diagonal):
@@ -74,9 +76,9 @@ def evolve_fqe_givens_sector(wfn: Wavefunction, u: np.ndarray,
             op = of.FermionOperator(
                 ((2 * idx + sigma, 1), (2 * idx + sigma, 0)),
                 -np.angle(final_phase))
-            wfn = wfn.time_evolve(1.0, op, inplace=True)
+            out = out.time_evolve(1.0, op, inplace=True)
 
-    return wfn
+    return out
 
 
 def evolve_fqe_givens(wfn: Wavefunction, u: np.ndarray) -> Wavefunction:
@@ -107,6 +109,7 @@ def evolve_fqe_givens_unrestricted(wfn: Wavefunction,
         New evolved wfn object.
     """
     rotations, diagonal = givens_decomposition_square(u.copy())
+    out = copy.deepcopy(wfn)
     # Iterate through each layer and time evolve by the appropriate
     # fermion operators
     for layer in rotations:
@@ -114,22 +117,22 @@ def evolve_fqe_givens_unrestricted(wfn: Wavefunction,
             i, j, theta, phi = givens
             if not np.isclose(phi, 0):
                 op = of.FermionOperator(((j, 1), (j, 0)), coefficient=-phi)
-                wfn = wfn.time_evolve(1.0, op, inplace=True)
+                out = out.time_evolve(1.0, op, inplace=True)
             if not np.isclose(theta, 0):
                 op = of.FermionOperator(
                     ((i, 1),
                      (j, 0)), coefficient=-1j * theta) + of.FermionOperator(
                          ((j, 1), (i, 0)), coefficient=1j * theta)
-                wfn = wfn.time_evolve(1.0, op, inplace=True)
+                out = out.time_evolve(1.0, op, inplace=True)
 
     # evolve the last diagonal phases
     for idx, final_phase in enumerate(diagonal):
         if not np.isclose(final_phase, 1.0):
             op = of.FermionOperator(((idx, 1), (idx, 0)),
                                     -np.angle(final_phase))
-            wfn = wfn.time_evolve(1.0, op, inplace=True)
+            out = out.time_evolve(1.0, op, inplace=True)
 
-    return wfn
+    return out
 
 
 def evolve_fqe_charge_charge_unrestricted(wfn: Wavefunction,
@@ -150,13 +153,14 @@ def evolve_fqe_charge_charge_unrestricted(wfn: Wavefunction,
         New evolved 2^{n} x 1 vector
     """
     nso = vij_mat.shape[0]
+    out = copy.deepcopy(wfn)
     for p, q in product(range(nso), repeat=2):
         if np.isclose(vij_mat[p, q], 0):
             continue
         fop = of.FermionOperator(((p, 1), (p, 0), (q, 1), (q, 0)),
                                  coefficient=vij_mat[p, q])
-        wfn = wfn.time_evolve(time, fop, inplace=True)
-    return wfn
+        out = out.time_evolve(time, fop, inplace=True)
+    return out
 
 
 def evolve_fqe_charge_charge_alpha_beta(wfn: Wavefunction,
@@ -177,14 +181,15 @@ def evolve_fqe_charge_charge_alpha_beta(wfn: Wavefunction,
         New evolved 2^{2 * n} x 1 vector
     """
     norbs = vij_mat.shape[0]
+    out = copy.deepcopy(wfn)
     for p, q in product(range(norbs), repeat=2):
         if np.isclose(vij_mat[p, q], 0):
             continue
         fop = of.FermionOperator(
             ((2 * p, 1), (2 * p, 0), (2 * q + 1, 1), (2 * q + 1, 0)),
             coefficient=vij_mat[p, q])
-        wfn = wfn.time_evolve(time, fop, inplace=True)
-    return wfn
+        out = out.time_evolve(time, fop, inplace=True)
+    return out
 
 
 def evolve_fqe_charge_charge_sector(wfn: Wavefunction,
@@ -213,14 +218,15 @@ def evolve_fqe_charge_charge_sector(wfn: Wavefunction,
         raise ValueError("Sector must be alpha or beta.")
 
     norbs = vij_mat.shape[0]
+    out = copy.deepcopy(wfn)
     for p, q in product(range(norbs), repeat=2):
         if np.isclose(vij_mat[p, q], 0):
             continue
         fop = of.FermionOperator(((2 * p + sigma, 1), (2 * p + sigma, 0),
                                   (2 * q + sigma, 1), (2 * q + sigma, 0)),
                                  coefficient=vij_mat[p, q])
-        wfn = wfn.time_evolve(time, fop, inplace=True)
-    return wfn
+        out = out.time_evolve(time, fop, inplace=True)
+    return out
 
 
 def evolve_fqe_diagonal_coulomb(wfn: Wavefunction, vij_mat: np.ndarray,
@@ -240,7 +246,7 @@ def evolve_fqe_diagonal_coulomb(wfn: Wavefunction, vij_mat: np.ndarray,
         New evolved 2^{n} x 1 vector
     """
     dc_ham = DiagonalCoulomb(vij_mat)
-    return wfn.time_evolve(time, dc_ham, inplace=True)
+    return wfn.time_evolve(time, dc_ham)
 
 
 def double_factor_trotter_evolution(initial_wfn: Wavefunction,
