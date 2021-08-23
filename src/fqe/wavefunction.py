@@ -959,7 +959,10 @@ class Wavefunction:
             hamil: Union['fqe_operator.FqeOperator', 'hamiltonian.Hamiltonian'],
             inplace: bool = False) -> 'Wavefunction':
         """Perform time evolution of the wavefunction given Fermion Operators
-        either as raw operations or wrapped up in a Hamiltonian.
+        either as raw operations or wrapped up in a Hamiltonian. The evolved
+        wavefunction is always returned (so the return value should be set), but
+        with `inplace=True` the input wavefunction may be partially or fully
+        overwritten for the sake of efficiency.
 
         Args:
             time (float): the duration by which to evolve the operators
@@ -967,10 +970,10 @@ class Wavefunction:
             hamil (Hamiltoninan or FermionOperator): Hamiltonian to be used for \
                 time evolution
 
-            inplace (bool): whether the result will be stored in place
+            inplace (bool): whether inplace memory will be used for efficiency
 
         Returns:
-            (Wavefunction): a wavefunction object that has been time evolved.
+            (Wavefunction): a wavefunction object that has been time evolved
         """
         assert isinstance(hamil, hamiltonian.Hamiltonian)
 
@@ -1131,7 +1134,7 @@ class Wavefunction:
 
         Args:
             hamil (SparseHamiltonian): Sparse Hamiltonian to be applied to the wavefunction
-`
+
             base (Wavefunction): the result will be accumulated to base
 
         Returns:
@@ -1194,11 +1197,11 @@ class Wavefunction:
             hamil (SparseHamiltonian): Sparse Hamiltonian using which \
                 the wavefunction is evolved
 
-            inplace (bool): whether to store the results in-place
+            inplace (bool): whether inplace memory will be used for \
+                efficiency.
 
         Returns:
-            (Wavefunction): resulting wavefunciton. If inplace is True, \
-                self is returned.
+            (Wavefunction): resulting wavefunction.
         """
         if not isinstance(hamil, sparse_hamiltonian.SparseHamiltonian):
             raise TypeError('Expected a Hamiltonian Object but received' \
