@@ -180,6 +180,8 @@ epub_exclude_files = ['search.html']
 
 # -- Extension configuration -------------------------------------------------
 
+autodoc_mock_imports = ["cirq"]
+
 
 def skip(app, what, name, obj, would_skip, options):
     #   if name == "__init__" or name == "__add__" or name == "__iadd__" or name == "__sub__" or name == "__isub__":
