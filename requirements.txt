@@ -1,6 +1,6 @@
 openfermion>=1.2.0
-cirq-core~=0.12.0
-cirq-google~=0.12.0
+cirq-core>=0.12.0
+cirq-google>=0.12.0
 jupyter
 numpy>=1.14
 scipy
