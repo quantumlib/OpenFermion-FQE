@@ -55,8 +55,8 @@ def evolve_wf_givens(wfn: np.ndarray, u: np.ndarray) -> np.ndarray:
             op = of.FermionOperator(((2 * j, 1), (2 * j, 0)), coefficient=-phi)
             op += of.FermionOperator(((2 * j + 1, 1), (2 * j + 1, 0)),
                                      coefficient=-phi)
-            wfn = (
-                sp_expm(-1j * of.get_sparse_operator(op, n_qubits=n_qubits)) @ wfn)
+            wfn = (sp_expm(-1j * of.get_sparse_operator(op, n_qubits=n_qubits))
+                   @ wfn)
 
             op = of.FermionOperator(
                 ((2 * i, 1),
@@ -66,8 +66,8 @@ def evolve_wf_givens(wfn: np.ndarray, u: np.ndarray) -> np.ndarray:
                 ((2 * i + 1, 1),
                  (2 * j + 1, 0)), coefficient=-1j * theta) + of.FermionOperator(
                      ((2 * j + 1, 1), (2 * i + 1, 0)), coefficient=1j * theta)
-            wfn = (
-                sp_expm(-1j * of.get_sparse_operator(op, n_qubits=n_qubits)) @ wfn)
+            wfn = (sp_expm(-1j * of.get_sparse_operator(op, n_qubits=n_qubits))
+                   @ wfn)
 
     # evolve the last diagonal phases
     for idx, final_phase in enumerate(diagonal):
@@ -76,8 +76,8 @@ def evolve_wf_givens(wfn: np.ndarray, u: np.ndarray) -> np.ndarray:
                                     -np.angle(final_phase))
             op += of.FermionOperator(((2 * idx + 1, 1), (2 * idx + 1, 0)),
                                      -np.angle(final_phase))
-            wfn = (
-                sp_expm(-1j * of.get_sparse_operator(op, n_qubits=n_qubits)) @ wfn)
+            wfn = (sp_expm(-1j * of.get_sparse_operator(op, n_qubits=n_qubits))
+                   @ wfn)
 
     return wfn
 
