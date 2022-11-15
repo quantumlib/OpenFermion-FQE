@@ -18,6 +18,7 @@ import copy
 import numpy as np
 import pytest
 from scipy.linalg import expm
+from scipy.sparse.linalg import expm as sp_expm
 
 import openfermion as of
 from openfermion import givens_decomposition_square
@@ -55,7 +56,7 @@ def evolve_wf_givens(wfn: np.ndarray, u: np.ndarray) -> np.ndarray:
             op += of.FermionOperator(((2 * j + 1, 1), (2 * j + 1, 0)),
                                      coefficient=-phi)
             wfn = (
-                expm(-1j * of.get_sparse_operator(op, n_qubits=n_qubits)) @ wfn)
+                sp_expm(-1j * of.get_sparse_operator(op, n_qubits=n_qubits)) @ wfn)
 
             op = of.FermionOperator(
                 ((2 * i, 1),
@@ -66,7 +67,7 @@ def evolve_wf_givens(wfn: np.ndarray, u: np.ndarray) -> np.ndarray:
                  (2 * j + 1, 0)), coefficient=-1j * theta) + of.FermionOperator(
                      ((2 * j + 1, 1), (2 * i + 1, 0)), coefficient=1j * theta)
             wfn = (
-                expm(-1j * of.get_sparse_operator(op, n_qubits=n_qubits)) @ wfn)
+                sp_expm(-1j * of.get_sparse_operator(op, n_qubits=n_qubits)) @ wfn)
 
     # evolve the last diagonal phases
     for idx, final_phase in enumerate(diagonal):
@@ -76,7 +77,7 @@ def evolve_wf_givens(wfn: np.ndarray, u: np.ndarray) -> np.ndarray:
             op += of.FermionOperator(((2 * idx + 1, 1), (2 * idx + 1, 0)),
                                      -np.angle(final_phase))
             wfn = (
-                expm(-1j * of.get_sparse_operator(op, n_qubits=n_qubits)) @ wfn)
+                sp_expm(-1j * of.get_sparse_operator(op, n_qubits=n_qubits)) @ wfn)
 
     return wfn
 
@@ -107,8 +108,8 @@ def evolve_wf_diagonal_coulomb(wf: np.ndarray, vij_mat: np.ndarray,
                 ),
                 coefficient=vij_mat[i, j],
             )
-    bigU = expm(-1j * time *
-                of.get_sparse_operator(diagonal_coulomb, n_qubits=2 * norbs))
+    bigU = sp_expm(-1j * time *
+                   of.get_sparse_operator(diagonal_coulomb, n_qubits=2 * norbs))
     return bigU @ wf
 
 
