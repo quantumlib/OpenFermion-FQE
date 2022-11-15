@@ -79,8 +79,8 @@ class CustomBuildOptions(build_ext):
             env = os.getenv("CC")
             if env:
                 # for CC=mpicc, find the backend C-compiler
-                if env.lower() == "mpicc":
-                    output = subprocess.check_output(["mpicc", "-show"])
+                if "mpicc" in env:
+                    output = subprocess.check_output([env, "-show"])
                     env = str(output).split()[0]
                 supported_compilers = ["gcc", "clang", "icc"]
                 for comp in supported_compilers:
