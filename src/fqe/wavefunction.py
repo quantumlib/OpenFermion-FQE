@@ -377,7 +377,7 @@ class Wavefunction:
             e_0 (complex): scalar part of the Hamiltonian
 
         Returns:
-            newwfn (Wavefunction): a new intialized wavefunction object
+            newwfn (Wavefunction): a new initialized wavefunction object
 
         """
         if self._conserve_spin:
@@ -533,7 +533,7 @@ class Wavefunction:
                 the list should be 2. Optional.
 
         Returns:
-            newwfn (Wavefunction): a new intialized wavefunction object
+            newwfn (Wavefunction): a new initialized wavefunction object
         """
 
         assert isinstance(hamil, hamiltonian.Hamiltonian)
@@ -635,7 +635,7 @@ class Wavefunction:
         """Print occupations and coefficients to the screen.
 
         Args:
-            threshhold (float): only print CI vector values such that \
+            threshold (float): only print CI vector values such that \
               :math:`|c|` > threshold.
 
             fmt (string): formats print according to argument

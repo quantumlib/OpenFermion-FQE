@@ -65,7 +65,7 @@ def apply_generated_unitary(
         accuracy: float = 0.0,
         expansion: int = 30,
         spec_lim: Optional[List[float]] = None) -> 'Wavefunction':
-    """Apply the algebraic operators to the wavefunction with a specfiic
+    """Apply the algebraic operators to the wavefunction with a specific
     algorithm and to the requested accuracy.
 
     Args:

@@ -35,7 +35,7 @@ class SSOHamiltonian(hamiltonian.Hamiltonian):
         """Initializes an SSOHamiltonian.
 
         Arguments:
-            tensors (Tuple[numpy.ndarray, ...]): Variable length tuple containg \
+            tensors (Tuple[numpy.ndarray, ...]): Variable length tuple containing \
                 between one and four numpy.arrays of increasing rank. \
                 The tensors contain the n-body hamiltonian elements. \
                 Tensors up to the highest order must be included even if \
@@ -155,7 +155,7 @@ class SSOHamiltonian(hamiltonian.Hamiltonian):
         return trans
 
     def transform(self, trans: numpy.ndarray) -> numpy.ndarray:
-        """Tranforms the one body term using the provided matrix.
+        """Transforms the one body term using the provided matrix.
 
         Args:
             trans (numpy.ndarray): Unitary transformation.

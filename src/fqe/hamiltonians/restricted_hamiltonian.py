@@ -32,7 +32,7 @@ class RestrictedHamiltonian(hamiltonian.Hamiltonian):
         """Initializes a RestrictedHamiltonian.
 
         Arguments:
-            tensors (Tuple[numpy.ndarray, ...]): Variable length tuple containg \
+            tensors (Tuple[numpy.ndarray, ...]): Variable length tuple containing \
                 between one and four numpy.arrays of increasing rank. \
                 The tensors contain the n-body hamiltonian elements in the \
                 spin-free form.  Therefore, the size of each dimension is \
@@ -144,7 +144,7 @@ class RestrictedHamiltonian(hamiltonian.Hamiltonian):
         return trans
 
     def transform(self, trans: numpy.ndarray) -> numpy.ndarray:
-        """Tranforms the one body term using the provided matrix.
+        """Transforms the one body term using the provided matrix.
 
         Args:
             trans (numpy.ndarray): Unitary transformation.
