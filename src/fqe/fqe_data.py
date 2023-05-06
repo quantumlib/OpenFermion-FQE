@@ -1834,7 +1834,7 @@ class FqeData:
 
         rdm2 = -rdm2.transpose(1, 2, 0, 3)
         for i in range(self.norb()):
-            rdm2[:, i, i, :] += rdm1[:, :]
+            rdm2[:, i, i, :] += rdm1[:, :].transpose()
         return (numpy.transpose(rdm1), rdm2)
 
     def _rdm12_lowfilling_python(self, bradata: Optional['FqeData'] = None

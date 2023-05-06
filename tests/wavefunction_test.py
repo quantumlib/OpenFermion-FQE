@@ -378,6 +378,29 @@ def test_rdm():
     assert round(abs(expval - energy), 13) == 0
 
 
+def test_rdm_python_vs_c():
+    """Check that the rdms match between python and c code.
+    """
+    wfn = Wavefunction(param=[[2, 0, 2]])
+    wfn.set_wfn(strategy='random')
+    wfn.normalize()
+    fqe.settings.use_accelerated_code = False
+    rdm1_py = wfn.rdm('i^ j')
+    rdm2_py = wfn.rdm('i^ j^ k l')
+    rdm3_py = wfn.rdm('i^ j^ k^ l m n')
+    rdm4_py = wfn.rdm('i^ j^ k^ l^ m n o p')
+    fqe.settings.use_accelerated_code = True
+    rdm1_c = wfn.rdm('i^ j')
+    rdm2_c = wfn.rdm('i^ j^ k l')
+    rdm3_c = wfn.rdm('i^ j^ k^ l m n')
+    rdm4_c = wfn.rdm('i^ j^ k^ l^ m n o p')
+
+    assert numpy.allclose(rdm1_py, rdm1_c)
+    assert numpy.allclose(rdm2_py, rdm2_c)
+    assert numpy.allclose(rdm3_py, rdm3_c)
+    assert numpy.allclose(rdm4_py, rdm4_c)
+
+
 def test_expectation_value_type_error():
     wfn = Wavefunction([[4, 0, 4]])
     with pytest.raises(TypeError):
