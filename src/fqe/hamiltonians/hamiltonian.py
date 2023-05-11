@@ -121,7 +121,7 @@ class Hamiltonian(metaclass=ABCMeta):
         return numpy.empty(0)
 
     def transform(self, trans: numpy.ndarray) -> numpy.ndarray:
-        """Tranform the one body term using the provided matrix.
+        """Transform the one body term using the provided matrix.
 
         Note: Care must be taken that this function does not transform the
         higher-body terms even if they exist.

@@ -448,7 +448,7 @@ class FqeDataSet:
                                      number: List[int]):
             """
             This code isolate operators that are paired between creation and
-            annhilation operators, since they are to be treated seperately.
+            annihilation operators, since they are to be treated separately.
             """
             par = 0
             for current in dag:

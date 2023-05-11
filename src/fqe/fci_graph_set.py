@@ -97,7 +97,7 @@ class FciGraphSet:
 
     def append(self, graph: 'FciGraph') -> None:
         """
-        Add an FciGraph object to self._dataset and links it against all the exisiting sectors.
+        Add an FciGraph object to self._dataset and links it against all the existing sectors.
 
         Args:
             graph (FciGraph): a FciGraph object to be appended

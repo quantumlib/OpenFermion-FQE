@@ -426,7 +426,7 @@ def wrap_apply_generated_unitary(apply_generated_unitary):
                 the list should be 2. Optional.
 
         Returns:
-            newwfn (Wavefunction): a new intialized wavefunction object
+            newwfn (Wavefunction): a new initialized wavefunction object
         """
         hamil = build_hamiltonian(ops,
                                   norb=self.norb(),

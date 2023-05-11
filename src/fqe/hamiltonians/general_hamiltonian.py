@@ -104,7 +104,7 @@ class General(hamiltonian.Hamiltonian):
         return trans
 
     def transform(self, trans: numpy.ndarray) -> numpy.ndarray:
-        """Tranforms the one body term using the provided matrix.
+        """Transforms the one body term using the provided matrix.
 
         Args:
             trans (numpy.ndarray): Unitary transformation.
