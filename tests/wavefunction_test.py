@@ -378,9 +378,11 @@ def test_rdm():
     assert round(abs(expval - energy), 13) == 0
 
 
-def test_rdm_python_vs_c():
+def test_rdm_python_vs_c(c_and_python):
     """Check that the rdms match between python and c code.
     """
+    if not c_and_python:
+        pytest.skip()
     wfn = Wavefunction(param=[[2, 0, 2]])
     wfn.set_wfn(strategy='random')
     wfn.normalize()
