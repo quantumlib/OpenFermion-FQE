@@ -19,6 +19,7 @@ Fermionic Quantum Emulator setup script.
 import io
 import re
 import os
+import subprocess
 import sys
 from typing import List
 
@@ -77,6 +78,10 @@ class CustomBuildOptions(build_ext):
             # "e.g. gcc-4, mpi-gcc or clang-11"
             env = os.getenv("CC")
             if env:
+                # for CC=mpicc, find the backend C-compiler
+                if "mpicc" in env:
+                    output = subprocess.check_output([env, "-show"])
+                    env = str(output).split()[0]
                 supported_compilers = ["gcc", "clang", "icc"]
                 for comp in supported_compilers:
                     if comp in env:

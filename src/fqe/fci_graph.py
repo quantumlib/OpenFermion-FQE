@@ -210,7 +210,7 @@ class FciGraph:
         Args:
             strings (Nparray): list of the determinant bitstrings
 
-            nele (int): number of electrons in the the determinants
+            nele (int): number of electrons in the determinants
 
             index (Dict[int,int])): list of the indices corresponding to the
                 determinant bitstrings
@@ -251,7 +251,7 @@ class FciGraph:
         Args:
             iorb (int): orbital index for the creation operator
 
-            jorb (int): orbital index for the annhilation operator
+            jorb (int): orbital index for the annihilation operator
 
         Returns:
             (List[Tuple[int, int, int]]) - array of string mapping with phases
@@ -266,7 +266,7 @@ class FciGraph:
         Args:
             iorb (int): orbital index for the creation operator
 
-            jorb (int): orbital index for the annhilation operator
+            jorb (int): orbital index for the annihilation operator
 
         Returns:
             (List[Tuple[int, int, int]]): array of string mapping with phases
@@ -365,7 +365,7 @@ class FciGraph:
         return self._bstr
 
     def index_alpha(self, bit_string: int) -> int:
-        """Retrieve the alpha index stored by it's bitstring
+        """Retrieve the alpha index stored by its bitstring
 
         Args:
             bit_string (bitstring): an occupation representation of the configuration
