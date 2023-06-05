@@ -11,7 +11,7 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
-"""Transformations between the various paradigms availible to OpenFermion
+"""Transformations between the various paradigms available to OpenFermion
 that provide interoperability.
 """
 
@@ -84,7 +84,7 @@ def cirq_to_fqe_single(cirq_wfn: numpy.ndarray, nele: int, m_s: int,
 
 
 def from_cirq_old(wfn: 'Wavefunction', state: numpy.ndarray) -> None:
-    """For each availble FqeData structure, find the projection onto the cirq
+    """For each available FqeData structure, find the projection onto the cirq
     wavefunction and set the coefficients to the proper value.
 
     This is the old Python implementation of `from_cirq`. It is advised to use the
@@ -113,7 +113,7 @@ def from_cirq_old(wfn: 'Wavefunction', state: numpy.ndarray) -> None:
 def from_cirq(wfn: 'Wavefunction',
               state: numpy.ndarray,
               binarycode: Optional['BinaryCode'] = None) -> None:
-    """For each availble FqeData structure, find the projection onto the cirq
+    """For each available FqeData structure, find the projection onto the cirq
     wavefunction and set the coefficients to the proper value.
 
     Cirq coefficients that have zero projection onto `wfn` are ignored. It is

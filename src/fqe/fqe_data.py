@@ -2169,7 +2169,7 @@ class FqeData:
 
         Returns:
             Tuple[Nparray, Nparray]: result of computation. Alpha and beta \
-                are seperately packed in the tuple to be returned
+                are separately packed in the tuple to be returned
         """
         return self._calculate_dvec_spin_with_coeff(self.coeff)
 
@@ -2195,7 +2195,7 @@ class FqeData:
         .. math::
             D^J_{ij} = \\sum_I \\langle J|a^\\dagger_i a_j|I\\rangle C_I
 
-        using self.coeff as an input. Alpha and beta are seperately packed in
+        using self.coeff as an input. Alpha and beta are separately packed in
         the tuple to be returned
 
         Args:
@@ -2699,7 +2699,7 @@ class FqeData:
         return self._core.norb()
 
     def norm(self) -> float:
-        """Return the norm of the the sector wavefunction
+        """Return the norm of the sector wavefunction
 
         Returns:
             float: norm
