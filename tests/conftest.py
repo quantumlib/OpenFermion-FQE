@@ -46,5 +46,12 @@ def pytest_generate_tests(metafunc):
             test_code_paths.remove(CodePath.C)
         metafunc.parametrize("c_or_python", test_code_paths)
 
+    if "c_and_python" in metafunc.fixturenames:
+        if metafunc.config.getoption("--c-only") or \
+                metafunc.config.getoption("--python-only"):
+            metafunc.parametrize("c_and_python", [False])
+        else:
+            metafunc.parametrize("c_and_python", [True])
+
     if "alpha_or_beta" in metafunc.fixturenames:
         metafunc.parametrize("alpha_or_beta", ["alpha", "beta"])
