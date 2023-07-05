@@ -527,7 +527,8 @@ class Wavefunction:
 
             accuracy (float): the accuracy to which the system should be evolved
 
-            expansion (int): the maximum number of terms in the polynomial expansion
+            expansion (int): the maximum number of terms in the polynomial expansion.
+                             (Max 30)
 
             spec_lim (List[float]): spectral range of the Hamiltonian, the length of \
                 the list should be 2. Optional.
@@ -562,6 +563,8 @@ class Wavefunction:
                 time_evol.ax_plus_y(coeff, work)
                 if work.norm() * numpy.abs(coeff) < accuracy:
                     break
+            else:
+                Warning("maximum expansion limit reached")
 
         elif algo == 'chebyshev':
 
@@ -592,6 +595,8 @@ class Wavefunction:
 
                 if current.norm() * numpy.abs(coeff) < accuracy:
                     break
+            else:
+                Warning("maximum expansion limit reached")
 
             time_evol.scale(numpy.exp(eshift * time * 1.j))
 

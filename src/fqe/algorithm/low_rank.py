@@ -60,7 +60,8 @@ def evolve_fqe_givens_sector(wfn: Wavefunction, u: np.ndarray,
             if not np.isclose(phi, 0):
                 op = of.FermionOperator(
                     ((2 * j + sigma, 1), (2 * j + sigma, 0)), coefficient=-phi)
-                out = out.time_evolve(1.0, op, inplace=True)
+                out.time_evolve(1.0, op, inplace=True)
+
             if not np.isclose(theta, 0):
                 op = of.FermionOperator(((2 * i + sigma, 1),
                                          (2 * j + sigma, 0)),
@@ -68,7 +69,8 @@ def evolve_fqe_givens_sector(wfn: Wavefunction, u: np.ndarray,
                      of.FermionOperator(((2 * j + sigma, 1),
                                          (2 * i + sigma, 0)),
                                         coefficient=1j * theta)
-                out = out.time_evolve(1.0, op, inplace=True)
+                out.time_evolve(1.0, op, inplace=True)
+
 
     # evolve the last diagonal phases
     for idx, final_phase in enumerate(diagonal):
@@ -76,8 +78,7 @@ def evolve_fqe_givens_sector(wfn: Wavefunction, u: np.ndarray,
             op = of.FermionOperator(
                 ((2 * idx + sigma, 1), (2 * idx + sigma, 0)),
                 -np.angle(final_phase))
-            out = out.time_evolve(1.0, op, inplace=True)
-
+            out.time_evolve(1.0, op, inplace=True)
     return out
 
 
@@ -123,14 +124,14 @@ def evolve_fqe_givens_unrestricted(wfn: Wavefunction,
                     ((i, 1),
                      (j, 0)), coefficient=-1j * theta) + of.FermionOperator(
                          ((j, 1), (i, 0)), coefficient=1j * theta)
-                out = out.time_evolve(1.0, op, inplace=True)
+                out.time_evolve(1.0, op, inplace=True)
 
     # evolve the last diagonal phases
     for idx, final_phase in enumerate(diagonal):
         if not np.isclose(final_phase, 1.0):
             op = of.FermionOperator(((idx, 1), (idx, 0)),
                                     -np.angle(final_phase))
-            out = out.time_evolve(1.0, op, inplace=True)
+            out.time_evolve(1.0, op, inplace=True)
 
     return out
 
@@ -159,7 +160,7 @@ def evolve_fqe_charge_charge_unrestricted(wfn: Wavefunction,
             continue
         fop = of.FermionOperator(((p, 1), (p, 0), (q, 1), (q, 0)),
                                  coefficient=vij_mat[p, q])
-        out = out.time_evolve(time, fop, inplace=True)
+        out.time_evolve(time, fop, inplace=True)
     return out
 
 
@@ -188,7 +189,7 @@ def evolve_fqe_charge_charge_alpha_beta(wfn: Wavefunction,
         fop = of.FermionOperator(
             ((2 * p, 1), (2 * p, 0), (2 * q + 1, 1), (2 * q + 1, 0)),
             coefficient=vij_mat[p, q])
-        out = out.time_evolve(time, fop, inplace=True)
+        out.time_evolve(time, fop, inplace=True)
     return out
 
 
@@ -225,7 +226,7 @@ def evolve_fqe_charge_charge_sector(wfn: Wavefunction,
         fop = of.FermionOperator(((2 * p + sigma, 1), (2 * p + sigma, 0),
                                   (2 * q + sigma, 1), (2 * q + sigma, 0)),
                                  coefficient=vij_mat[p, q])
-        out = out.time_evolve(time, fop, inplace=True)
+        out.time_evolve(time, fop, inplace=True)
     return out
 
 
