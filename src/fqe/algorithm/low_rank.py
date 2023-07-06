@@ -160,7 +160,7 @@ def evolve_fqe_charge_charge_unrestricted(wfn: Wavefunction,
             continue
         fop = of.FermionOperator(((p, 1), (p, 0), (q, 1), (q, 0)),
                                  coefficient=vij_mat[p, q])
-        out.time_evolve(time, fop, inplace=True)
+        out = out.time_evolve(time, fop)
     return out
 
 
@@ -189,7 +189,7 @@ def evolve_fqe_charge_charge_alpha_beta(wfn: Wavefunction,
         fop = of.FermionOperator(
             ((2 * p, 1), (2 * p, 0), (2 * q + 1, 1), (2 * q + 1, 0)),
             coefficient=vij_mat[p, q])
-        out.time_evolve(time, fop, inplace=True)
+        out = out.time_evolve(time, fop)
     return out
 
 
@@ -226,7 +226,7 @@ def evolve_fqe_charge_charge_sector(wfn: Wavefunction,
         fop = of.FermionOperator(((2 * p + sigma, 1), (2 * p + sigma, 0),
                                   (2 * q + sigma, 1), (2 * q + sigma, 0)),
                                  coefficient=vij_mat[p, q])
-        out.time_evolve(time, fop, inplace=True)
+        out = out.time_evolve(time, fop)
     return out
 
 
