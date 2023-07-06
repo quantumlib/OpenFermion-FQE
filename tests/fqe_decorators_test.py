@@ -286,9 +286,9 @@ def test_evolve_spinful_fermionop():
         op_to_apply += op + hermitian_conjugated(op)
 
     opmat = get_sparse_operator(op_to_apply, n_qubits=4).toarray()
-    dt = 0.765
+    dt = 0.2  # small coefficient so Taylor expansion evolution convergence in < 30 steps
     new_state_cirq = scipy.linalg.expm(-1j * dt * opmat) @ cirq_wf
-    new_state_wfn = from_cirq(new_state_cirq.flatten(), thresh=1.0E-12)
+    new_state_wfn = from_cirq(new_state_cirq.flatten(), thresh=1.0E-15)
     test_state = wfn.time_evolve(dt, op_to_apply)
     numpy.testing.assert_almost_equal(test_state.get_coeff((2, 0)),
                                       new_state_wfn.get_coeff((2, 0)))
@@ -364,3 +364,8 @@ def test_rdm_fermionop_broken():
 
     assert abs(wfn.rdm('0^ 1^') \
         - (0.12581488681522182+0.07549915168581758j)) < 1.0e-8
+
+
+if __name__ == "__main__":
+    test_evolve_spinful_fermionop()
+    # test_evolve_spinful_fermionop()

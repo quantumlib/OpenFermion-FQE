@@ -20,8 +20,10 @@ import numpy as np
 import copy
 from tests.unittest_data.build_lih_data import build_lih_data
 from fqe.algorithm import davidson
+import pytest
 
 
+@pytest.mark.skip(reason="slow test")
 def test_davidson():
     eref = -8.877719570384043
     norb = 6

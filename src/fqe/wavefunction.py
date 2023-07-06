@@ -511,7 +511,7 @@ class Wavefunction:
                                 time: float,
                                 algo: str,
                                 hamil: 'hamiltonian.Hamiltonian',
-                                accuracy: float = 1.0E-14,
+                                accuracy: float = 1.0E-15,
                                 expansion: int = 30,
                                 spec_lim: Optional[List[float]] = None
                                ) -> 'Wavefunction':
@@ -549,14 +549,13 @@ class Wavefunction:
         else:
             base = self
 
-        max_expansion = max(30, expansion)
+        max_expansion = expansion
 
         if algo == 'taylor':
             ham_arrays = hamil.iht(time)
 
             time_evol = copy.deepcopy(base)
             work = copy.deepcopy(base)
-
             for order in range(1, max_expansion):
                 work = work.apply(ham_arrays)
                 coeff = 1.0 / factorial(order)
@@ -564,7 +563,7 @@ class Wavefunction:
                 if work.norm() * numpy.abs(coeff) < accuracy:
                     break
             else:
-                Warning("maximum expansion limit reached")
+                raise RuntimeError("maximum taylor expansion limit reached")
 
         elif algo == 'chebyshev':
 
@@ -596,7 +595,7 @@ class Wavefunction:
                 if current.norm() * numpy.abs(coeff) < accuracy:
                     break
             else:
-                Warning("maximum expansion limit reached")
+                raise RuntimeError("maximum chebyshev expansion limit reached")
 
             time_evol.scale(numpy.exp(eshift * time * 1.j))
 

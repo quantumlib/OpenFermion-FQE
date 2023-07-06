@@ -405,7 +405,7 @@ def wrap_apply_generated_unitary(apply_generated_unitary):
                 time: float,
                 algo: str,
                 ops: Union['FermionOperator', 'hamiltonian.Hamiltonian'],
-                accuracy: float = 0.0,
+                accuracy: float = 1.0E-15,
                 expansion: int = 30,
                 spec_lim: Optional[List[float]] = None):
         """Perform the exponentiation of fermionic algebras to the

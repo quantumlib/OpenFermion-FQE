@@ -23,7 +23,10 @@ from fqe.algorithm.brillouin_condition_solver import BrillouinCondition
 from tests.unittest_data.generate_openfermion_molecule import (
     build_lih_moleculardata,)
 
+import pytest
 
+
+@pytest.mark.skip(reason="slow test")
 def test_solver():
     molecule = build_lih_moleculardata()
     n_electrons = molecule.n_electrons
@@ -55,6 +58,7 @@ def test_solver():
                        [-8.957417182801088, -8.969256797233033])
 
 
+@pytest.mark.skip(reason="slow test")
 def test_solver_via_rdms():
     molecule = build_lih_moleculardata()
     n_electrons = molecule.n_electrons

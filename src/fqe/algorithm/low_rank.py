@@ -60,7 +60,7 @@ def evolve_fqe_givens_sector(wfn: Wavefunction, u: np.ndarray,
             if not np.isclose(phi, 0):
                 op = of.FermionOperator(
                     ((2 * j + sigma, 1), (2 * j + sigma, 0)), coefficient=-phi)
-                out.time_evolve(1.0, op, inplace=True)
+                out = out.time_evolve(1.0, op)
 
             if not np.isclose(theta, 0):
                 op = of.FermionOperator(((2 * i + sigma, 1),
@@ -69,7 +69,7 @@ def evolve_fqe_givens_sector(wfn: Wavefunction, u: np.ndarray,
                      of.FermionOperator(((2 * j + sigma, 1),
                                          (2 * i + sigma, 0)),
                                         coefficient=1j * theta)
-                out.time_evolve(1.0, op, inplace=True)
+                out = out.time_evolve(1.0, op)
 
 
     # evolve the last diagonal phases
@@ -78,7 +78,7 @@ def evolve_fqe_givens_sector(wfn: Wavefunction, u: np.ndarray,
             op = of.FermionOperator(
                 ((2 * idx + sigma, 1), (2 * idx + sigma, 0)),
                 -np.angle(final_phase))
-            out.time_evolve(1.0, op, inplace=True)
+            out = out.time_evolve(1.0, op)
     return out
 
 
@@ -118,20 +118,20 @@ def evolve_fqe_givens_unrestricted(wfn: Wavefunction,
             i, j, theta, phi = givens
             if not np.isclose(phi, 0):
                 op = of.FermionOperator(((j, 1), (j, 0)), coefficient=-phi)
-                out = out.time_evolve(1.0, op, inplace=True)
+                out = out.time_evolve(1.0, op)
             if not np.isclose(theta, 0):
                 op = of.FermionOperator(
                     ((i, 1),
                      (j, 0)), coefficient=-1j * theta) + of.FermionOperator(
                          ((j, 1), (i, 0)), coefficient=1j * theta)
-                out.time_evolve(1.0, op, inplace=True)
+                out = out.time_evolve(1.0, op)
 
     # evolve the last diagonal phases
     for idx, final_phase in enumerate(diagonal):
         if not np.isclose(final_phase, 1.0):
             op = of.FermionOperator(((idx, 1), (idx, 0)),
                                     -np.angle(final_phase))
-            out.time_evolve(1.0, op, inplace=True)
+            out = out.time_evolve(1.0, op)
 
     return out
 
