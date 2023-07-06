@@ -538,6 +538,9 @@ class Wavefunction:
         """
 
         assert isinstance(hamil, hamiltonian.Hamiltonian)
+        if not isinstance(expansion, int):
+            raise TypeError(
+                "expansion must be an int. You provided {}".format(expansion))
 
         algo_avail = ['taylor', 'chebyshev']
 

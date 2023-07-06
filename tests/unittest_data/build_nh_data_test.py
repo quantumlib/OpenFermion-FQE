@@ -14,14 +14,13 @@
 """Tests for NH data."""
 
 # pylint: disable=too-many-locals
-
+import pytest
 import numpy as np
 from scipy.special import binom
 
 import fqe
 from fqe.hamiltonians import general_hamiltonian
 from tests.unittest_data.build_nh_data import build_nh_data
-import pytest
 
 
 @pytest.mark.skip(reason="slow system test")

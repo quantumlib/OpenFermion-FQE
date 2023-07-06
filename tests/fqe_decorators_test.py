@@ -364,8 +364,3 @@ def test_rdm_fermionop_broken():
 
     assert abs(wfn.rdm('0^ 1^') \
         - (0.12581488681522182+0.07549915168581758j)) < 1.0e-8
-
-
-if __name__ == "__main__":
-    test_evolve_spinful_fermionop()
-    # test_evolve_spinful_fermionop()

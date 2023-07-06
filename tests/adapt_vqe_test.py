@@ -24,8 +24,6 @@ from fqe.algorithm.adapt_vqe import OperatorPool, ADAPT
 from tests.unittest_data.generate_openfermion_molecule import (
     build_lih_moleculardata,)
 
-import pytest
-
 
 @pytest.mark.skip(reason="slow test")
 def test_op_pool():
