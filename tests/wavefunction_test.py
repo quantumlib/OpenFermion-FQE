@@ -818,13 +818,3 @@ def test_broken_number_3body():
     for key in nbody_evolved.sectors():
         assert numpy.allclose(nbody_evolved._civec[key].coeff,
                               unitary_evolved._civec[key].coeff)
-
-
-if __name__ == "__main__":
-    ivals = [(c, k) for c in all_cases for k in [
-        'apply_array', 'apply_sparse', 'apply_diagonal', 'apply_quadratic',
-        'apply_dc'
-    ]]
-    print(ivals)
-    for c, k in ivals:
-        test_evolve(c, k)
