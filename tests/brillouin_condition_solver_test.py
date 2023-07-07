@@ -12,7 +12,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 """Unit tests for BrillouinCondition."""
-
+import pytest
 import numpy as np
 
 import openfermion as of
@@ -23,7 +23,6 @@ from fqe.algorithm.brillouin_condition_solver import BrillouinCondition
 from tests.unittest_data.generate_openfermion_molecule import (
     build_lih_moleculardata,)
 
-import pytest
 
 
 @pytest.mark.skip(reason="slow test")
