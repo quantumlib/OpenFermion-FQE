@@ -528,7 +528,6 @@ class Wavefunction:
             accuracy (float): the accuracy to which the system should be evolved
 
             expansion (int): the maximum number of terms in the polynomial expansion.
-                             (Max 30)
 
             spec_lim (List[float]): spectral range of the Hamiltonian, the length of \
                 the list should be 2. Optional.
