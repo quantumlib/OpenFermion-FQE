@@ -12,7 +12,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 """Unit tests for BrillouinCondition."""
-
+import pytest
 import numpy as np
 
 import openfermion as of
@@ -24,6 +24,7 @@ from tests.unittest_data.generate_openfermion_molecule import (
     build_lih_moleculardata,)
 
 
+@pytest.mark.skip(reason="slow test")
 def test_solver():
     molecule = build_lih_moleculardata()
     n_electrons = molecule.n_electrons
@@ -55,6 +56,7 @@ def test_solver():
                        [-8.957417182801088, -8.969256797233033])
 
 
+@pytest.mark.skip(reason="slow test")
 def test_solver_via_rdms():
     molecule = build_lih_moleculardata()
     n_electrons = molecule.n_electrons

@@ -62,7 +62,7 @@ def apply_generated_unitary(
         time: float,
         algo: str,
         hamil: Union['hamiltonian.Hamiltonian', 'FermionOperator'],
-        accuracy: float = 0.0,
+        accuracy: float = 1.0E-15,
         expansion: int = 30,
         spec_lim: Optional[List[float]] = None) -> 'Wavefunction':
     """Apply the algebraic operators to the wavefunction with a specific

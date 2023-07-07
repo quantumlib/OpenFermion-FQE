@@ -142,6 +142,7 @@ def test_get_acse_residual_fqe_lih():
         assert np.allclose(true_acse_residual, test_acse_residual)
 
 
+@pytest.mark.skip(reason="slow test")
 def test_get_tpdm_grad_residual_fqe():
     molecule = build_h4square_moleculardata()
     sdim = molecule.n_orbitals

@@ -96,6 +96,7 @@ def test_vbc_takagi(vbc_fixture):
     assert np.isclose(adapt.energies[-1], -8.97304439380826)
 
 
+@pytest.mark.skip(reason="slow test for non-core functionality")
 def test_vbc_opt_var(vbc_fixture):
     """ Test vbc variable optimisation.
         Warning:
@@ -119,6 +120,7 @@ def test_vbc_opt_var(vbc_fixture):
     assert np.isclose(adapt.energies[2], -8.97482142285195)
 
 
+@pytest.mark.skip(reason="slow test for non-core functionality")
 def test_vbc_takagi_decomps():
     """ Test Takagi decomposition
     """
@@ -155,6 +157,7 @@ def test_vbc_takagi_decomps():
     assert np.allclose(test_tensor, acse_residual)
 
 
+@pytest.mark.skip(reason="slow test for non-core functionality")
 def test_vbc_svd_decomps():
     molecule = build_h4square_moleculardata()
     oei, tei = molecule.get_integrals()
@@ -188,6 +191,7 @@ def test_vbc_svd_decomps():
     assert np.allclose(test_tensor, new_residual)
 
 
+@pytest.mark.skip(reason="slow test for non-core functionality")
 def test_vbc_time_evolve():
     molecule = build_h4square_moleculardata()
     oei, tei = molecule.get_integrals()

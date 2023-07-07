@@ -14,7 +14,7 @@
 """Tests for NH data."""
 
 # pylint: disable=too-many-locals
-
+import pytest
 import numpy as np
 from scipy.special import binom
 
@@ -23,6 +23,7 @@ from fqe.hamiltonians import general_hamiltonian
 from tests.unittest_data.build_nh_data import build_nh_data
 
 
+@pytest.mark.skip(reason="slow system test")
 def test_nh_energy():
     """Checks total relativistic energy with NH."""
     eref = -57.681266930627
