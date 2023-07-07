@@ -24,7 +24,6 @@ from tests.unittest_data.generate_openfermion_molecule import (
     build_lih_moleculardata,)
 
 
-
 @pytest.mark.skip(reason="slow test")
 def test_solver():
     molecule = build_lih_moleculardata()
