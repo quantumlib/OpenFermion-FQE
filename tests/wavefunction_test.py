@@ -43,8 +43,6 @@ from fqe import get_restricted_hamiltonian
 from fqe import NumberOperator
 from fqe.util import vdot
 
-import sys
-sys.path.append('/usr/local/google/home/nickrubin/dev/OpenFermion-FQE')
 from tests.unittest_data import build_wfn, build_hamiltonian
 from tests.unittest_data.build_lih_data import build_lih_data
 
