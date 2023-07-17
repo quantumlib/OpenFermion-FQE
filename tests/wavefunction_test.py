@@ -15,18 +15,16 @@
 """
 # pylint: disable=protected-access
 
-import os
-import sys
 import copy
-import numpy
-import pytest
-
+import os
 from io import StringIO
+import sys
 
-from scipy.special import binom
-
+import numpy
 from openfermion import FermionOperator
 from openfermion.utils import hermitian_conjugated
+import pytest
+from scipy.special import binom
 
 import fqe
 from fqe.wavefunction import Wavefunction
@@ -159,6 +157,10 @@ def test_apply_type_error():
         wfn.apply(hamil)
     with pytest.raises(TypeError):
         wfn.time_evolve(0.1, hamil)
+
+    hamil2 = restricted_hamiltonian.RestrictedHamiltonian((data,))
+    with pytest.raises(TypeError, match="expansion must be an int"):
+        wfn.apply_generated_unitary(0.1, 'taylor', hamil2, expansion=0.5)
 
 
 def test_apply_value_error():
@@ -297,6 +299,41 @@ def test_apply_empty_nbody():
     hamil = sparse_hamiltonian.SparseHamiltonian(fop)
     out1 = wfn._apply_few_nbody(hamil)
     assert (wfn - out1).norm() < 1e-13
+
+
+def test_expansion_failure():
+    """Test exceptions when the max expansion limit is reached.
+    """
+    norb = 4
+    nalpha = 2
+    nbeta = 1
+    nele = nalpha + nbeta
+    time = 0.1
+
+    h1e = build_hamiltonian.build_H1(norb, full=True, asymmetric=True)
+
+    eig, _ = numpy.linalg.eigh(h1e)
+    hamil = fqe.get_general_hamiltonian((h1e,))
+
+    wfn = Wavefunction([[nele, nalpha - nbeta, norb]])
+    wfn.set_wfn(strategy='random')
+
+    err = "maximum chebyshev expansion limit reached"
+    with pytest.raises(RuntimeError, match=err):
+        wfn.apply_generated_unitary(time,
+                                    'chebyshev',
+                                    hamil,
+                                    expansion=1,
+                                    accuracy=1e-9,
+                                    spec_lim=(eig[0], eig[-1]))
+
+    err = "maximum taylor expansion limit reached"
+    with pytest.raises(RuntimeError, match=err):
+        wfn.apply_generated_unitary(time,
+                                    'taylor',
+                                    hamil,
+                                    expansion=1,
+                                    accuracy=1e-9)
 
 
 def test_nbody_evolve():
