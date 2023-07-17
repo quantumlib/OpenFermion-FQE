@@ -206,16 +206,17 @@ def test_random_evolution():
         op3mat = Dmat + 1j * Dmat.T
         op4mat = Dmat - 1j * Dmat.T
 
-        o1_rwf = rwf.time_evolve(1 / 16, 1j * op1**2)
         ww, vv = np.linalg.eig(op1mat)
         assert np.allclose(vv @ np.diag(ww) @ vv.conj().T, op1mat)
         trwf = evolve_fqe_givens_unrestricted(rwf, vv.conj().T)
         v_pq = np.outer(ww, ww)
+        assert np.allclose(v_pq.real, 0)
+        o1_rwf = rwf.time_evolve(1 / 16, 1j * op1**2)
         for p, q in product(range(nso), repeat=2):
             fop = of.FermionOperator(((p, 1), (p, 0), (q, 1), (q, 0)),
                                      coefficient=-v_pq[p, q].imag)
             trwf = trwf.time_evolve(1 / 16, fop)
-        trwf = evolve_fqe_givens_unrestricted(trwf, vv)
+        trwf = evolve_fqe_givens_unrestricted(trwf, copy.deepcopy(vv))
         assert np.isclose(fqe.vdot(o1_rwf, trwf), 1)
 
         o_rwf = rwf.time_evolve(1 / 16, 1j * op2**2)

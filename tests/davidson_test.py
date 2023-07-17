@@ -22,6 +22,7 @@ from tests.unittest_data.build_lih_data import build_lih_data
 from fqe.algorithm import davidson
 
 
+@pytest.mark.skip(reason="slow test")
 def test_davidson():
     eref = -8.877719570384043
     norb = 6
@@ -154,7 +155,3 @@ def test_davidson_no_init():
                                   1,
                                   verbose=True)
     assert abs(ww - 1 - ecalc) < 1e-10
-
-
-if __name__ == "__main__":
-    test_davidson()

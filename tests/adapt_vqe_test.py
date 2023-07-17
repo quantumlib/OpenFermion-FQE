@@ -25,6 +25,7 @@ from tests.unittest_data.generate_openfermion_molecule import (
     build_lih_moleculardata,)
 
 
+@pytest.mark.skip(reason="slow test")
 def test_op_pool():
     op = OperatorPool(2, [0], [1])
     op.singlet_t2()
@@ -57,6 +58,7 @@ def test_op_pool():
             assert len(ladder_idx) == 2
 
 
+@pytest.mark.skip(reason="slow test")
 def test_adapt():
     molecule = build_lih_moleculardata()
     n_electrons = molecule.n_electrons

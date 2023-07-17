@@ -511,7 +511,7 @@ class Wavefunction:
                                 time: float,
                                 algo: str,
                                 hamil: 'hamiltonian.Hamiltonian',
-                                accuracy: float = 1.0E-14,
+                                accuracy: float = 1.0E-15,
                                 expansion: int = 30,
                                 spec_lim: Optional[List[float]] = None
                                ) -> 'Wavefunction':
@@ -527,7 +527,7 @@ class Wavefunction:
 
             accuracy (float): the accuracy to which the system should be evolved
 
-            expansion (int): the maximum number of terms in the polynomial expansion
+            expansion (int): the maximum number of terms in the polynomial expansion.
 
             spec_lim (List[float]): spectral range of the Hamiltonian, the length of \
                 the list should be 2. Optional.
@@ -537,6 +537,9 @@ class Wavefunction:
         """
 
         assert isinstance(hamil, hamiltonian.Hamiltonian)
+        if not isinstance(expansion, int):
+            raise TypeError(
+                "expansion must be an int. You provided {}".format(expansion))
 
         algo_avail = ['taylor', 'chebyshev']
 
@@ -548,20 +551,21 @@ class Wavefunction:
         else:
             base = self
 
-        max_expansion = max(30, expansion)
+        max_expansion = expansion
 
         if algo == 'taylor':
             ham_arrays = hamil.iht(time)
 
             time_evol = copy.deepcopy(base)
             work = copy.deepcopy(base)
-
             for order in range(1, max_expansion):
                 work = work.apply(ham_arrays)
                 coeff = 1.0 / factorial(order)
                 time_evol.ax_plus_y(coeff, work)
                 if work.norm() * numpy.abs(coeff) < accuracy:
                     break
+            else:
+                raise RuntimeError("maximum taylor expansion limit reached")
 
         elif algo == 'chebyshev':
 
@@ -592,6 +596,8 @@ class Wavefunction:
 
                 if current.norm() * numpy.abs(coeff) < accuracy:
                     break
+            else:
+                raise RuntimeError("maximum chebyshev expansion limit reached")
 
             time_evol.scale(numpy.exp(eshift * time * 1.j))
 
