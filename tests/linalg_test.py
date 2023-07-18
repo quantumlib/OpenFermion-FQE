@@ -29,7 +29,7 @@ def test_ctype_double_complex(c_or_python):
     rval = 1.0
     ival = -1.0
     test = c_double_complex(rval, ival)
-    assert test.value == rval + 1.j*ival
+    assert test.value == rval + 1.j * ival
 
 
 def test_zimatadd(c_or_python):
