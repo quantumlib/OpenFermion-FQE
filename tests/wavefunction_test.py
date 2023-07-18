@@ -663,7 +663,7 @@ def test_apply(c_or_python, param, kind):
         assert Wavefunction_isclose(out, reference_data['wfn_out'])
 
 
-@pytest.mark.skip(reason="Test seems to be failing due to bad reference_data")
+#@pytest.mark.skip(reason="Test seems to be failing due to bad reference_data")
 @pytest.mark.parametrize("param,kind", [(c, k) for c in all_cases for k in [
     'apply_array', 'apply_sparse', 'apply_diagonal', 'apply_quadratic',
     'apply_dc'
