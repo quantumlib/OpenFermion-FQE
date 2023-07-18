@@ -336,6 +336,24 @@ def test_expansion_failure():
                                     accuracy=1e-9)
 
 
+def test_nbody_evolve_null():
+    """Check that '_evolve_individual_nbody' works with an empty SparseOpertor
+    """
+    norb = 4
+    nele = 4
+    time = 0.1
+    ops = FermionOperator('')
+    sham = fqe.get_sparse_hamiltonian(ops, conserve_spin=False)
+
+    wfn = fqe.get_number_conserving_wavefunction(nele, norb)
+    wfn.set_wfn(strategy='random')
+    wfn.normalize()
+
+    out = wfn._evolve_individual_nbody(time, sham)
+
+    assert (out - wfn).norm() < 1.e-8
+
+
 def test_nbody_evolve():
     """Check that 'individual_nbody' is consistent with a general 1-electron op
     """

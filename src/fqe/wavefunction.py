@@ -1231,7 +1231,7 @@ class Wavefunction:
                     raise ValueError(
                         'Operators in _evolve_individual_nbody is not Hermitian'
                     )
-        else:
+        elif hamil.nterms() == 1:
             [
                 (coeff0, alpha0, beta0),
             ] = hamil.terms()
@@ -1247,6 +1247,9 @@ class Wavefunction:
                         'Operators in _evolve_individual_nbody is not Hermitian'
                     )
             coeff0 *= 0.5
+        else:
+            assert hamil.nterms() == 0
+            return self if inplace else copy.deepcopy(self)
 
         daga = []
         dagb = []
