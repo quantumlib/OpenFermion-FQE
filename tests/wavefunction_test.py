@@ -114,7 +114,7 @@ def test_empty_copy():
     test1 = test.empty_copy()
     assert test1._norb == test._norb
     assert len(test1._civec) == len(test._civec)
-    assert (2, 0) in test1._civec.keys()
+    assert (2, 0) in test1._civec
     assert not numpy.any(test1._civec[(2, 0)].coeff)
 
 
@@ -336,13 +336,14 @@ def test_expansion_failure():
                                     accuracy=1e-9)
 
 
-def test_nbody_evolve_null():
-    """Check that '_evolve_individual_nbody' works with an empty SparseOpertor
+def test_empty_nbody_evolve():
+    """Check that '_evolve_individual_nbody' works with an empty
+    FermionOperator/SparseHamiltonian
     """
     norb = 4
     nele = 4
     time = 0.1
-    ops = FermionOperator('')
+    ops = FermionOperator()
     sham = fqe.get_sparse_hamiltonian(ops, conserve_spin=False)
 
     wfn = fqe.get_number_conserving_wavefunction(nele, norb)
@@ -490,7 +491,8 @@ def test_save_read():
     read_wfn = Wavefunction()
     read_wfn.read('test_save_read')
     for key in read_wfn.sectors():
-        assert numpy.allclose(read_wfn._civec[key].coeff, wfn._civec[key].coeff)
+        assert numpy.allclose(read_wfn._civec[key].coeff,
+                              wfn._civec[key].coeff)
     assert read_wfn._symmetry_map == wfn._symmetry_map
     assert read_wfn._conserved == wfn._conserved
     assert read_wfn._conserve_spin == wfn._conserve_spin
@@ -681,7 +683,6 @@ def test_apply(c_or_python, param, kind):
         assert Wavefunction_isclose(out, reference_data['wfn_out'])
 
 
-#@pytest.mark.skip(reason="Test seems to be failing due to bad reference_data")
 @pytest.mark.parametrize("param,kind", [(c, k) for c in all_cases for k in [
     'apply_array', 'apply_sparse', 'apply_diagonal', 'apply_quadratic',
     'apply_dc'
