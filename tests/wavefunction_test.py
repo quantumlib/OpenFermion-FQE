@@ -491,8 +491,7 @@ def test_save_read():
     read_wfn = Wavefunction()
     read_wfn.read('test_save_read')
     for key in read_wfn.sectors():
-        assert numpy.allclose(read_wfn._civec[key].coeff,
-                              wfn._civec[key].coeff)
+        assert numpy.allclose(read_wfn._civec[key].coeff, wfn._civec[key].coeff)
     assert read_wfn._symmetry_map == wfn._symmetry_map
     assert read_wfn._conserved == wfn._conserved
     assert read_wfn._conserve_spin == wfn._conserve_spin
