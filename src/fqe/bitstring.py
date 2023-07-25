@@ -144,7 +144,7 @@ def get_bit(string: int, pos: int) -> int:
     Returns:
         int: 0 if the bit is 0, 2**pos if the bit is 1
     """
-    return int(string) & (1 << pos)
+    return int(string) & (1 << int(pos))
 
 
 def set_bit(string: int, pos: int) -> int:
@@ -158,7 +158,7 @@ def set_bit(string: int, pos: int) -> int:
     Returns:
         int: string with the pos bit set to 1
     """
-    return int(string) | (1 << pos)
+    return int(string) | (1 << int(pos))
 
 
 def unset_bit(string: int, pos: int) -> int:
@@ -172,7 +172,7 @@ def unset_bit(string: int, pos: int) -> int:
     Returns:
         int: string with the pos bit set to 0
     """
-    return int(string) & ~(1 << pos)
+    return int(string) & ~(1 << int(pos))
 
 
 def count_bits_above(string: int, pos: int) -> int:
@@ -186,7 +186,7 @@ def count_bits_above(string: int, pos: int) -> int:
     Returns:
         int: the number of 1 bits above pos
     """
-    return count_bits(int(string) & ~((1 << (pos + 1)) - 1))
+    return count_bits(int(string) & ~((1 << (int(pos) + 1)) - 1))
 
 
 def count_bits_below(string: int, pos: int) -> int:
@@ -200,7 +200,7 @@ def count_bits_below(string: int, pos: int) -> int:
     Returns:
         int: the number of 1 bits below pos
     """
-    return count_bits(int(string) & ((1 << pos) - 1))
+    return count_bits(int(string) & ((1 << int(pos)) - 1))
 
 
 def count_bits_between(string: int, pos1: int, pos2: int) -> int:
