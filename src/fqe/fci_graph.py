@@ -140,6 +140,9 @@ class FciGraph:
         self._bstr: Nparray = None  # string labels for beta-Hilbert space
         self._aind: Dict[int, int] = {}  # map string-binary to matrix index
         self._bind: Dict[int, int] = {}  # map string-binary to matrix index
+        if self._norb == 64:
+            tmp = fqe.settings.use_accelerated_code
+            fqe.settings.use_accelerated_code = False
         self._astr, self._aind = self._build_strings(self._nalpha, self._lena)
         self._bstr, self._bind = self._build_strings(self._nbeta, self._lenb)
         self._alpha_map: Spinmap = self._build_mapping(self._astr, self._nalpha,
@@ -152,6 +155,8 @@ class FciGraph:
                                    self._nbeta)
 
         self._fci_map: Dict[Tuple[int, ...], Tuple[Spinmap, Spinmap]] = {}
+        if self._norb == 64:
+            fqe.settings.use_accelerated_code = tmp
 
     def alpha_beta_transpose(self):
         """

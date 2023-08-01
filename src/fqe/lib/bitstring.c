@@ -33,8 +33,8 @@ void lexicographic_bitstring_generator(uint64_t *out,
     out[0] = 0;
     return;
   }
-  uint64_t combo = (1ll << nele) - 1;
-  while (combo < (1ll << norb)) {
+  uint64_t combo = (1ull << nele) - 1;
+  while (combo < (1ull << norb)) {
     *out++ = combo;
     const uint64_t x = combo & -combo;
     const uint64_t y = combo + x;

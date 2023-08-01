@@ -119,6 +119,9 @@ class FciGraphSet:
         assert isec.norb() == jsec.norb()
         dna = jsec.nalpha() - isec.nalpha()
         dnb = jsec.nbeta() - isec.nbeta()
+        if norb == 64:
+            tmp = fqe.settings.use_accelerated_code
+            fqe.settings.use_accelerated_code = False
 
         def make_mapping_each_set(istrings, dnv, norb, nele):
             nsize = int(special.binom(norb - dnv, nele - dnv))
@@ -214,3 +217,5 @@ class FciGraphSet:
         assert upa != {} or upb != {}
         isec.insert_mapping(dna, dnb, (downa, downb))
         jsec.insert_mapping(-dna, -dnb, (upa, upb))
+        if norb == 64:
+            fqe.settings.use_accelerated_code = tmp
