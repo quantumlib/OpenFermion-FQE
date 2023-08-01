@@ -1480,7 +1480,12 @@ class FqeData:
         """
         norb = self.norb()
         matT = mat.T.copy()
+        if norb == 64:
+            tmp = fqe.settings.use_accelerated_code
+            fqe.settings.use_accelerated_code = False
         index, exc, diag = self._core._map_to_deexc_alpha_icol()
+        if norb == 64:
+            fqe.settings.use_accelerated_code = tmp
 
         if fqe.settings.use_accelerated_code:
             for icol in range(norb):
