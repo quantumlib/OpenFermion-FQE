@@ -119,9 +119,6 @@ class FciGraphSet:
         assert isec.norb() == jsec.norb()
         dna = jsec.nalpha() - isec.nalpha()
         dnb = jsec.nbeta() - isec.nbeta()
-        if norb == 64:
-            tmp = fqe.settings.use_accelerated_code
-            fqe.settings.use_accelerated_code = False
 
         def make_mapping_each_set(istrings, dnv, norb, nele):
             nsize = int(special.binom(norb - dnv, nele - dnv))
@@ -174,7 +171,7 @@ class FciGraphSet:
 
         if dna != 0:
             (iasec, jasec) = (isec, jsec) if dna < 0 else (jsec, isec)
-            if fqe.settings.use_accelerated_code:
+            if fqe.settings.use_accelerated_code and norb < 64:
                 ndowna, nupa = _make_mapping_each_set(iasec.string_alpha_all(),
                                                       abs(dna), norb,
                                                       iasec.nalpha())
@@ -195,7 +192,7 @@ class FciGraphSet:
 
         if dnb != 0:
             (ibsec, jbsec) = (isec, jsec) if dnb < 0 else (jsec, isec)
-            if fqe.settings.use_accelerated_code:
+            if fqe.settings.use_accelerated_code and norb < 64:
                 ndownb, nupb = _make_mapping_each_set(ibsec.string_beta_all(),
                                                       abs(dnb), norb,
                                                       ibsec.nbeta())
@@ -217,5 +214,3 @@ class FciGraphSet:
         assert upa != {} or upb != {}
         isec.insert_mapping(dna, dnb, (downa, downb))
         jsec.insert_mapping(-dna, -dnb, (upa, upb))
-        if norb == 64:
-            fqe.settings.use_accelerated_code = tmp

@@ -107,7 +107,7 @@ def lexicographic_bitstring_generator(nele: int, norb: int) -> 'Nparray':
     if nele > norb:
         raise ValueError("nele cannot be larger than norb")
 
-    if fqe.settings.use_accelerated_code:
+    if fqe.settings.use_accelerated_code and norb < 64:
         out = numpy.zeros((int(special.comb(norb, nele)),), dtype=numpy.uint64)
         _lexicographic_bitstring_generator(out, norb, nele)
         return out

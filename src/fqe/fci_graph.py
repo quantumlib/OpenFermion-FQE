@@ -54,7 +54,7 @@ def map_to_deexc(mappings: Spinmap, states: int, norbs: int,
     index = numpy.zeros((states,), dtype=numpy.uint32)
     for (i, j), values in mappings.items():
         idx = i * norbs + j
-        if fqe.settings.use_accelerated_code:
+        if fqe.settings.use_accelerated_code and norbs < 64:
             _map_deexc(dexc, values, index, idx)
         else:
             for state, target, parity in values:
@@ -82,7 +82,7 @@ def _get_Z_matrix(norb: int, nele: int) -> Nparray:
     if Z.size == 0:
         return Z
 
-    if fqe.settings.use_accelerated_code:
+    if fqe.settings.use_accelerated_code and norb < 64:
         _calculate_Z_matrix(Z, norb, nele)
     else:
         for k in range(1, nele):
@@ -140,9 +140,6 @@ class FciGraph:
         self._bstr: Nparray = None  # string labels for beta-Hilbert space
         self._aind: Dict[int, int] = {}  # map string-binary to matrix index
         self._bind: Dict[int, int] = {}  # map string-binary to matrix index
-        if self._norb == 64:
-            tmp = fqe.settings.use_accelerated_code
-            fqe.settings.use_accelerated_code = False
         self._astr, self._aind = self._build_strings(self._nalpha, self._lena)
         self._bstr, self._bind = self._build_strings(self._nbeta, self._lenb)
         self._alpha_map: Spinmap = self._build_mapping(self._astr, self._nalpha,
@@ -155,8 +152,6 @@ class FciGraph:
                                    self._nbeta)
 
         self._fci_map: Dict[Tuple[int, ...], Tuple[Spinmap, Spinmap]] = {}
-        if self._norb == 64:
-            fqe.settings.use_accelerated_code = tmp
 
     def alpha_beta_transpose(self):
         """
@@ -222,7 +217,7 @@ class FciGraph:
         """
         norb = self._norb
 
-        if fqe.settings.use_accelerated_code:
+        if fqe.settings.use_accelerated_code and norb < 64:
             return _build_mapping_strings(strings, _get_Z_matrix(norb, nele),
                                           nele, norb)
         else:
@@ -320,7 +315,7 @@ class FciGraph:
         norb = self._norb
         blist = lexicographic_bitstring_generator(nele, norb)
 
-        if fqe.settings.use_accelerated_code:
+        if fqe.settings.use_accelerated_code and norb < 64:
             Z = _get_Z_matrix(norb, nele)
             string_list = _calculate_string_address(Z, nele, norb, blist)
         else:
@@ -475,7 +470,7 @@ class FciGraph:
             length2,
         ), dtype=numpy.int32)
         astrings = self.string_alpha_all()
-        if fqe.settings.use_accelerated_code:
+        if fqe.settings.use_accelerated_code and norb < 64:
             _c_map_to_deexc_alpha_icol(exc, diag, index, astrings, norb,
                                        self._alpha_map)
         else:
