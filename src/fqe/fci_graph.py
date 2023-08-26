@@ -28,7 +28,7 @@ from fqe.lib.fci_graph import _build_mapping_strings, _map_deexc, \
                               _calculate_string_address, \
                               _c_map_to_deexc_alpha_icol, \
                               _make_mapping_each, _calculate_Z_matrix
-import fqe.settings
+from fqe.settings import use_accelerated_code, c_string_max_norb
 
 Spinmap = Dict[Tuple[int, ...], Nparray]
 
@@ -54,7 +54,7 @@ def map_to_deexc(mappings: Spinmap, states: int, norbs: int,
     index = numpy.zeros((states,), dtype=numpy.uint32)
     for (i, j), values in mappings.items():
         idx = i * norbs + j
-        if fqe.settings.use_accelerated_code:
+        if use_accelerated_code and norbs <= c_string_max_norb:
             _map_deexc(dexc, values, index, idx)
         else:
             for state, target, parity in values:
@@ -82,7 +82,7 @@ def _get_Z_matrix(norb: int, nele: int) -> Nparray:
     if Z.size == 0:
         return Z
 
-    if fqe.settings.use_accelerated_code:
+    if use_accelerated_code and norb <= c_string_max_norb:
         _calculate_Z_matrix(Z, norb, nele)
     else:
         for k in range(1, nele):
@@ -217,7 +217,7 @@ class FciGraph:
         """
         norb = self._norb
 
-        if fqe.settings.use_accelerated_code:
+        if use_accelerated_code and norb <= c_string_max_norb:
             return _build_mapping_strings(strings, _get_Z_matrix(norb, nele),
                                           nele, norb)
         else:
@@ -315,7 +315,7 @@ class FciGraph:
         norb = self._norb
         blist = lexicographic_bitstring_generator(nele, norb)
 
-        if fqe.settings.use_accelerated_code:
+        if use_accelerated_code and norb <= c_string_max_norb:
             Z = _get_Z_matrix(norb, nele)
             string_list = _calculate_string_address(Z, nele, norb, blist)
         else:
@@ -470,7 +470,7 @@ class FciGraph:
             length2,
         ), dtype=numpy.int32)
         astrings = self.string_alpha_all()
-        if fqe.settings.use_accelerated_code:
+        if use_accelerated_code and norb <= c_string_max_norb:
             _c_map_to_deexc_alpha_icol(exc, diag, index, astrings, norb,
                                        self._alpha_map)
         else:
@@ -538,7 +538,7 @@ class FciGraph:
             strings = self.string_beta_all()
             length = self.lenb()
 
-        if fqe.settings.use_accelerated_code:
+        if use_accelerated_code:
             count = _make_mapping_each(result, strings, length,
                                        numpy.array(dag, dtype=numpy.int32),
                                        numpy.array(undag, dtype=numpy.int32))

@@ -23,7 +23,7 @@ import numpy
 import scipy
 from scipy import special
 
-import fqe.settings
+from fqe.settings import use_accelerated_code, c_string_max_norb
 from fqe.fci_graph import FciGraph
 from fqe.util import alpha_beta_electrons
 from fqe.bitstring import integer_index, count_bits_between
@@ -171,7 +171,7 @@ class FciGraphSet:
 
         if dna != 0:
             (iasec, jasec) = (isec, jsec) if dna < 0 else (jsec, isec)
-            if fqe.settings.use_accelerated_code:
+            if use_accelerated_code and norb <= c_string_max_norb:
                 ndowna, nupa = _make_mapping_each_set(iasec.string_alpha_all(),
                                                       abs(dna), norb,
                                                       iasec.nalpha())
@@ -192,7 +192,7 @@ class FciGraphSet:
 
         if dnb != 0:
             (ibsec, jbsec) = (isec, jsec) if dnb < 0 else (jsec, isec)
-            if fqe.settings.use_accelerated_code:
+            if use_accelerated_code and norb <= c_string_max_norb:
                 ndownb, nupb = _make_mapping_each_set(ibsec.string_beta_all(),
                                                       abs(dnb), norb,
                                                       ibsec.nbeta())

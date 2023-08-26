@@ -802,7 +802,7 @@ class FqeData:
         nlt = norb * (norb + 1) // 2
 
         h2ecomp = numpy.zeros((nlt, nlt), dtype=self._dtype)
-        h2etemp = numpy.ascontiguousarray(h2e)
+        h2etemp = numpy.ascontiguousarray(h2e, dtype=self._dtype)
         _make_Hcomp(norb, nlt, h2etemp, h2ecomp)
 
         if nalpha - 2 >= 0:

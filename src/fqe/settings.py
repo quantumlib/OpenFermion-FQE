@@ -38,3 +38,14 @@ use_accelerated_code = CodePath.C in available_code_paths
 """
 A switch to check if accelerated code is used. Default is true if accelerated code is available
 """
+
+global_max_norb = 64
+"""
+The global maximum number of orbitals that can be handled by FQE.
+"""
+
+c_string_max_norb = 63
+"""
+The max number of orbitals correctly handled by the C codepath
+for generating determinant strings.
+"""

@@ -24,7 +24,7 @@ from scipy import special
 
 from fqe.lib.bitstring import _lexicographic_bitstring_generator, _count_bits, \
                               _get_occupation
-import fqe.settings
+from fqe.settings import use_accelerated_code, c_string_max_norb
 
 
 def gbit_index(str0: int) -> Generator[int, None, None]:
@@ -68,7 +68,7 @@ def integer_index(string: int) -> 'Nparray':
         Nparray: a list of integers indicating the index of each occupied \
             orbital
     """
-    if fqe.settings.use_accelerated_code:
+    if use_accelerated_code:
         return _get_occupation(string)
     else:
         return numpy.array(list(gbit_index(int(string)))).astype(numpy.int32)
@@ -107,7 +107,7 @@ def lexicographic_bitstring_generator(nele: int, norb: int) -> 'Nparray':
     if nele > norb:
         raise ValueError("nele cannot be larger than norb")
 
-    if fqe.settings.use_accelerated_code:
+    if use_accelerated_code and norb <= c_string_max_norb:
         out = numpy.zeros((int(special.comb(norb, nele)),), dtype=numpy.uint64)
         _lexicographic_bitstring_generator(out, norb, nele)
         return out
@@ -127,7 +127,7 @@ def count_bits(string: int) -> int:
     Returns:
         int: the number of bits equal to 1
     """
-    if fqe.settings.use_accelerated_code:
+    if use_accelerated_code:
         return _count_bits(string)
     else:
         return bin(int(string)).count('1')
@@ -144,7 +144,7 @@ def get_bit(string: int, pos: int) -> int:
     Returns:
         int: 0 if the bit is 0, 2**pos if the bit is 1
     """
-    return int(string) & (1 << pos)
+    return int(string) & (1 << int(pos))
 
 
 def set_bit(string: int, pos: int) -> int:
@@ -158,7 +158,7 @@ def set_bit(string: int, pos: int) -> int:
     Returns:
         int: string with the pos bit set to 1
     """
-    return int(string) | (1 << pos)
+    return int(string) | (1 << int(pos))
 
 
 def unset_bit(string: int, pos: int) -> int:
@@ -172,7 +172,7 @@ def unset_bit(string: int, pos: int) -> int:
     Returns:
         int: string with the pos bit set to 0
     """
-    return int(string) & ~(1 << pos)
+    return int(string) & ~(1 << int(pos))
 
 
 def count_bits_above(string: int, pos: int) -> int:
@@ -186,7 +186,7 @@ def count_bits_above(string: int, pos: int) -> int:
     Returns:
         int: the number of 1 bits above pos
     """
-    return count_bits(int(string) & ~((1 << (pos + 1)) - 1))
+    return count_bits(int(string) & ~((1 << (int(pos) + 1)) - 1))
 
 
 def count_bits_below(string: int, pos: int) -> int:
@@ -200,7 +200,7 @@ def count_bits_below(string: int, pos: int) -> int:
     Returns:
         int: the number of 1 bits below pos
     """
-    return count_bits(int(string) & ((1 << pos) - 1))
+    return count_bits(int(string) & ((1 << int(pos)) - 1))
 
 
 def count_bits_between(string: int, pos1: int, pos2: int) -> int:

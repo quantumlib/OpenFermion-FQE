@@ -27,11 +27,19 @@
 inline int gbit_index(uint64_t *str, int *bit_index) {
 #ifdef __GNUC__
   const int pos = __builtin_ffsll(*str);
-  *str >>= pos;
+  if (pos == 64) {
+    *str = 0ull;
+  } else {
+    *str >>= pos;
+  }
   *bit_index += pos;
   return pos;
 #else
-  if (*bit_index == -1) { *str = *str << 1; }
+  if (*bit_index == -1) {
+    //*str = *str << 1;
+    *bit_index += 1;
+    if (*str & 1) { return 1; }
+  }
   while  (*str) {
     *str = *str >> 1;
     *bit_index += 1;
