@@ -65,6 +65,7 @@ def generate_data(param):
         cr = rng.uniform(-0.5, 0.5, size=value.coeff.shape)
         ci = rng.uniform(-0.5, 0.5, size=value.coeff.shape)
         value.coeff = cr + 1.j * ci
+    wfn.normalize()
 
     data['wfn'] = wfn
     if not spin_conserving:
@@ -115,8 +116,8 @@ def generate_data(param):
 
     # array ham
     full = not (spin_conserving and number_conserving)
-    h1e = build_H1(norbs, full=full)
-    h2e = build_H2(norbs, full=full)
+    h1e = build_H1(norbs, full=full) / 10
+    h2e = build_H2(norbs, full=full) / 20
     e_0 = rng.uniform() + rng.uniform() * 1j
     if not full:
         hamil = get_restricted_hamiltonian((
@@ -139,6 +140,7 @@ def generate_data(param):
     except ValueError:
         # Don't generate an output
         evolved = None
+    #except RuntimeError
 
     data['apply_array'] = {
         'hamil': hamil,

@@ -15,18 +15,16 @@
 """
 # pylint: disable=protected-access
 
-import os
-import sys
 import copy
-import numpy
-import pytest
-
+import os
 from io import StringIO
+import sys
 
-from scipy.special import binom
-
+import numpy
 from openfermion import FermionOperator
 from openfermion.utils import hermitian_conjugated
+import pytest
+from scipy.special import binom
 
 import fqe
 from fqe.wavefunction import Wavefunction
@@ -116,7 +114,7 @@ def test_empty_copy():
     test1 = test.empty_copy()
     assert test1._norb == test._norb
     assert len(test1._civec) == len(test._civec)
-    assert (2, 0) in test1._civec.keys()
+    assert (2, 0) in test1._civec
     assert not numpy.any(test1._civec[(2, 0)].coeff)
 
 
@@ -159,6 +157,10 @@ def test_apply_type_error():
         wfn.apply(hamil)
     with pytest.raises(TypeError):
         wfn.time_evolve(0.1, hamil)
+
+    hamil2 = restricted_hamiltonian.RestrictedHamiltonian((data,))
+    with pytest.raises(TypeError, match="expansion must be an int"):
+        wfn.apply_generated_unitary(0.1, 'taylor', hamil2, expansion=0.5)
 
 
 def test_apply_value_error():
@@ -297,6 +299,60 @@ def test_apply_empty_nbody():
     hamil = sparse_hamiltonian.SparseHamiltonian(fop)
     out1 = wfn._apply_few_nbody(hamil)
     assert (wfn - out1).norm() < 1e-13
+
+
+def test_expansion_failure():
+    """Test exceptions when the max expansion limit is reached.
+    """
+    norb = 4
+    nalpha = 2
+    nbeta = 1
+    nele = nalpha + nbeta
+    time = 0.1
+
+    h1e = build_hamiltonian.build_H1(norb, full=True, asymmetric=True)
+
+    eig, _ = numpy.linalg.eigh(h1e)
+    hamil = fqe.get_general_hamiltonian((h1e,))
+
+    wfn = Wavefunction([[nele, nalpha - nbeta, norb]])
+    wfn.set_wfn(strategy='random')
+
+    err = "maximum chebyshev expansion limit reached"
+    with pytest.raises(RuntimeError, match=err):
+        wfn.apply_generated_unitary(time,
+                                    'chebyshev',
+                                    hamil,
+                                    expansion=1,
+                                    accuracy=1e-9,
+                                    spec_lim=(eig[0], eig[-1]))
+
+    err = "maximum taylor expansion limit reached"
+    with pytest.raises(RuntimeError, match=err):
+        wfn.apply_generated_unitary(time,
+                                    'taylor',
+                                    hamil,
+                                    expansion=1,
+                                    accuracy=1e-9)
+
+
+def test_empty_nbody_evolve():
+    """Check that '_evolve_individual_nbody' works with an empty
+    FermionOperator/SparseHamiltonian
+    """
+    norb = 4
+    nele = 4
+    time = 0.1
+    ops = FermionOperator()
+    sham = fqe.get_sparse_hamiltonian(ops, conserve_spin=False)
+
+    wfn = fqe.get_number_conserving_wavefunction(nele, norb)
+    wfn.set_wfn(strategy='random')
+    wfn.normalize()
+
+    out = wfn._evolve_individual_nbody(time, sham)
+
+    assert (out - wfn).norm() < 1.e-8
 
 
 def test_nbody_evolve():
@@ -626,7 +682,6 @@ def test_apply(c_or_python, param, kind):
         assert Wavefunction_isclose(out, reference_data['wfn_out'])
 
 
-@pytest.mark.skip(reason="Test seems to be failing due to bad reference_data")
 @pytest.mark.parametrize("param,kind", [(c, k) for c in all_cases for k in [
     'apply_array', 'apply_sparse', 'apply_diagonal', 'apply_quadratic',
     'apply_dc'
