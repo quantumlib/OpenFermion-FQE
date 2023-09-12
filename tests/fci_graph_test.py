@@ -15,10 +15,14 @@
 """
 
 import numpy
-import fqe
 import pytest
 from scipy import special
+
+import fqe
 from fqe import fci_graph
+from fqe.lib.fci_graph import _c_map_to_deexc_alpha_icol
+from fqe.settings import CodePath
+
 from tests.unittest_data.fci_graph_data import loader
 from tests.comparisons import compare_Spinmap
 
@@ -310,6 +314,14 @@ def test_map_to_deexc_alpha_icol(c_or_python, norb, nalpha, nbeta):
     assert numpy.array_equal(rindex, index)
     assert numpy.array_equal(rexc, exc)
     assert numpy.array_equal(rdiag, diag)
+
+    if c_or_python == CodePath.PYTHON:
+        return
+
+    tmp = numpy.zeros((norb, norb))
+    test = {(i, i): numpy.zeros((1, 1)) for i in range(norb)}
+    with pytest.raises(ValueError):
+        _c_map_to_deexc_alpha_icol(tmp, tmp, tmp, tmp, norb, test)
 
 
 @pytest.mark.parametrize("nalpha,nbeta,norb", cases)

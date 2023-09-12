@@ -22,9 +22,10 @@ import numpy
 from numpy import ndarray as Nparray
 from scipy import special
 
+import fqe
 from fqe.lib.bitstring import _lexicographic_bitstring_generator, _count_bits, \
                               _get_occupation
-from fqe.settings import use_accelerated_code, c_string_max_norb
+from fqe.settings import c_string_max_norb
 
 
 def gbit_index(str0: int) -> Generator[int, None, None]:
@@ -68,7 +69,7 @@ def integer_index(string: int) -> 'Nparray':
         Nparray: a list of integers indicating the index of each occupied \
             orbital
     """
-    if use_accelerated_code:
+    if fqe.settings.use_accelerated_code:
         return _get_occupation(string)
     else:
         return numpy.array(list(gbit_index(int(string)))).astype(numpy.int32)
@@ -107,7 +108,7 @@ def lexicographic_bitstring_generator(nele: int, norb: int) -> 'Nparray':
     if nele > norb:
         raise ValueError("nele cannot be larger than norb")
 
-    if use_accelerated_code and norb <= c_string_max_norb:
+    if fqe.settings.use_accelerated_code and norb <= c_string_max_norb:
         out = numpy.zeros((int(special.comb(norb, nele)),), dtype=numpy.uint64)
         _lexicographic_bitstring_generator(out, norb, nele)
         return out
@@ -127,7 +128,7 @@ def count_bits(string: int) -> int:
     Returns:
         int: the number of bits equal to 1
     """
-    if use_accelerated_code:
+    if fqe.settings.use_accelerated_code:
         return _count_bits(string)
     else:
         return bin(int(string)).count('1')

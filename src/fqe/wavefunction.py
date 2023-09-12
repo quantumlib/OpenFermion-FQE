@@ -28,7 +28,7 @@ from typing import (Any, Callable, cast, Dict, KeysView, List, Optional, Tuple,
 import pickle
 import numpy
 from scipy import linalg
-from scipy.special import factorial, jv
+from scipy.special import jv
 
 from fqe.fqe_decorators import wrap_apply, wrap_apply_generated_unitary
 from fqe.fqe_decorators import wrap_time_evolve, wrap_rdm
@@ -555,12 +555,12 @@ class Wavefunction:
 
         if algo == 'taylor':
             ham_arrays = hamil.iht(time)
-
             time_evol = copy.deepcopy(base)
             work = copy.deepcopy(base)
+            coeff = 1.0
             for order in range(1, max_expansion):
                 work = work.apply(ham_arrays)
-                coeff = 1.0 / factorial(order)
+                coeff /= order
                 time_evol.ax_plus_y(coeff, work)
                 if work.norm() * numpy.abs(coeff) < accuracy:
                     break
@@ -1231,7 +1231,7 @@ class Wavefunction:
                     raise ValueError(
                         'Operators in _evolve_individual_nbody is not Hermitian'
                     )
-        else:
+        elif hamil.nterms() == 1:
             [
                 (coeff0, alpha0, beta0),
             ] = hamil.terms()
@@ -1247,6 +1247,9 @@ class Wavefunction:
                         'Operators in _evolve_individual_nbody is not Hermitian'
                     )
             coeff0 *= 0.5
+        else:
+            assert hamil.nterms() == 0
+            return self if inplace else copy.deepcopy(self)
 
         daga = []
         dagb = []
