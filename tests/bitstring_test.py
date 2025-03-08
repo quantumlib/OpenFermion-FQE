@@ -21,9 +21,10 @@ from fqe import bitstring
 import fqe.settings
 
 
-def test_bit_integer_index_val():
+def test_bit_integer_index_val(c_or_python):
     """The index of bits should start at 0.
     """
+    fqe.settings.use_accelerated_code = c_or_python
     _gbiti = bitstring.gbit_index(1)
     assert next(_gbiti) == 0
     _gbiti = bitstring.gbit_index(11)

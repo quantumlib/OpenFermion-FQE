@@ -16,8 +16,20 @@
 import pytest
 import numpy
 import fqe
+from fqe.lib import c_double_complex
 from fqe.lib.linalg import _zimatadd, _transpose
 from fqe.settings import CodePath
+
+
+def test_ctype_double_complex(c_or_python):
+    if c_or_python == CodePath.PYTHON:
+        # No test needed for python
+        return
+
+    rval = 1.0
+    ival = -1.0
+    test = c_double_complex(rval, ival)
+    assert test.value == rval + 1.j * ival
 
 
 def test_zimatadd(c_or_python):
