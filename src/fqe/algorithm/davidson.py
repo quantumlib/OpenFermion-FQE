@@ -50,7 +50,7 @@ def davidsonliu(
             tmp_gv[idx, 0] = 1
             guess_vecs.append(tmp_gv)
 
-    old_thetas = np.array([np.infty] * nroots)
+    old_thetas = np.array([np.inf] * nroots)
     hmat_diag = np.diagonal(hmat)
     while len(guess_vecs) <= dim:
         if verbose:
@@ -66,7 +66,7 @@ def davidsonliu(
         for i, j in product(range(len(guess_vecs)), repeat=2):
             if i >= j:
                 val = guess_vecs[i].T @ hmat @ guess_vecs[j]
-                if isinstance(val, (float, complex, np.complex128, np.complex)):
+                if isinstance(val, (float, complex, np.complex128)):
                     subspace_mat[i, j] = val
                 else:
                     subspace_mat[i, j] = val[0, 0]
@@ -179,7 +179,7 @@ def davidsonliu_fqe(
                          graph.index_beta(ib)] = comp_basis.expectationValue(
                              hmat).real
 
-    old_thetas = np.array([np.infty] * nroots)
+    old_thetas = np.array([np.inf] * nroots)
 
     # Orthogonalize guess_vecs
     unortho_guess_vecs = guess_vecs
